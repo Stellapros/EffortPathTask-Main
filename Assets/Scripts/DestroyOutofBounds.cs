@@ -1,30 +1,17 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class DestroyOutofBounds : MonoBehaviour
+public class DestroyOutOfBounds : MonoBehaviour
 {
-    private float topBound = 30;
-    private float lowerBound = -10;
+    [SerializeField] private float topBound = 30;
+    [SerializeField] private float lowerBound = -10;
+    [SerializeField] private float sideBound = 15;
 
-    // Start is called before the first frame update
-    void Start()
+    private void Update()
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        // if an object goes past the players view in the game, remove that object
-        if (transform.position.z > topBound)
+        Vector3 position = transform.position;
+        if (position.z > topBound || position.z < lowerBound || Mathf.Abs(position.x) > sideBound)
         {
             Destroy(gameObject);
-        }   else if (transform.position.z < lowerBound)
-            {
-            Debug.Log("Game Over!"); // 
-            Destroy(gameObject);
-            }           
-       
+        }
     }
 }

@@ -1,129 +1,136 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using TMPro;
-using System.Numerics;
+using System.Collections.Generic;
 
 public class SpawnManager : MonoBehaviour
 {
+    [SerializeField] private GameObject rewardPrefab;
+    [SerializeField] private float gridSize = 0.1f;
+    [SerializeField] private float ySpawnPosition = 0.5f;
 
-    public GameObject rewardPrefab;
-    public int rewardCount;
-    private float spawnRange;
-    private string conditionName;
-    public TextMeshProUGUI logText;
-    private List<UnityEngine.Vector3> spawnPositions = new List<UnityEngine.Vector3>();
-    
+    [SerializeField] private float minX = -1.0f;
+    [SerializeField] private float maxX = 1.0f;
+    [SerializeField] private float minZ = -1.0f;
+    [SerializeField] private float maxZ = 1.0f;
 
+    private int gridWidth;
+    private int gridLength;
+    private Vector3 gridOrigin;
+    private List<Vector2Int> availableGridPositions;
 
-    // Start is called before the first frame update
-    void Start()
+    private void Awake()
     {
-
-        // Randomly select one of the four conditions
-        int condition = Random.Range(0, 4); // Generates a random number between 0 and 3
-
-        // Apply the selected condition
-        switch (condition)
-        {
-            case 0:
-                SetCondition(5, 3.0f, "LowProfit LowEffort");
-                break;
-            case 1:
-                SetCondition(5, 7.0f, "LowProfit HighEffort");
-                break;
-            case 2:
-                SetCondition(10, 3.0f, "HighProfit LowEffort");
-                break;
-            case 3:
-                SetCondition(10, 7.0f, "HighProfit HighEffort");
-                break;
-        }
-
-        // Update the UI log
-        if (logText != null)
-        {
-            logText.text = "Condition: " + conditionName + "\n";
-        }
-
-        // Log the selected condition
-        Debug.Log("Selected Condition: " + conditionName);
-
-        // Spawn rewards
-        SpawnRewards();
+        CalculateGridDimensions();
+        InitializeGrid();
     }
 
 
-
-    void SetCondition(int count, float range, string name)
+    private void CalculateGridDimensions()
     {
-        rewardCount = count;
-        spawnRange = range;
-        conditionName = name;
+        gridWidth = Mathf.CeilToInt((maxX - minX) / gridSize);
+        gridLength = Mathf.CeilToInt((maxZ - minZ) / gridSize);
+        gridOrigin = new Vector3(minX, 0f, minZ);
 
-        Debug.Log("Condition set: " + conditionName + " - Reward Count = " + rewardCount + ", Spawn Range = " + spawnRange);
-
-        // Update the UI log
-        if (logText != null)
-        {
-            logText.text = "Condition: " + conditionName + "\n";
-        }
+        Debug.Log($"Grid Dimensions - Width: {gridWidth}, Length: {gridLength}");
+        Debug.Log($"Grid Origin: {gridOrigin}");
     }
 
-
-    void SpawnRewards()
+    private void InitializeGrid()
     {
-        // Clear previous spawn positions
-        spawnPositions.Clear();
-
-        // Spawn rewards based on rewardCount and spawnRange
-        for (int i = 0; i < rewardCount; i++)
+        availableGridPositions = new List<Vector2Int>();
+        for (int x = 0; x < gridWidth; x++)
         {
-            UnityEngine.Vector3 spawnPosition = GenerateSpawnPosition();
-            Instantiate(rewardPrefab, spawnPosition, rewardPrefab.transform.rotation);
-        }
-    }
-
-    private UnityEngine.Vector3 GenerateSpawnPosition()
-    {
-        UnityEngine.Vector3 randomPos;
-        bool positionIsValid;
-
-        do
-        {
-            // Generate a random position
-            float spawnPosX = Random.Range(-spawnRange, spawnRange);
-            float spawnPosZ = Random.Range(-spawnRange, spawnRange);
-
-            randomPos = new UnityEngine.Vector3(spawnPosX, 0, spawnPosZ);
-
-            // Check if the position is valid (not the center and not overlapping)
-            positionIsValid = !IsPositionInvalid(randomPos);
-
-        } while (!positionIsValid);
-
-        // Add the valid position to the list
-        spawnPositions.Add(randomPos);
-        return randomPos;
-    }
-
-    private bool IsPositionInvalid(UnityEngine.Vector3 position)
-    {
-        // Check if the position is too close to the center (0, 0, 0)
-        if (UnityEngine.Vector3.Distance(position, UnityEngine.Vector3.zero) < 1.0f)
-        {
-            return true;
-        }
-
-        // Check if the position overlaps with any existing spawn positions
-        foreach (var pos in spawnPositions)
-        {
-            if (UnityEngine.Vector3.Distance(position, pos) < 1.0f)
+            for (int z = 0; z < gridLength; z++)
             {
-                return true;
+                availableGridPositions.Add(new Vector2Int(x, z));
             }
         }
+        Debug.Log($"Total grid positions: {availableGridPositions.Count}");
+    }
 
-        return false;
+    public void SpawnReward(int blockIndex, int trialIndex, int pressesRequired)
+    {
+        if (availableGridPositions.Count == 0)
+        {
+            Debug.LogWarning("No available grid positions for spawning reward!");
+            return;
+        }
+
+        int randomIndex = Random.Range(0, availableGridPositions.Count);
+        Vector2Int gridPosition = availableGridPositions[randomIndex];
+        availableGridPositions.RemoveAt(randomIndex);
+
+        Vector3 worldPosition = GridToWorldPosition(gridPosition);
+        GameObject spawnedReward = Instantiate(rewardPrefab, worldPosition, Quaternion.identity);
+
+        Reward rewardComponent = spawnedReward.GetComponent<Reward>();
+        if (rewardComponent != null)
+        {
+            rewardComponent.SetRewardParameters(blockIndex, trialIndex, pressesRequired);
+        }
+
+        Debug.Log($"Spawned reward at grid position: {gridPosition}, world position: {worldPosition}");
+    }
+
+
+    private Vector3 GridToWorldPosition(Vector2Int gridPosition)
+    {
+        float worldX = minX + gridPosition.x * gridSize;
+        float worldZ = minZ + gridPosition.y * gridSize;
+        Vector3 worldPosition = new Vector3(worldX, ySpawnPosition, worldZ);
+
+        // Clamp the position to ensure it's within bounds
+        worldPosition.x = Mathf.Clamp(worldPosition.x, minX, maxX);
+        worldPosition.z = Mathf.Clamp(worldPosition.z, minZ, maxZ);
+
+        return worldPosition;
+    }
+
+
+    public void ClearReward()
+    {
+        foreach (GameObject reward in GameObject.FindGameObjectsWithTag("Reward"))
+        {
+            Vector2Int gridPosition = WorldToGridPosition(reward.transform.position);
+            if (!availableGridPositions.Contains(gridPosition))
+            {
+                availableGridPositions.Add(gridPosition);
+            }
+            Destroy(reward);
+        }
+    }
+
+
+    private Vector2Int WorldToGridPosition(Vector3 worldPosition)
+    {
+        int gridX = Mathf.FloorToInt((worldPosition.x - minX) / gridSize);
+        int gridZ = Mathf.FloorToInt((worldPosition.z - minZ) / gridSize);
+        return new Vector2Int(gridX, gridZ);
+    }
+
+
+
+    private void OnDrawGizmos()
+    {
+        if (!Application.isPlaying)
+        {
+            Gizmos.color = Color.yellow;
+            Vector3 gridSize3D = new Vector3(gridSize, 0.1f, gridSize);
+
+            for (int x = 0; x < gridWidth; x++)
+            {
+                for (int z = 0; z < gridLength; z++)
+                {
+                    Vector3 worldPos = GridToWorldPosition(new Vector2Int(x, z));
+                    Gizmos.DrawWireCube(worldPos, gridSize3D);
+                }
+            }
+
+            // Draw border
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(new Vector3(minX, 0, minZ), new Vector3(minX, 0, maxZ));
+            Gizmos.DrawLine(new Vector3(maxX, 0, minZ), new Vector3(maxX, 0, maxZ));
+            Gizmos.DrawLine(new Vector3(minX, 0, minZ), new Vector3(maxX, 0, minZ));
+            Gizmos.DrawLine(new Vector3(minX, 0, maxZ), new Vector3(maxX, 0, maxZ));
+        }
     }
 }

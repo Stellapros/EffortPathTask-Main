@@ -1,40 +1,49 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
 public class ScoreManager : MonoBehaviour
 {
-    public static ScoreManager instance;
-    public int score = 0;  // Player's current score
-    public TextMeshProUGUI scoreText;  // Reference to the TextMeshPro Text component
+    public static ScoreManager Instance { get; private set; }
 
-    
-    void Awake()
+    [SerializeField] private TextMeshProUGUI scoreText;
+    private int totalScore = 0;
+
+    private void Awake()
     {
-        if (instance == null)
+        if (Instance == null)
         {
-            instance = this;
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else if (Instance != this)
+        {
+            Destroy(gameObject);
         }
     }
 
-    void Start()
-    {
-        UpdateScoreUI();
-    }
+    private void Start() => UpdateScoreUI();
 
     public void AddScore(int value)
     {
-        score += value;
+        totalScore += value;
         UpdateScoreUI();
     }
 
-    void UpdateScoreUI()
+    public void IncreaseScore(int value) => AddScore(value);
+
+    private void UpdateScoreUI()
     {
         if (scoreText != null)
         {
-            scoreText.text = "Score: " + score;
+            scoreText.text = $"Score: {totalScore}";
         }
     }
 
+    public int GetTotalScore() => totalScore;
+
+    public void ResetScore()
+    {
+        totalScore = 0;
+        UpdateScoreUI();
+    }
 }

@@ -1,31 +1,29 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using UnityEditor.Build.Content;
 using UnityEngine;
 
 public class Reward : MonoBehaviour
 {
-    public float detectionRadius = 0.5f;
     public int scoreValue = 10;
-    private ScoreManager scoreManager; // refer to tHe GameManager Script
+    private int blockIndex;
+    private int trialIndex;
+    private int pressesRequired;
 
-    private void OnDrawGizmosSelected()
+    public void SetRewardParameters(int block, int trial, int presses)
     {
-        // This will draw a wire sphere in the Scene view to help visualize the detection radius
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
+        blockIndex = block;
+        trialIndex = trial;
+        pressesRequired = presses;
+        // You can use these parameters to adjust the reward if needed
     }
 
-    public bool IsPlayerInRange(Vector3 playerPosition)
-    {
-        return Vector3.Distance(transform.position, playerPosition) <= detectionRadius;
-    }
-
-    void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
-            // Add score
-            ScoreManager.instance.AddScore(scoreValue);
-
-            // Destroy the reward object
+            ScoreManager.Instance.AddScore(scoreValue);
             Destroy(gameObject);
         }
     }
