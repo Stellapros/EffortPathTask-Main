@@ -131,7 +131,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 634794087}
-  - component: {fileID: 634794088}
   m_Layer: 0
   m_Name: DataController
   m_TagString: Untagged
@@ -154,18 +153,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &634794088
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 634794086}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c7ee78bdbd7d24219b32e6a3e42d8156, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &739111678
 GameObject:
   m_ObjectHideFlags: 0
@@ -175,10 +162,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 739111679}
-  - component: {fileID: 739111683}
   - component: {fileID: 739111682}
   - component: {fileID: 739111681}
-  - component: {fileID: 739111680}
   m_Layer: 0
   m_Name: GameController
   m_TagString: Untagged
@@ -201,18 +186,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &739111680
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 739111678}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e5d3e1e3f741d48b89709543a25756c8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!82 &739111681
 AudioSource:
   m_ObjectHideFlags: 0
@@ -405,18 +378,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &739111683
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 739111678}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f9b9a6fb1a1ab42b89c3aa27eda738e4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

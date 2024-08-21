@@ -12,6 +12,11 @@ public class CountdownTimer : MonoBehaviour
 
     public float TimeLeft => timeLeft;
 
+    private void Start()
+    {
+        ResetTimer();
+    }
+
     private void Update()
     {
         if (isRunning)

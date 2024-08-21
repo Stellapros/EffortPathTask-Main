@@ -7,7 +7,7 @@ EditorBuildSettings:
   m_Scenes:
   - enabled: 1
     path: Assets/Scenes/TitlePage.unity
-    guid: d239aa1cbf50b4755afbfd80cecacf77
+    guid: 123a5c498bfb940ada22ceee1a3ad1e4
   - enabled: 1
     path: Assets/Scenes/BeforeStartingScreen.unity
     guid: 9304e3675861c4ad5adce6ae4747f5a9
@@ -26,6 +26,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/GetReady.unity
     guid: 3b21cad07faf74dec88c66a631234e24
+  - enabled: 1
+    path: Assets/Scenes/GridWorld.unity
+    guid: e0d495b684b404cdabe7ad0008a36b0a
   - enabled: 1
     path: Assets/Scenes/MainExperiment.unity
     guid: b0beba59402a24a8795a646a02d70114

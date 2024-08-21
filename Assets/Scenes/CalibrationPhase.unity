@@ -183,12 +183,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb16c158dc4fb4d9faa0d2bc11cbfdbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  calibrationTime: 5
-  timerText: {fileID: 0}
-  instructionsText: {fileID: 0}
-  playerPrefab: {fileID: 273968190432392564, guid: 0f5b203bb08ce42eeb0800134666cb02, type: 3}
-  rewardPrefab: {fileID: 8391023158373042025, guid: dd73dd1016d084e06b6a438c77846757, type: 3}
-  rewardDistance: 10
 --- !u!4 &499813956
 Transform:
   m_ObjectHideFlags: 0
@@ -687,7 +681,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d52b28d4848024004831ed879c5bdad0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  score: 0
   scoreText: {fileID: 1119910767}
 --- !u!4 &1002513155
 Transform:
@@ -748,11 +741,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94a383236a9714d0b88e30e07bbe5e09, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  baseSpeed: 5
-  currentSpeed: 0
-  stepDistance: 0
-  useDiscreteMovement: 1
-  logText: {fileID: 0}
 --- !u!1 &1062541084
 GameObject:
   m_ObjectHideFlags: 0
@@ -1263,24 +1251,29 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 100046, guid: 2cc2b6c23d4e84210b87f04570b3fec6, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 100046, guid: 2cc2b6c23d4e84210b87f04570b3fec6,
+        type: 3}
       insertIndex: -1
       addedObject: {fileID: 1457466050}
-    - targetCorrespondingSourceObject: {fileID: 100046, guid: 2cc2b6c23d4e84210b87f04570b3fec6, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 100046, guid: 2cc2b6c23d4e84210b87f04570b3fec6,
+        type: 3}
       insertIndex: -1
       addedObject: {fileID: 1457466049}
-    - targetCorrespondingSourceObject: {fileID: 100046, guid: 2cc2b6c23d4e84210b87f04570b3fec6, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 100046, guid: 2cc2b6c23d4e84210b87f04570b3fec6,
+        type: 3}
       insertIndex: -1
       addedObject: {fileID: 1457466047}
   m_SourcePrefab: {fileID: 100100000, guid: 2cc2b6c23d4e84210b87f04570b3fec6, type: 3}
 --- !u!1 &1457466045 stripped
 GameObject:
-  m_CorrespondingSourceObject: {fileID: 100046, guid: 2cc2b6c23d4e84210b87f04570b3fec6, type: 3}
+  m_CorrespondingSourceObject: {fileID: 100046, guid: 2cc2b6c23d4e84210b87f04570b3fec6,
+    type: 3}
   m_PrefabInstance: {fileID: 1276797108}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &1457466046 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: 400046, guid: 2cc2b6c23d4e84210b87f04570b3fec6, type: 3}
+  m_CorrespondingSourceObject: {fileID: 400046, guid: 2cc2b6c23d4e84210b87f04570b3fec6,
+    type: 3}
   m_PrefabInstance: {fileID: 1276797108}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &1457466047
@@ -1295,11 +1288,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94a383236a9714d0b88e30e07bbe5e09, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  baseSpeed: 5
-  currentSpeed: 1
-  stepDistance: 0
-  useDiscreteMovement: 0
-  logText: {fileID: 0}
 --- !u!54 &1457466049
 Rigidbody:
   m_ObjectHideFlags: 0
