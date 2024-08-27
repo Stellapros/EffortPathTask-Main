@@ -3,20 +3,23 @@ using UnityEngine;
 public class DetectCollisions : MonoBehaviour
 {
     [SerializeField] private GameController gameController;
-    [SerializeField] private ScoreManager scoreManager;
 
     private void Start()
     {
-        gameController ??= FindObjectOfType<GameController>();
-        scoreManager ??= FindObjectOfType<ScoreManager>();
+        // If GameController is not assigned in the inspector, try to find it in the scene
+        if (gameController == null)
+            gameController = FindObjectOfType<GameController>();
     }
 
     private void OnTriggerEnter(Collider other)
     {
+        // Check if the collided object is a reward
         if (other.CompareTag("Reward") && other.TryGetComponent<Reward>(out var reward))
         {
-            scoreManager?.IncreaseScore(reward.scoreValue);
-            gameController?.RewardCollected();
+            // Notify the GameController that a reward was collected
+            gameController.RewardCollected();
+            
+            // Destroy the reward object
             Destroy(other.gameObject);
         }
     }

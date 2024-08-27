@@ -4,205 +4,280 @@ using UnityEngine.SceneManagement;
 
 public class GameController : MonoBehaviour
 {
+    // Serialized fields for Unity inspector
     [SerializeField] private PlayerController playerController;
     [SerializeField] private PlayerSpawner playerSpawner;
     [SerializeField] private RewardSpawner rewardSpawner;
     [SerializeField] private GridManager gridManager;
     [SerializeField] private CountdownTimer countdownTimer;
     [SerializeField] private ScoreManager scoreManager;
-    [SerializeField] private int rewardValue = 1; // Add this field to specify the reward value
-    [SerializeField] private float maxTrialDuration = 10f;
+    [SerializeField] private int rewardValue = 1;
+    [SerializeField] private float maxTrialDuration = 10f; // Maximum duration for each trial
     [SerializeField] private float restDuration = 3f;
     [SerializeField] private int[] pressesPerStep = { 3, 2, 1 };
     [SerializeField] private int trialsPerBlock = 20;
 
+    // Private fields for game state
     private GameObject currentPlayer;
     private GameObject currentReward;
-
-
-
     private int currentBlockIndex = 0;
     private int currentTrialInBlock = 0;
-    private bool rewardCollected = false;
+    public bool rewardCollected = false;
 
-    // Reference to the ExperimentManager
+    // Event for reward collection
+    public event System.Action OnRewardCollected;
 
+    // Reference to the experiment manager
+    private IExperimentManager _experimentManager;
 
-
-    private readonly IExperimentManager _experimentManager;
-
-    public GameController(IExperimentManager experimentManager)
+    /// <summary>
+    /// Awake is called when the script instance is being loaded.
+    /// Here we try to find the ExperimentManager in the scene.
+    /// </summary>
+    private void Awake()
     {
-        _experimentManager = experimentManager;
-    }
-
-
-    private void Start()
-    {
-
-        // Find the ExperimentManager in the scene
-        // experimentManager = FindObjectOfType<ExperimentManager>();
-        // experimentManager = (IExperimentManager)experimentManagerObject;
-
+        _experimentManager = FindObjectOfType<ExperimentManager>();
         if (_experimentManager == null)
         {
-            Debug.LogError("ExperimentManager not found!");
+            Debug.LogError("ExperimentManager not found in the scene!");
+        }
+    }
+
+    /// <summary>
+    /// Set up the experiment manager and subscribe to its OnTrialEnded event.
+    /// </summary>
+    /// <param name="experimentManager">The experiment manager instance</param>
+    public void SetExperimentManager(IExperimentManager experimentManager)
+    {
+        _experimentManager = experimentManager;
+        _experimentManager.OnTrialEnded += OnTrialEnd;
+    }
+
+    /// <summary>
+    /// Start is called before the first frame update.
+    /// Here we start the experiment if the ExperimentManager is set.
+    /// </summary>
+    private void Start()
+    {
+        if (_experimentManager == null)
+        {
+            Debug.LogError("ExperimentManager not found in GameController!");
             return;
         }
 
-        _experimentManager.OnTrialEnded += OnTrialEnd;
-        StartCoroutine(RunExperiment());
+        StartExperiment();
+    }
 
-        if (playerSpawner != null)
+    /// <summary>
+    /// This method is called when a new trial starts.
+    /// It spawns the player, enables movement, and sets up other trial-specific logic.
+    /// </summary>
+    public void StartTrial()
+    {
+        // Get the initial position for the player from the experiment manager
+        Vector2 initialPosition = _experimentManager.GetCurrentTrialPlayerPosition();
+
+        // Spawn the player at the initial position
+        SpawnPlayer(initialPosition);
+
+        // Enable player movement
+        if (playerController != null)
         {
-            Vector2 initialPosition = Vector2.zero;
+            playerController.EnableMovement();
+        }
 
-            GameObject player = playerSpawner.SpawnPlayer(initialPosition);
-            if (player != null)
-            {
-                Debug.Log("Player successfully spawned!");
-            }
-            else
-            {
-                Debug.LogError("Failed to spawn player.");
-            }
+        // Spawn the reward
+        Vector2 rewardPosition = _experimentManager.GetCurrentTrialRewardPosition();
+        SpawnReward(rewardPosition, (int)_experimentManager.GetCurrentTrialEV());
+
+        // Start the countdown timer
+        if (countdownTimer != null)
+        {
+            countdownTimer.StartTimer(maxTrialDuration);
+            StartCoroutine(CheckTimerCoroutine());
         }
         else
         {
-            Debug.LogError("PlayerSpawner not assigned to GameManager!");
+            Debug.LogError("CountdownTimer is not assigned!");
         }
+
+        Debug.Log($"Trial started - Player at: {initialPosition}, Reward at: {rewardPosition}, Effort Level: {_experimentManager.GetCurrentTrialEV()}");
     }
 
-
-
-
-    private IEnumerator RunExperiment()
+    /// <summary>
+    /// Coroutine to check if the timer has ended.
+    /// </summary>
+    private IEnumerator CheckTimerCoroutine()
     {
-        while (currentBlockIndex < pressesPerStep.Length)
+        // Wait until the timer reaches zero
+        while (countdownTimer.TimeLeft > 0)
         {
-            for (currentTrialInBlock = 0; currentTrialInBlock < trialsPerBlock; currentTrialInBlock++)
-            {
-                yield return StartCoroutine(RunTrial());
-                yield return new WaitForSeconds(restDuration);
-                currentTrialInBlock++; // Increment counter after trial ends
-            }
-            currentBlockIndex++;
+            yield return null;
         }
-
-        // Experiment completed, return to decision scene
-        _experimentManager.EndTrial(true);
-        _experimentManager.LoadDecisionScene();
-
+        EndTrial(false); // Time's up, end trial without reward collection
     }
 
-    private IEnumerator RunTrial()
+    /// <summary>
+    /// Start the experiment by calling StartTrial on the ExperimentManager.
+    /// </summary>
+    private void StartExperiment()
     {
-        // Spawn player
-        Vector2 playerSpawnPosition = _experimentManager.GetCurrentTrialPlayerPosition();
-        currentPlayer = playerSpawner.SpawnPlayer(playerSpawnPosition);
-        if (currentPlayer != null)
-        {
-            playerController = currentPlayer.GetComponent<PlayerController>();
-            if (playerController == null)
-            {
-                Debug.LogError("PlayerController component not found on spawned player!");
-                yield break;
-            }
-        }
-        else
-        {
-            Debug.LogError("Failed to spawn player!");
-            yield break;
-        }
-
-        // Spawn reward
-        int currentPressesRequired = pressesPerStep[currentBlockIndex];
-        GameObject currentReward = rewardSpawner.SpawnReward(currentBlockIndex, currentTrialInBlock, currentPressesRequired);
-
-        // Set up player movement
-        playerController.SetPressesPerStep(currentPressesRequired);
-        playerController.EnableMovement();
-        playerController.StartTrial();
-
-        countdownTimer.ResetTimer();
-        countdownTimer.StartTimer();
-        rewardCollected = false;
-
-        // Wait for trial to end
-        yield return new WaitUntil(() => rewardCollected || countdownTimer.TimeLeft <= 0);
-
-        EndTrial();
+        _experimentManager.StartTrial();
     }
 
-    private void OnRewardCollected()
+    /// <summary>
+    /// Callback for when a trial ends. This method is subscribed to the ExperimentManager's OnTrialEnded event.
+    /// </summary>
+    /// <param name="rewardCollected">Whether the reward was collected or not</param>
+    private void OnTrialEnd(bool rewardCollected)
     {
-        rewardCollected = true;
-        scoreManager.IncreaseScore(rewardValue);
+        EndTrial(rewardCollected);
     }
 
-    private void EndTrial()
+    /// <summary>
+    /// Method to end the current trial. It cleans up the scene and notifies the ExperimentManager.
+    /// </summary>
+    /// <param name="rewardCollected">Whether the reward was collected or not</param>
+    private void EndTrial(bool rewardCollected)
     {
         if (playerController != null)
         {
             playerController.DisableMovement();
             playerController.EndTrial();
-            playerController.OnRewardCollected -= OnRewardCollected;
+            playerController.OnRewardCollected -= RewardCollected;
         }
 
-        // Clear player
+        DespawnPlayer();
+        ClearReward();
+
+        if (countdownTimer != null)
+        {
+            countdownTimer.StopTimer();
+        }
+
+        StopAllCoroutines(); // Stop the timer checking coroutine
+
+        string trialOutcome = rewardCollected ? "Reward Collected" : "Time Out";
+        Debug.Log($"Trial ended - Block:{currentBlockIndex};Trial:{currentTrialInBlock};Outcome:{trialOutcome}");
+
+        _experimentManager.EndTrial(rewardCollected);
+    }
+
+    /// <summary>
+    /// Method called when a reward is collected. It updates the game state and score.
+    /// </summary>
+    public void RewardCollected()
+    {
+        OnRewardCollected?.Invoke();
+        rewardCollected = true;
+        scoreManager.IncreaseScore(rewardValue);
+        EndTrial(true);
+    }
+
+    /// <summary>
+    /// Method to spawn the player at a given position.
+    /// </summary>
+    /// <param name="position">The position to spawn the player</param>
+    private void SpawnPlayer(Vector2 position)
+    {
+        if (playerSpawner != null)
+        {
+            currentPlayer = playerSpawner.SpawnPlayer(position);
+            if (currentPlayer != null)
+            {
+                playerController = currentPlayer.GetComponent<PlayerController>();
+                if (playerController == null)
+                {
+                    Debug.LogError("PlayerController component not found on spawned player!");
+                }
+                else
+                {
+                    playerController.OnRewardCollected += RewardCollected;
+                }
+            }
+            else
+            {
+                Debug.LogError("Failed to spawn player!");
+            }
+        }
+        else
+        {
+            Debug.LogError("PlayerSpawner is not assigned!");
+        }
+    }
+
+    /// <summary>
+    /// Method to spawn the reward at a given position with a specific effort level.
+    /// </summary>
+    /// <param name="position">The position to spawn the reward</param>
+    /// <param name="effortLevel">The effort level for the reward</param>
+    private void SpawnReward(Vector2 position, int effortLevel)
+    {
+        if (rewardSpawner != null)
+        {
+            currentReward = rewardSpawner.SpawnReward(currentBlockIndex, currentTrialInBlock, effortLevel);
+            if (currentReward == null)
+            {
+                Debug.LogError("Failed to spawn reward!");
+            }
+        }
+        else
+        {
+            Debug.LogError("RewardSpawner is not assigned!");
+        }
+    }
+
+    /// <summary>
+    /// Method to despawn the player.
+    /// </summary>
+    private void DespawnPlayer()
+    {
         if (currentPlayer != null)
         {
             playerSpawner.DespawnPlayer(currentPlayer);
             currentPlayer = null;
             playerController = null;
         }
+    }
 
-        // Clear reward
+    /// <summary>
+    /// Method to clear the reward from the scene.
+    /// </summary>
+    private void ClearReward()
+    {
         if (currentReward != null)
         {
             rewardSpawner.ClearReward();
             currentReward = null;
         }
-
-        countdownTimer.ResetTimer();
-
-        // Log trial data
-        string trialOutcome = rewardCollected ? "Reward Collected" : "Time Out";
-        Debug.Log($"Trial ended - Block:{currentBlockIndex};Trial:{currentTrialInBlock};Outcome:{trialOutcome}");
-
-        // Inform experiment manager
-        _experimentManager.EndTrial(rewardCollected);
     }
 
-
-    private void OnTrialEnd(bool rewardCollected)
-    {
-        EndTrial();
-    }
-
-
-    public void RewardCollected()
-    {
-        rewardCollected = true;
-        scoreManager.IncreaseScore(rewardValue); // Pass the reward value to IncreaseScore
-    }
-
-    // New method to initialize the game state
+    /// <summary>
+    /// Method to initialize the game state for a new experiment.
+    /// </summary>
     public void InitializeGameState()
     {
-        // Reset all relevant game state variables
         currentBlockIndex = 0;
         currentTrialInBlock = 0;
         rewardCollected = false;
-        scoreManager.ResetScore(); // Assuming you have a method to reset the score
+        scoreManager.ResetScore();
 
-        // Initialize player position
         Vector2 playerPosition = _experimentManager.GetCurrentTrialPlayerPosition();
-        playerController.ResetPosition(playerPosition);
+        if (playerController != null)
+        {
+            playerController.ResetPosition(playerPosition);
+        }
+        else
+        {
+            Debug.LogError("PlayerController is null when trying to reset position!");
+        }
     }
 
+    /// <summary>
+    /// Method to load the decision scene.
+    /// </summary>
     public void LoadDecisionScene()
     {
-        SceneManager.LoadScene("DecisionScene");
+        SceneManager.LoadScene("DecisionPhase");
     }
 }

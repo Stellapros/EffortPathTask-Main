@@ -17,22 +17,31 @@ public class PlayerController : MonoBehaviour
     public int rightCounter = 0;
     private Vector2 moveDirection;
     private bool canMove = false;
-    public Rigidbody rb;
+    // public Rigidbody rb;
+    public Rigidbody playerRigidbody;
 
     private void Awake()
     {
         Debug.Log("PlayerController Awake called");
+        playerRigidbody = GetComponent<Rigidbody>();
+        if (playerRigidbody == null)
+        {
+            Debug.LogError("Rigidbody component not found on the player object!");
+        }
     }
-
 
     private void Start()
     {
         Debug.Log("PlayerController Start called");
-        rb = GetComponent<Rigidbody>();
-        if (rb == null)
-        {
-            Debug.LogError("Rigidbody component not found on the player object!");
-        }
+    }
+
+
+    public void ResetPosition(Vector2 position)
+    {
+        transform.position = position;
+        ResetCounters();
+        if (playerRigidbody != null) playerRigidbody.velocity = Vector2.zero;
+        Debug.Log($"Player position reset to: {position}");
     }
 
     // Renamed moveStepTreshold to pressesPerStep for clarity
@@ -51,13 +60,7 @@ public class PlayerController : MonoBehaviour
         Debug.Log($"Presses per step set to: {pressesPerStep}");
     }
 
-    public void ResetPosition(Vector2 position)
-    {
-        transform.position = position;
-        ResetCounters();
-        if (rb != null) rb.velocity = Vector2.zero;
-        Debug.Log($"Player position reset to: {position}");
-    }
+
 
     // control the trialRunning boolean
     public void EnableMovement()
@@ -76,14 +79,16 @@ public class PlayerController : MonoBehaviour
     {
         if (!trialRunning)
         {
-            // Debug.Log("Trial not running, movement disabled");
+            Debug.Log("Trial not running, movement disabled");
             return;
         }
 
-        bool keyPressed = false;
+        bool keyPressed = true;
+        Vector2 movement = Vector2.zero;
 
         if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
         {
+            Debug.Log("Up key pressed");
             IncrementCounter(ref upCounter, Vector2.up);
             keyPressed = true;
         }
@@ -106,6 +111,10 @@ public class PlayerController : MonoBehaviour
         if (keyPressed)
         {
             Debug.Log($"Key pressed. Counters - Up: {upCounter}, Down: {downCounter}, Left: {leftCounter}, Right: {rightCounter}");
+        }
+        if (movement != Vector2.zero)
+        {
+            MoveCharacter(movement.normalized);
         }
     }
 

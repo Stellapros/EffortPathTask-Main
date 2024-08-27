@@ -17,12 +17,14 @@ public class DecisionManager : MonoBehaviour
 
     void Start()
     {
+        // Ensure UI elements are properly assigned
         if (effortImages == null || effortImages.Length != 3 || yesButton == null || noButton == null)
         {
             Debug.LogError("UI elements not properly assigned in DecisionManager!");
             return;
         }
 
+        // Get the IExperimentManager reference from the assigned experimentManagerObject
         experimentManager = experimentManagerObject as IExperimentManager;
         if (experimentManager == null)
         {
@@ -69,12 +71,21 @@ public class DecisionManager : MonoBehaviour
 
     void OnYesClicked()
     {
-        // Load the main experiment scene (GridWorld)
-        SceneManager.LoadScene("GridWorld"); // Make sure this matches your actual scene name
+        // Get the current trial data from the experiment manager
+        Vector2 playerPosition = experimentManager.GetCurrentTrialPlayerPosition();
+        Vector2 rewardPosition = experimentManager.GetCurrentTrialRewardPosition();
+        float rewardValue = experimentManager.GetCurrentTrialRewardValue();
+
+        // Start the trial in the GridWorldManager
+        GridWorldManager.Instance.StartTrial(playerPosition, rewardPosition, rewardValue);
+
+        // Load the "GridWorld" scene
+        SceneManager.LoadScene("GridWorld");
     }
 
     void OnNoClicked()
     {
+        // Start the coroutine to wait and show the next image
         StartCoroutine(WaitAndShowNext());
     }
 

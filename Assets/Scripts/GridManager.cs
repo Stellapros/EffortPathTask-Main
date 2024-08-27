@@ -1,10 +1,17 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+
+
 public class GridManager : MonoBehaviour
 {
-    [SerializeField] private int gridWidth = 18;
-    [SerializeField] private int gridHeight = 10;
+      /// <summary>
+      /// Both PlayerSpawner and RewardSpawner rely on a 
+      /// GridManager component to get random available positions
+
+
+    [SerializeField] private int gridWidth = 16;
+    [SerializeField] private int gridHeight = 8;
     [SerializeField] private float cellSize = 1f;
     [SerializeField] private bool centerCells = true;
 

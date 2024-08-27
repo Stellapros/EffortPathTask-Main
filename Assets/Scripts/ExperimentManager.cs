@@ -3,70 +3,37 @@ using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using System.Linq;
 
-
-// Define the Trial class
-public class Trial
-{
-    /// <summary>
-    /// Create class Trial that holds the effort level for each trial
-    /// TO DO: Add other trial variables here: Player reset position, Target reset position, Reward value 
-    /// </summary>
-    /// varEV is the variable that holds the effort level (1,2,3) for each trial
-    public float varEV;
-    public Vector2 varPosPlayer;
-
-    public Trial(float varEV_, Vector2 varPosPlayer_)
-    {
-        varEV = varEV_;
-        varPosPlayer = varPosPlayer_;
-    }
-}
-
-public interface IExperimentManager
-{
-    Vector2 GetCurrentTrialPlayerPosition();
-    void EndTrial(bool completed);
-    void LoadDecisionScene();
-}
-
-// Define the IListExtensions class
-public static class IListExtensions
-{
-    public static void Shuffle<T>(this IList<T> list)
-    {
-        int n = list.Count;
-        while (n > 1)
-        {
-            n--;
-            int k = Random.Range(0, n + 1);
-            T value = list[k];
-            list[k] = list[n];
-            list[n] = value;
-        }
-    }
-}
-
-
 public class ExperimentManager : MonoBehaviour, IExperimentManager
 {
-    // Original variables
+    // Define the Trial class
+    public class Trial
+    {
+        /// <summary>
+        /// Create class Trial that holds the effort level for each trial
+        /// TO DO: Add other trial variables here: Player reset position, Target reset position, Reward value 
+        /// </summary>
+        /// varEV is the variable that holds the effort level (1,2,3) for each trial
+        public float EffortLevel { get; }
+        public Vector2 PlayerPosition { get; }
+        public Vector2 RewardPosition { get; } // Add this
+
+        public Trial(float effortLevel, Vector2 playerPosition, Vector2 rewardPosition)
+        {
+            EffortLevel = effortLevel;
+            PlayerPosition = playerPosition;
+            RewardPosition = rewardPosition;
+        }
+    }
+
+    private List<Trial> trials;
+    private Dictionary<float, Sprite> effortToSpriteMap;
+    private int currentTrialIndex = 0;
     private float startTime;
-    private int trialNum = 0;
-    public bool trialRunning = false;
-    public int totalKeyPresses;
-    public int pressesRequired;
-    private float trialDuration = 5f;
-    private float lowEffort = 0.3f;
-    private float mediumEffort = 0.5f;
-    private float highEffort = 0.9f;
+    private bool isTrialRunning = false;
 
-    List<Trial> lstEVs;
-
-    // New variables for sprite management
-    public List<Sprite> effortSprites = new List<Sprite>();
-    private Dictionary<float, Sprite> effortToSpriteMap = new Dictionary<float, Sprite>();
     [SerializeField] private PlayerSpawner playerSpawner;
-
+    [SerializeField] private RewardSpawner rewardSpawner;
+    [SerializeField] private List<Sprite> effortSprites;
 
     private void Awake()
     {
@@ -74,34 +41,16 @@ public class ExperimentManager : MonoBehaviour, IExperimentManager
         DontDestroyOnLoad(gameObject);
     }
 
-    void Start()
+    private void Start()
     {
         InitializeTrials();
         ShuffleEffortSprites();
-        LoadDecisionScene();
-    }
-
-    public void StartExperiment()
-    {
-        trialNum = 0;
-        LoadDecisionScene();
-    }
-
-
-    public void StartExperimentScene()
-    {
-        SceneManager.LoadScene("ExperimentScene");
-    }
-
-    public void EndExperiment()
-    {
-        Debug.Log("Experiment completed!");
-        // 加载结束实验场景或执行其他逻辑
-        SceneManager.LoadScene("DecisionScene");
+        // LoadDecisionScene();
     }
 
     // TRIAL GENERATOR
-    void InitializeTrials()
+    // Initialize trials with random positions
+    private void InitializeTrials()
     {
         if (playerSpawner == null)
         {
@@ -109,21 +58,18 @@ public class ExperimentManager : MonoBehaviour, IExperimentManager
             return;
         }
 
-        lstEVs = new List<Trial>();
-        for (int i2 = 0; i2 < 4; i2++)
+        trials = new List<Trial>();
+        for (int i = 0; i < 12; i++)
         {
-            for (int ii = 0; ii < 3; ii++)
-            {
-                // This method creates a list of trials, each with a random spawn position for the player
-                Vector2 spawnPosition = playerSpawner.GetRandomSpawnPosition();
-                lstEVs.Add(new Trial(ii + 1, spawnPosition));
-            }
+            Vector2 playerSpawnPosition = playerSpawner.GetRandomSpawnPosition();
+            Vector2 rewardPosition = new Vector2(Random.Range(-8f, 8f), Random.Range(-4f, 4f)); // Generate random reward position
+            trials.Add(new Trial(i % 3 + 1, playerSpawnPosition, rewardPosition)); // Pass the reward position
         }
-        lstEVs.Shuffle();
+        trials.Shuffle();
     }
 
     // New method to shuffle and assign effort sprites
-    void ShuffleEffortSprites()
+    private void ShuffleEffortSprites()
     {
         if (effortSprites.Count != 3)
         {
@@ -132,92 +78,131 @@ public class ExperimentManager : MonoBehaviour, IExperimentManager
         }
 
         effortSprites = effortSprites.OrderBy(x => Random.value).ToList();
-        effortToSpriteMap[1] = effortSprites[0];
-        effortToSpriteMap[2] = effortSprites[1];
-        effortToSpriteMap[3] = effortSprites[2];
+        effortToSpriteMap = new Dictionary<float, Sprite>
+        {
+            { 1, effortSprites[0] },
+            { 2, effortSprites[1] },
+            { 3, effortSprites[2] }
+        };
 
         Debug.Log("Effort sprites shuffled and assigned.");
     }
 
-    // Method to start a trial (now loads ExperimentScene)
+    // Start a new trial
     public void StartTrial()
     {
-        trialRunning = true;
+        isTrialRunning = true;
         startTime = Time.time;
-        SceneManager.LoadScene("ExperimentScene");
+
+        // Add a callback for when the scene is loaded
+        SceneManager.sceneLoaded += OnSceneLoaded;
+
+        // Load the GridWorld scene instead of ExperimentScene
+        SceneManager.LoadScene("GridWorld");
     }
 
-    // Method to skip a trial
+    // Skip the current trial
     public void SkipTrial()
     {
         EndTrial(false);
     }
 
-    // Method to handle trial ending
-    public event System.Action<bool> OnTrialEnded;
+    // End the current trial
     public void EndTrial(bool completed)
     {
-        trialRunning = false;
-
-        string choice = completed ? "Y" : "N";
-        //Add to the data file, the current trial number, its effort level, participants choice (Y/N)
-        LogManager.instance.WriteTimeStampedEntry($"{trialNum};{lstEVs[trialNum].varEV};{choice}");
-
-        //Increase the trial count
-        trialNum++;
-
-        // Notify subscribers about the trial ending
+        isTrialRunning = false;
+        LogManager.instance.WriteTimeStampedEntry($"{currentTrialIndex};{trials[currentTrialIndex].EffortLevel};{(completed ? "Y" : "N")}");
+        currentTrialIndex++;
         OnTrialEnded?.Invoke(completed);
-
         LoadDecisionScene();
     }
 
+    public event System.Action<bool> OnTrialEnded;
 
-    // New method to load the Decision scene
+    // Get the sprite for the current trial's effort level
+    public Sprite GetCurrentTrialSprite()
+    {
+        return effortToSpriteMap[trials[currentTrialIndex].EffortLevel];
+    }
+
+    // Get the effort value for the current trial
+    public float GetCurrentTrialEV()
+    {
+        return trials[currentTrialIndex].EffortLevel;
+    }
+
+    // Get the player position for the current trial
+    public Vector2 GetCurrentTrialPlayerPosition()
+    {
+        return trials[currentTrialIndex].PlayerPosition;
+    }
+
+    // Get the reward position for the current trial
+    public Vector2 GetCurrentTrialRewardPosition()
+    {
+        return trials[currentTrialIndex].RewardPosition;
+    }
+
+    // Get the reward value for the current trial
+    public float GetCurrentTrialRewardValue()
+    {
+        return 10f; // Assuming 10 points per reward
+    }
+
+    // Check if the trial time is up
+    public bool IsTrialTimeUp()
+    {
+        return Time.time - startTime > 5f;
+    }
+
+    // Load the decision scene
     public void LoadDecisionScene()
     {
-        if (trialNum >= lstEVs.Count)
+        if (currentTrialIndex >= trials.Count)
         {
             Debug.Log("Experiment completed!");
             // TODO: Load end experiment scene or do something else
             return;
         }
 
-        SceneManager.LoadScene("DecisionScene");
+        SceneManager.LoadScene("DecisionPhase");
     }
 
-    // Method to get the current trial's effort sprite
-    public Sprite GetCurrentTrialSprite()
+    // Handle scene loading
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        return effortToSpriteMap[lstEVs[trialNum].varEV];
+        if (scene.name == "GridWorld")
+        {
+            GameController gameController = FindObjectOfType<GameController>();
+            if (gameController != null)
+            {
+                SpawnPlayerAndReward();
+                gameController.StartTrial();
+            }
+            else
+            {
+                Debug.LogError("GameController not found in GridWorld scene!");
+            }
+        }
+
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
-    // Method to get the current trial's effort value
-    public float GetCurrentTrialEV()
+    // Spawn player and reward for the current trial
+    private void SpawnPlayerAndReward()
     {
-        return lstEVs[trialNum].varEV;
+        if (playerSpawner == null || rewardSpawner == null)
+        {
+            Debug.LogError("PlayerSpawner or RewardSpawner is not set in ExperimentManager!");
+            return;
+        }
+
+        Vector2 playerPosition = GetCurrentTrialPlayerPosition();
+        Vector2 rewardPosition = GetCurrentTrialRewardPosition();
+
+        playerSpawner.SpawnPlayer(playerPosition);
+        rewardSpawner.SpawnReward(currentTrialIndex, 0, (int)GetCurrentTrialEV());
+
+        Debug.Log($"Player spawned at: {playerPosition}, Reward spawned at: {rewardPosition}");
     }
-
-    // Method to get the current trial's player position
-    public Vector2 GetCurrentTrialPlayerPosition()
-    {
-        return lstEVs[trialNum].varPosPlayer;
-    }
-
-
-    // Method to check if trial time is up
-    public bool IsTrialTimeUp()
-    {
-        return Time.time - startTime > trialDuration;
-    }
-
-    // Original method to calculate required presses (kept for reference)
-    int CalculatePressesRequired(float effortLevel)
-    {
-        if (effortLevel == 1) return (int)(lowEffort * totalKeyPresses);
-        if (effortLevel == 2) return (int)(mediumEffort * totalKeyPresses);
-        if (effortLevel == 3) return (int)(highEffort * totalKeyPresses);
-        return 0;
-    }
-
 }
