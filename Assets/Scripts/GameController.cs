@@ -30,6 +30,9 @@ public class GameController : MonoBehaviour
     // Reference to the experiment manager
     private IExperimentManager _experimentManager;
 
+    // Store the actual reward position
+    private Vector2 actualRewardPosition;
+
     /// <summary>
     /// Awake is called when the script instance is being loaded.
     /// Here we try to find the ExperimentManager in the scene.
@@ -75,10 +78,10 @@ public class GameController : MonoBehaviour
     public void StartTrial()
     {
         // Get the initial position for the player from the experiment manager
-        Vector2 initialPosition = _experimentManager.GetCurrentTrialPlayerPosition();
+        Vector2 initialPlayerPosition = _experimentManager.GetCurrentTrialPlayerPosition();
 
         // Spawn the player at the initial position
-        SpawnPlayer(initialPosition);
+        SpawnPlayer(initialPlayerPosition);
 
         // Enable player movement
         if (playerController != null)
@@ -87,8 +90,8 @@ public class GameController : MonoBehaviour
         }
 
         // Spawn the reward
-        Vector2 rewardPosition = _experimentManager.GetCurrentTrialRewardPosition();
-        SpawnReward(rewardPosition, (int)_experimentManager.GetCurrentTrialEV());
+        int effortLevel = (int)_experimentManager.GetCurrentTrialEV();
+        SpawnReward(effortLevel);
 
         // Start the countdown timer
         if (countdownTimer != null)
@@ -101,7 +104,8 @@ public class GameController : MonoBehaviour
             Debug.LogError("CountdownTimer is not assigned!");
         }
 
-        Debug.Log($"Trial started - Player at: {initialPosition}, Reward at: {rewardPosition}, Effort Level: {_experimentManager.GetCurrentTrialEV()}");
+        // Log the trial start with the actual reward position
+        Debug.Log($"Trial started - Player at: {initialPlayerPosition}, Reward at: {actualRewardPosition}, Effort Level: {effortLevel}");
     }
 
     /// <summary>
@@ -178,11 +182,11 @@ public class GameController : MonoBehaviour
     /// Method to spawn the player at a given position.
     /// </summary>
     /// <param name="position">The position to spawn the player</param>
-    private void SpawnPlayer(Vector2 position)
+    private void SpawnPlayer(Vector2 playerPosition)
     {
         if (playerSpawner != null)
         {
-            currentPlayer = playerSpawner.SpawnPlayer(position);
+            currentPlayer = playerSpawner.SpawnPlayer(playerPosition);
             if (currentPlayer != null)
             {
                 playerController = currentPlayer.GetComponent<PlayerController>();
@@ -207,16 +211,19 @@ public class GameController : MonoBehaviour
     }
 
     /// <summary>
-    /// Method to spawn the reward at a given position with a specific effort level.
+    /// Method to spawn the reward with a specific effort level.
     /// </summary>
-    /// <param name="position">The position to spawn the reward</param>
     /// <param name="effortLevel">The effort level for the reward</param>
-    private void SpawnReward(Vector2 position, int effortLevel)
+    private void SpawnReward(int effortLevel)
     {
         if (rewardSpawner != null)
         {
             currentReward = rewardSpawner.SpawnReward(currentBlockIndex, currentTrialInBlock, effortLevel);
-            if (currentReward == null)
+            if (currentReward != null)
+            {
+                actualRewardPosition = currentReward.transform.position;
+            }
+            else
             {
                 Debug.LogError("Failed to spawn reward!");
             }

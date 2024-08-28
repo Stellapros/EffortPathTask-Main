@@ -1,7 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using UnityEditor.Build.Content;
 using UnityEngine;
 
 public class Reward : MonoBehaviour
@@ -17,6 +13,11 @@ public class Reward : MonoBehaviour
         trialIndex = trial;
         pressesRequired = presses;
         // You can use these parameters to adjust the reward if needed
+    }
+
+    public void SetValue(float value)
+    {
+        scoreValue = Mathf.RoundToInt(value);
     }
 
     private void OnTriggerEnter(Collider other)

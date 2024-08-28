@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class GridWorldManager : MonoBehaviour
@@ -7,15 +5,23 @@ public class GridWorldManager : MonoBehaviour
     public static GridWorldManager Instance { get; private set; }
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject rewardPrefab;
+    [SerializeField] private GridManager gridManager;
 
     private void Awake()
     {
-        Instance = this;
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     public void StartTrial(Vector2 playerPosition, Vector2 rewardPosition, float rewardValue)
     {
-        // Use the received data to spawn the player and reward in the "GridWorld" scene
         SpawnPlayer(playerPosition);
         SpawnReward(rewardPosition, rewardValue);
         // Other trial setup logic
@@ -38,7 +44,17 @@ public class GridWorldManager : MonoBehaviour
         if (rewardPrefab != null)
         {
             GameObject rewardObject = Instantiate(rewardPrefab, new Vector3(position.x, position.y, 0f), Quaternion.identity);
-            // Set the reward value on the spawned reward object
+            Reward rewardComponent = rewardObject.GetComponent<Reward>();
+            if (rewardComponent != null)
+            {
+                rewardComponent.SetValue(value);
+                // You may want to set these parameters based on your game logic
+                rewardComponent.SetRewardParameters(0, 0, 1);
+            }
+            else
+            {
+                Debug.LogError("Reward component not found on rewardPrefab!");
+            }
         }
         else
         {

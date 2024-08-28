@@ -2,11 +2,14 @@ using UnityEngine;
 
 public class PlayerSpawner : MonoBehaviour
 {
+    /// <summary>
+    /// Spawns players using positions from GridManager.
+    /// </summary>
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GridManager gridManager;
 
     // Spawn the player at the given position
-    public GameObject SpawnPlayer(Vector2 position)
+    public GameObject SpawnPlayer(Vector2 playerPosition)
     {
         if (playerPrefab == null)
         {
@@ -14,8 +17,8 @@ public class PlayerSpawner : MonoBehaviour
             return null;
         }
 
-        GameObject spawnedPlayer = Instantiate(playerPrefab, position, Quaternion.identity);
-        Debug.Log($"Player spawned at position: {position}");
+        GameObject spawnedPlayer = Instantiate(playerPrefab, playerPosition, Quaternion.identity);
+        Debug.Log($"Player spawned at position: {playerPosition}");
     
         PlayerController controller = spawnedPlayer.GetComponent<PlayerController>();
         if (controller != null)

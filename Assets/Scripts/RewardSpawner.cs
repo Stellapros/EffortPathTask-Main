@@ -2,14 +2,17 @@ using UnityEngine;
 
 public class RewardSpawner : MonoBehaviour
 {
+    /// <summary>
+    /// Spawns rewards using positions from GridManager.
+    /// </summary>
     [SerializeField] private GameObject rewardPrefab;
     [SerializeField] private GridManager gridManager;
 
     // Spawn a reward with the given parameters
     public GameObject SpawnReward(int blockIndex, int trialIndex, int pressesRequired)
     {
-        Vector2 spawnPosition = gridManager.GetRandomAvailablePosition();
-        GameObject spawnedReward = Instantiate(rewardPrefab, spawnPosition, Quaternion.identity);
+        Vector2 rewardPosition = gridManager.GetRandomAvailablePosition();
+        GameObject spawnedReward = Instantiate(rewardPrefab, rewardPosition, Quaternion.identity);
 
         Reward rewardComponent = spawnedReward.GetComponent<Reward>();
         if (rewardComponent != null)
@@ -21,7 +24,7 @@ public class RewardSpawner : MonoBehaviour
             Debug.LogError("Reward component not found on spawned reward!");
         }
 
-        Debug.Log($"Spawned reward at position: {spawnPosition}");
+        Debug.Log($"Reward spawned at position: {rewardPosition}");
         return spawnedReward;
     }
 
