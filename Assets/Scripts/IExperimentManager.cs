@@ -15,8 +15,8 @@ public interface IExperimentManager
     /// <summary>
     /// End the current trial
     /// </summary>
-    /// <param name="completed">True if the trial was completed, false otherwise</param>
-    void EndTrial(bool completed);
+    /// <param name="rewardCollected">True if the trial was completed, false otherwise</param>
+    void EndTrial(bool rewardCollected);
 
     /// <summary>
     /// Get the sprite for the current trial's effort level
@@ -58,9 +58,18 @@ public interface IExperimentManager
     /// Load the decision scene
     /// </summary>
     void LoadDecisionScene();
+    void HandleDecision(bool workDecision);
 
     /// <summary>
     /// Event that is invoked when a trial ends
     /// </summary>
     event System.Action<bool> OnTrialEnded;
+
+    /// <summary>
+    /// Log trial data
+    /// </summary>
+    /// <param name="completed">Whether the trial was completed successfully</param>
+    /// <param name="reactionTime">The reaction time for the trial</param>
+    /// <param name="buttonPresses">The number of button presses during the trial</param>
+    void LogTrialData(bool completed, float reactionTime, int buttonPresses);
 }

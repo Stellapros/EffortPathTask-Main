@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 2984317733912579765}
   m_Layer: 0
   m_Name: Reward_Lemon
-  m_TagString: Untagged
+  m_TagString: Reward
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

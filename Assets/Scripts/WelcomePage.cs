@@ -22,5 +22,6 @@ public class ContinueScreen : MonoBehaviour
     {
         Debug.Log("Continuing to the next screen: " + nextSceneName);
         SceneManager.LoadScene(nextSceneName);
+        ExperimentManager.Instance.StartExperiment();
     }
 }

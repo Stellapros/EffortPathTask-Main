@@ -19,7 +19,7 @@ public class PlayerSpawner : MonoBehaviour
 
         GameObject spawnedPlayer = Instantiate(playerPrefab, playerPosition, Quaternion.identity);
         Debug.Log($"Player spawned at position: {playerPosition}");
-    
+
         PlayerController controller = spawnedPlayer.GetComponent<PlayerController>();
         if (controller != null)
         {

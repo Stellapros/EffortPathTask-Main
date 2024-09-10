@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: -160856663690177226}
   m_Layer: 0
   m_Name: Reward_Pineapple
-  m_TagString: Untagged
+  m_TagString: Reward
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

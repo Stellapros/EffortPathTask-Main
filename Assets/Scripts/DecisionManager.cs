@@ -1,118 +1,114 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections;
-using UnityEngine.SceneManagement;
+using TMPro;
 
+/// <summary>
+/// Controls the decision phase of each trial, where the participant chooses to work or skip.
+/// </summary>
 public class DecisionManager : MonoBehaviour
 {
-    public Image[] effortImages; // Array of three effort Image components
-    public Button yesButton;
-    public Button noButton;
-    public float waitTime = 3f; // Wait time in seconds after a 'No' response
+    [SerializeField] private Image effortImage;
+    [SerializeField] private TextMeshProUGUI effortLevelText;
+    [SerializeField] private Button workButton;
+    [SerializeField] private Button skipButton;
 
-    [SerializeField] private MonoBehaviour experimentManagerObject;
-    private IExperimentManager experimentManager;
+    private ExperimentManager experimentManager;
 
-    private int currentImageIndex = 0;
-
-    void Start()
+    private void Start()
     {
-        // Ensure UI elements are properly assigned
-        if (effortImages == null || effortImages.Length != 3 || yesButton == null || noButton == null)
-        {
-            Debug.LogError("UI elements not properly assigned in DecisionManager!");
-            return;
-        }
-
-        // Get the IExperimentManager reference from the assigned experimentManagerObject
-        experimentManager = experimentManagerObject as IExperimentManager;
+        // Find the ExperimentManager in the scene
+        experimentManager = ExperimentManager.Instance;
         if (experimentManager == null)
         {
-            Debug.LogError("ExperimentManager not found or does not implement IExperimentManager!");
+            Debug.LogError("ExperimentManager not found in the scene!");
             return;
         }
-
-        // Add listeners to the buttons
-        yesButton.onClick.AddListener(OnYesClicked);
-        noButton.onClick.AddListener(OnNoClicked);
-
-        // Initialize the display
-        ShuffleAndDisplayImages();
+        SetupButtons();
     }
 
-    void ShuffleAndDisplayImages()
+    private void SetupButtons()
     {
-        // Get three random sprites from the experiment manager
-        Sprite[] sprites = new Sprite[3];
-        for (int i = 0; i < 3; i++)
+        if (workButton != null)
         {
-            sprites[i] = experimentManager.GetCurrentTrialSprite();
-            experimentManager.SkipTrial(); // Move to next trial to get a different sprite
-        }
-
-        // Shuffle the sprites
-        for (int i = 0; i < sprites.Length; i++)
-        {
-            Sprite temp = sprites[i];
-            int randomIndex = Random.Range(i, sprites.Length);
-            sprites[i] = sprites[randomIndex];
-            sprites[randomIndex] = temp;
-        }
-
-        // Assign shuffled sprites to images
-        for (int i = 0; i < effortImages.Length; i++)
-        {
-            effortImages[i].sprite = sprites[i];
-            effortImages[i].gameObject.SetActive(i == 0); // Show only the first image initially
-        }
-
-        currentImageIndex = 0;
-    }
-
-    void OnYesClicked()
-    {
-        // Get the current trial data from the experiment manager
-        Vector2 playerPosition = experimentManager.GetCurrentTrialPlayerPosition();
-        Vector2 rewardPosition = experimentManager.GetCurrentTrialRewardPosition();
-        float rewardValue = experimentManager.GetCurrentTrialRewardValue();
-
-        // Start the trial in the GridWorldManager
-        GridWorldManager.Instance.StartTrial(playerPosition, rewardPosition, rewardValue);
-
-        // Load the "GridWorld" scene
-        SceneManager.LoadScene("GridWorld");
-    }
-
-    void OnNoClicked()
-    {
-        // Start the coroutine to wait and show the next image
-        StartCoroutine(WaitAndShowNext());
-    }
-
-    IEnumerator WaitAndShowNext()
-    {
-        // Disable buttons during wait time
-        yesButton.interactable = false;
-        noButton.interactable = false;
-
-        yield return new WaitForSeconds(waitTime);
-
-        // Move to next image or reshuffle if all images have been shown
-        currentImageIndex++;
-        if (currentImageIndex >= effortImages.Length)
-        {
-            ShuffleAndDisplayImages();
+            workButton.onClick.AddListener(() => OnDecisionMade(true));
         }
         else
         {
-            for (int i = 0; i < effortImages.Length; i++)
-            {
-                effortImages[i].gameObject.SetActive(i == currentImageIndex);
-            }
+            Debug.LogError("Work button is not assigned in the DecisionManager!");
         }
 
-        // Re-enable buttons
-        yesButton.interactable = true;
-        noButton.interactable = true;
+        if (skipButton != null)
+        {
+            skipButton.onClick.AddListener(() => OnDecisionMade(false));
+        }
+        else
+        {
+            Debug.LogError("Skip button is not assigned in the DecisionManager!");
+        }
+    }
+
+    /// <summary>
+    /// Sets up the decision phase UI with the current trial's effort sprite and level.
+    /// </summary>
+    public void SetupDecisionPhase()
+    {
+        if (experimentManager == null)
+        {
+            Debug.LogError("ExperimentManager is null in SetupDecisionPhase");
+            return;
+        }
+
+        Sprite currentTrialSprite = experimentManager.GetCurrentTrialSprite();
+        float currentTrialEV = experimentManager.GetCurrentTrialEV();
+
+        if (effortImage != null)
+        {
+            effortImage.sprite = currentTrialSprite;
+        }
+        else
+        {
+            Debug.LogError("Effort Image is not assigned in DecisionManager!");
+        }
+
+        if (effortLevelText != null)
+        {
+            effortLevelText.text = $"Effort Level: {currentTrialEV}";
+        }
+        else
+        {
+            Debug.LogError("Effort Level Text is not assigned in DecisionManager!");
+        }
+
+        // Enable buttons
+        if (workButton != null) workButton.interactable = true;
+        if (skipButton != null) skipButton.interactable = true;
+    }
+
+    /// <summary>
+    /// Handles the user's decision to work or skip.
+    /// </summary>
+    /// <param name="workDecision">True if the user decided to work, false if they decided to skip.</param>
+    private void OnDecisionMade(bool workDecision)
+    {
+        Debug.Log($"Decision made: {(workDecision ? "Work" : "Skip")}");
+
+        // Disable buttons to prevent multiple clicks
+        if (workButton != null) workButton.interactable = false;
+        if (skipButton != null) skipButton.interactable = false;
+
+        if (experimentManager != null)
+        {
+            experimentManager.HandleDecision(workDecision);
+        }
+        else
+        {
+            Debug.LogError("ExperimentManager is null in OnDecisionMade!");
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (workButton != null) workButton.onClick.RemoveAllListeners();
+        if (skipButton != null) skipButton.onClick.RemoveAllListeners();
     }
 }

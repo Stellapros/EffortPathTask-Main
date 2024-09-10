@@ -10,10 +10,26 @@ public class LogManager : MonoBehaviour
     public static LogManager instance = null; //Static instance of LogManager which allows it to be accessed by any other script.
     private string filePath;
     [SerializeField] private bool m_ShowDebugLogManager;
+    public static class LogManagerHelper
+    {
+        public static void Log(string message)
+        {
+            if (LogManager.instance != null)
+            {
+                LogManager.instance.WriteTimeStampedEntry(message);
+            }
+            else
+            {
+                Debug.LogWarning($"LogManager instance is null. Cannot log message: {message}");
+            }
+        }
+    }
 
     //Awake is always called before any Start functions
     void Awake()
     {
+        Debug.Log("LogManager Awake called");
+
         if (m_ShowDebugLogManager)
         {
             print("LogManager::Awake");
@@ -22,6 +38,8 @@ public class LogManager : MonoBehaviour
         {
             //if not, set instance to this
             instance = this;
+            DontDestroyOnLoad(gameObject);
+            InitializeLogFile();
         }
 
         //If instance already exists and it's not this:
@@ -45,10 +63,16 @@ public class LogManager : MonoBehaviour
 
     }
 
-
+    private void InitializeLogFile()
+    {
+        string strDir = Path.Combine(Application.dataPath, "_ExpData");
+        filePath = Path.Combine(strDir, System.DateTime.Now.ToString("yyyyMMdd-HHmmss") + "_data.txt");
+    }
 
     public void WriteTimeStampedEntry(string strMessage)
     {
+        Debug.Log($"[{System.DateTime.Now}] {strMessage}");
+
         if (m_ShowDebugLogManager)
         {
             print("LogManager::writeEntry");
@@ -85,8 +109,6 @@ public class LogManager : MonoBehaviour
             });
         }
     }
-
-
 
 
     public void WriteCSV(string[] header, IList<string[]> data)
