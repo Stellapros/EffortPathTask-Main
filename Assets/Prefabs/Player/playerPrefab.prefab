@@ -11,10 +11,9 @@ GameObject:
   - component: {fileID: 4145545126596270624}
   - component: {fileID: 9065919869793600845}
   - component: {fileID: 6382901151627789725}
-  - component: {fileID: -4789544177530090834}
-  - component: {fileID: -1424425866129914071}
-  - component: {fileID: 2174915153543998309}
   - component: {fileID: 100146633506672638}
+  - component: {fileID: -7198420545532246115}
+  - component: {fileID: -2898216514934644671}
   m_Layer: 8
   m_Name: playerPrefab
   m_TagString: Player
@@ -110,61 +109,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.8299999, y: 0.8299999, z: 0.2}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &-4789544177530090834
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 197052547065130213}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a5df6673d4014458491c3531279b1f27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  moveStepSize: 1
-  pressesPerStep: 5
-  trialRunning: 0
-  upCounter: 0
-  downCounter: 0
-  leftCounter: 0
-  rightCounter: 0
-  errorSound: {fileID: 8300000, guid: 1617e0d71b004419da18e026c82adefe, type: 3}
-  gridManager: {fileID: 0}
---- !u!114 &-1424425866129914071
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 197052547065130213}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 303e41e36e9b444db9b574fb1590711a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gameController: {fileID: 0}
---- !u!95 &2174915153543998309
-Animator:
-  serializedVersion: 5
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 197052547065130213}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 0a15c63d90aab4339abdd61bbca9bf66, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!54 &100146633506672638
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -187,8 +131,43 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
+  m_UseGravity: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
+  m_Constraints: 120
+  m_CollisionDetection: 1
+--- !u!114 &-7198420545532246115
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 197052547065130213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 303e41e36e9b444db9b574fb1590711a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gameController: {fileID: 4376569847124673037, guid: 70904f10d211b473590c2ecdbfba4c18,
+    type: 3}
+  gridWorldManager: {fileID: 1833278028662612437, guid: 96d776e8ee130440d8b6e04107cc91e0,
+    type: 3}
+--- !u!114 &-2898216514934644671
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 197052547065130213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5df6673d4014458491c3531279b1f27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveStepSize: 1
+  pressesPerStep: 1
+  trialRunning: 0
+  errorSound: {fileID: 0}
+  gridManager: {fileID: 0}
+  movementParticles: {fileID: 0}
+  movementTrail: {fileID: 0}

@@ -31,6 +31,7 @@ public class ScoreManager : MonoBehaviour
 
     public void IncreaseScore(int value) => AddScore(value);
 
+
     private void UpdateScoreUI()
     {
         if (scoreText != null)
@@ -38,6 +39,7 @@ public class ScoreManager : MonoBehaviour
             scoreText.text = $"Score: {totalScore}";
         }
     }
+
 
     public int GetTotalScore() => totalScore;
 

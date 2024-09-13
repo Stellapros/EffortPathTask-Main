@@ -57,10 +57,13 @@ public class ExperimentManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
+
+            // This Unity function prevents the GameObject (and its components) 
+            // from being destroyed when a new scene is loaded
             DontDestroyOnLoad(gameObject);
             InitializeTrials();
             InitializeSpriteToEffortMap();
-            SceneManager.sceneLoaded += OnSceneLoaded;
+            //SceneManager.sceneLoaded += OnSceneLoaded;
         }
         else
         {
@@ -70,20 +73,23 @@ public class ExperimentManager : MonoBehaviour
 
     private void Start()
     {
+        SceneManager.sceneLoaded += OnSceneLoaded;
         // Load the welcome page if not already there
-        if (SceneManager.GetActiveScene().name != welcomePageScene)
-        {
-            LoadScene(welcomePageScene);
-        }
+        // if (SceneManager.GetActiveScene().name != welcomePageScene)
+        // {
+        //     LoadScene(welcomePageScene);
+        // }
+
+        // Start the background music
+        BackgroundMusicManager.Instance.PlayMusic();
     }
 
-    private void OnDestroy()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
     #endregion
 
     #region Initialization Methods
+    /// <summary>
+    /// Initializes all trials for the experiment.
+    /// </summary>
     private void InitializeTrials()
     {
         trials = new List<Trial>();
@@ -97,6 +103,9 @@ public class ExperimentManager : MonoBehaviour
         trials = trials.OrderBy(x => Random.value).ToList(); // Shuffle trials
     }
 
+    /// <summary>
+    /// Initializes the mapping between sprites and effort levels.
+    /// </summary>
     private void InitializeSpriteToEffortMap()
     {
         spriteToEffortMap = new Dictionary<Sprite, float>
@@ -107,6 +116,9 @@ public class ExperimentManager : MonoBehaviour
         };
     }
 
+    /// <summary>
+    /// Returns a random effort sprite.
+    /// </summary>
     private Sprite GetRandomEffortSprite()
     {
         int randomIndex = Random.Range(0, 3);
@@ -126,15 +138,22 @@ public class ExperimentManager : MonoBehaviour
     /// </summary>
     public void LoadScene(string sceneName)
     {
+        Debug.Log($"Loading scene: {sceneName}");
         SceneManager.LoadScene(sceneName);
     }
 
     /// <summary>
     /// Called when a new scene is loaded.
-    /// </summary>
+    /// </summary>    
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        Debug.Log($"Scene loaded: {scene.name}");
         SetupButtons(scene.name);
+        
+        if (scene.name == decisionPhaseScene && experimentStarted)
+        {
+            SetupDecisionPhase();
+        }
     }
 
     /// <summary>
@@ -152,8 +171,14 @@ public class ExperimentManager : MonoBehaviour
                     UnityEngine.UI.Button button = buttonObj.GetComponent<UnityEngine.UI.Button>();
                     if (button != null)
                     {
-                        button.onClick.RemoveAllListeners(); // Clear existing listeners
+                        button.onClick.RemoveAllListeners();
                         button.onClick.AddListener(() => LoadScene(transition.toScene));
+                        
+                        // Special case for starting the experiment
+                        if (transition.toScene == decisionPhaseScene && !experimentStarted)
+                        {
+                            button.onClick.AddListener(StartExperiment);
+                        }
                     }
                     else
                     {
@@ -170,7 +195,7 @@ public class ExperimentManager : MonoBehaviour
     #endregion
 
     #region Experiment Control Methods
-        /// <summary>
+    /// <summary>
     /// Progresses to the next scene in the experiment flow.
     /// </summary>
     public void ProgressToNextScene(string nextScene)
@@ -182,6 +207,11 @@ public class ExperimentManager : MonoBehaviour
                 experimentStarted = true;
                 currentTrialIndex = 0;
             }
+            isDecisionPhase = true;
+        }
+        else if (nextScene == gridWorldScene)
+        {
+            isDecisionPhase = false;
         }
         LoadScene(nextScene);
     }
@@ -193,33 +223,89 @@ public class ExperimentManager : MonoBehaviour
     {
         if (!experimentStarted)
         {
+            Debug.Log("Starting experiment");
             experimentStarted = true;
             currentTrialIndex = 0;
-            //LoadScene(decisionPhaseScene);
+            //ProgressToNextScene(decisionPhaseScene);
         }
     }
 
     /// <summary>
     /// Handles the user's decision to work or skip.
     /// </summary>
+    // public void HandleDecision(bool workDecision)
+    // {
+    //     LogDecision(workDecision);
+    //     if (workDecision)
+    //     {
+    //         ProgressToNextScene(gridWorldScene);
+    //     }
+    //     else
+    //     {
+    //         currentTrialIndex++;
+    //         if (currentTrialIndex >= TOTAL_TRIALS)
+    //         {
+    //             EndExperiment();
+    //         }
+    //         else
+    //         {
+    //             StartCoroutine(LoadNextDecisionPhaseWithDelay());
+    //         }
+    //     }
+    // }    
+
+    /// <summary>
+    /// Handles the user's decision to work or skip.
+    /// </summary>
     public void HandleDecision(bool workDecision)
     {
+        Debug.Log($"ExperimentManager: Decision handled: {(workDecision ? "Work" : "Skip")}");
         LogDecision(workDecision);
+
         if (workDecision)
         {
+            Debug.Log("ExperimentManager: Player decided to work. Loading GridWorld scene.");
             LoadScene(gridWorldScene);
         }
         else
         {
-            currentTrialIndex++;
-            if (currentTrialIndex >= TOTAL_TRIALS)
-            {
-                EndExperiment();
-            }
-            else
-            {
-                StartCoroutine(LoadNextDecisionPhaseWithDelay());
-            }
+            Debug.Log("ExperimentManager: Player decided to skip. Waiting for 3 seconds before showing next trial.");
+            StartCoroutine(ShowNextTrialAfterDelay());
+        }
+    }
+
+    private IEnumerator ShowNextTrialAfterDelay()
+    {
+        yield return new WaitForSeconds(SKIP_DELAY);
+        MoveToNextTrial();
+    }
+
+    private void MoveToNextTrial()
+    {
+        currentTrialIndex++;
+        if (currentTrialIndex >= TOTAL_TRIALS)
+        {
+            Debug.Log("Experiment ended");
+            EndExperiment();
+        }
+        else
+        {
+            Debug.Log($"Moving to trial {currentTrialIndex}");
+            LoadScene(decisionPhaseScene);
+        }
+    }
+
+    public void SetupDecisionPhase()
+    {
+        Debug.Log("Setting up Decision Phase");
+        DecisionManager decisionManager = FindObjectOfType<DecisionManager>();
+        if (decisionManager != null)
+        {
+            decisionManager.SetupDecisionPhase();
+        }
+        else
+        {
+            Debug.LogError("DecisionManager not found in the scene!");
         }
     }
 
@@ -230,15 +316,7 @@ public class ExperimentManager : MonoBehaviour
     {
         LogTrialOutcome(completed);
         OnTrialEnded?.Invoke(completed);
-        currentTrialIndex++;
-        if (currentTrialIndex >= TOTAL_TRIALS)
-        {
-            EndExperiment();
-        }
-        else
-        {
-            LoadScene(decisionPhaseScene);
-        }
+        MoveToNextTrial();
     }
 
     /// <summary>
@@ -248,12 +326,13 @@ public class ExperimentManager : MonoBehaviour
     {
         Debug.Log("All trials completed. Ending experiment.");
         LoadScene(endExperimentScene);
+        BackgroundMusicManager.Instance.StopMusic();
     }
 
     private IEnumerator LoadNextDecisionPhaseWithDelay()
     {
         yield return new WaitForSeconds(SKIP_DELAY);
-        LoadScene(decisionPhaseScene);
+        ProgressToNextScene(decisionPhaseScene);
     }
     #endregion
 

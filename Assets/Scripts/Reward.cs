@@ -1,31 +1,41 @@
 using UnityEngine;
 
+/// <summary>
+/// Represents a reward in the GridWorld scene.
+/// </summary>
 public class Reward : MonoBehaviour
 {
-    public int scoreValue = 10;
+    [SerializeField] private int scoreValue = 10;
+     [SerializeField] private int pressesRequired;
     private int blockIndex;
     private int trialIndex;
-    private int pressesRequired;
 
+    /// <summary>
+    /// Sets the number of presses required to collect the reward.
+    /// </summary>
+       /// <param name="block">The block index.</param>
+    /// <param name="trial">The trial index.</param>
+    /// <param name="presses">The number of presses required.</param>
     public void SetRewardParameters(int block, int trial, int presses)
     {
         blockIndex = block;
         trialIndex = trial;
         pressesRequired = presses;
-        // You can use these parameters to adjust the reward if needed
+        Debug.Log($"Reward parameters set: Block {block}, Trial {trial}, Presses required {presses}");
     }
 
+    /// <summary>
+    /// Sets the score value of the reward.
+    /// </summary>
+    /// <param name="value">The score value to set.</param>
     public void SetValue(float value)
     {
         scoreValue = Mathf.RoundToInt(value);
+        Debug.Log($"Reward value set to: {scoreValue}");
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            ScoreManager.Instance.AddScore(scoreValue);
-            Destroy(gameObject);
-        }
-    }
+    // Getter methods
+    public int GetScoreValue() => scoreValue;
+    public int GetPressesRequired() => pressesRequired;
+    public (int, int) GetBlockAndTrialIndex() => (blockIndex, trialIndex);
 }

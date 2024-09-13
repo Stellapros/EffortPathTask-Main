@@ -1,114 +1,56 @@
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 
 /// <summary>
 /// Controls the decision phase of each trial, where the participant chooses to work or skip.
+/// This script acts as a bridge between the EffortSpriteUI and the ExperimentManager.
 /// </summary>
 public class DecisionManager : MonoBehaviour
 {
-    [SerializeField] private Image effortImage;
-    [SerializeField] private TextMeshProUGUI effortLevelText;
-    [SerializeField] private Button workButton;
-    [SerializeField] private Button skipButton;
-
+    [SerializeField] private EffortSpriteUI effortSpriteUI;
     private ExperimentManager experimentManager;
 
     private void Start()
     {
-        // Find the ExperimentManager in the scene
         experimentManager = ExperimentManager.Instance;
         if (experimentManager == null)
         {
-            Debug.LogError("ExperimentManager not found in the scene!");
+            Debug.LogError("ExperimentManager not found!");
             return;
         }
-        SetupButtons();
+
+        if (effortSpriteUI == null)
+        {
+            effortSpriteUI = FindObjectOfType<EffortSpriteUI>();
+            if (effortSpriteUI == null)
+            {
+                Debug.LogError("EffortSpriteUI not found in the scene!");
+                return;
+            }
+        }
+        SetupDecisionPhase();
     }
 
-    private void SetupButtons()
-    {
-        if (workButton != null)
-        {
-            workButton.onClick.AddListener(() => OnDecisionMade(true));
-        }
-        else
-        {
-            Debug.LogError("Work button is not assigned in the DecisionManager!");
-        }
-
-        if (skipButton != null)
-        {
-            skipButton.onClick.AddListener(() => OnDecisionMade(false));
-        }
-        else
-        {
-            Debug.LogError("Skip button is not assigned in the DecisionManager!");
-        }
-    }
-
-    /// <summary>
-    /// Sets up the decision phase UI with the current trial's effort sprite and level.
-    /// </summary>
     public void SetupDecisionPhase()
     {
-        if (experimentManager == null)
-        {
-            Debug.LogError("ExperimentManager is null in SetupDecisionPhase");
-            return;
-        }
-
-        Sprite currentTrialSprite = experimentManager.GetCurrentTrialSprite();
-        float currentTrialEV = experimentManager.GetCurrentTrialEV();
-
-        if (effortImage != null)
-        {
-            effortImage.sprite = currentTrialSprite;
-        }
-        else
-        {
-            Debug.LogError("Effort Image is not assigned in DecisionManager!");
-        }
-
-        if (effortLevelText != null)
-        {
-            effortLevelText.text = $"Effort Level: {currentTrialEV}";
-        }
-        else
-        {
-            Debug.LogError("Effort Level Text is not assigned in DecisionManager!");
-        }
-
-        // Enable buttons
-        if (workButton != null) workButton.interactable = true;
-        if (skipButton != null) skipButton.interactable = true;
+        Debug.Log("DecisionManager: Setting up decision phase");
+        ShowEffortSprite();
+    }
+    /// <summary>
+    /// Displays the EffortSpriteUI to start the decision phase.
+    /// </summary>
+    private void ShowEffortSprite()
+    {
+        effortSpriteUI.Show(OnDecisionMade);
     }
 
     /// <summary>
-    /// Handles the user's decision to work or skip.
+    /// Callback method for when a decision is made in the EffortSpriteUI.
+    /// This method passes the decision to the ExperimentManager.
     /// </summary>
-    /// <param name="workDecision">True if the user decided to work, false if they decided to skip.</param>
+    /// <param name="workDecision">True if the participant chose to work, false if they chose to skip.</param>
     private void OnDecisionMade(bool workDecision)
     {
-        Debug.Log($"Decision made: {(workDecision ? "Work" : "Skip")}");
-
-        // Disable buttons to prevent multiple clicks
-        if (workButton != null) workButton.interactable = false;
-        if (skipButton != null) skipButton.interactable = false;
-
-        if (experimentManager != null)
-        {
-            experimentManager.HandleDecision(workDecision);
-        }
-        else
-        {
-            Debug.LogError("ExperimentManager is null in OnDecisionMade!");
-        }
-    }
-
-    private void OnDestroy()
-    {
-        if (workButton != null) workButton.onClick.RemoveAllListeners();
-        if (skipButton != null) skipButton.onClick.RemoveAllListeners();
+        Debug.Log($"DecisionManager: Decision made - {(workDecision ? "Work" : "Skip")}");
+        experimentManager.HandleDecision(workDecision);
     }
 }

@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 public class ContinueScreen : MonoBehaviour
 {
     [SerializeField] private Button continueButton;
-    [SerializeField] private string nextSceneName = "NextScene";
+    [SerializeField] private string nextSceneName = "StartScreen";
 
     private void Start()
     {

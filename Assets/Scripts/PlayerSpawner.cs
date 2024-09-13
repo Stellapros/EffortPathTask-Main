@@ -1,24 +1,62 @@
 using UnityEngine;
 
+/// <summary>
+/// Manages the spawning and despawning of the player in the GridWorld scene.
+/// </summary>
 public class PlayerSpawner : MonoBehaviour
 {
-    /// <summary>
-    /// Spawns players using positions from GridManager.
-    /// </summary>
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GridManager gridManager;
 
-    // Spawn the player at the given position
+    private void Awake()
+    {
+        ValidateComponents();
+    }
+
+    /// <summary>
+    /// Validates that all required components are assigned or found in the scene.
+    /// </summary>
+    private void ValidateComponents()
+    {
+        if (gridManager == null)
+        {
+            gridManager = FindObjectOfType<GridManager>();
+            if (gridManager == null)
+            {
+                Debug.LogError("GridManager not found in the scene. Please ensure it exists in the scene.");
+            }
+        }
+
+        if (playerPrefab == null)
+        {
+            Debug.LogError("Player prefab is not assigned in PlayerSpawner. Please assign it in the inspector.");
+        }
+    }
+
+    /// <summary>
+    /// Spawns the player at the given position.
+    /// </summary>
+    /// <param name="playerPosition">The position to spawn the player.</param>
+    /// <returns>The spawned player GameObject, or null if spawning failed.</returns>
     public GameObject SpawnPlayer(Vector2 playerPosition)
     {
         if (playerPrefab == null)
         {
-            Debug.LogError("Player prefab is not assigned in PlayerSpawner.");
+            Debug.LogError("Cannot spawn player: Player prefab is not assigned.");
             return null;
         }
 
-        GameObject spawnedPlayer = Instantiate(playerPrefab, playerPosition, Quaternion.identity);
-        Debug.Log($"Player spawned at position: {playerPosition}");
+        // Convert Vector2 to Vector3 for instantiation
+        Vector3 spawnPosition = new Vector3(playerPosition.x, playerPosition.y, 0f);
+        GameObject spawnedPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+        
+        if (spawnedPlayer == null)
+        {
+            Debug.LogError("Failed to instantiate player prefab.");
+            return null;
+        }
+
+        Debug.Log($"Player spawned at position: {spawnPosition}");
 
         PlayerController controller = spawnedPlayer.GetComponent<PlayerController>();
         if (controller != null)
@@ -28,25 +66,48 @@ public class PlayerSpawner : MonoBehaviour
         }
         else
         {
-            Debug.LogError("PlayerController not found on spawned player!");
+            Debug.LogError("PlayerController component not found on spawned player!");
         }
 
         return spawnedPlayer;
     }
 
-    // Get a random spawn position from the grid manager
+    /// <summary>
+    /// Gets a random spawn position from the grid manager.
+    /// </summary>
+    /// <returns>A random available position on the grid.</returns>
     public Vector2 GetRandomSpawnPosition()
     {
+        if (gridManager == null)
+        {
+            Debug.LogError("Cannot get random spawn position: GridManager is not assigned.");
+            return Vector2.zero;
+        }
         return gridManager.GetRandomAvailablePosition();
     }
 
-    // Despawn the player
+    /// <summary>
+    /// Despawns the player and releases the grid position.
+    /// </summary>
+    /// <param name="player">The player GameObject to despawn.</param>
     public void DespawnPlayer(GameObject player)
     {
-        if (player != null)
+        if (player == null)
+        {
+            Debug.LogWarning("Attempted to despawn a null player object.");
+            return;
+        }
+
+        if (gridManager != null)
         {
             gridManager.ReleasePosition(player.transform.position);
-            Destroy(player);
         }
+        else
+        {
+            Debug.LogWarning("GridManager is null. Unable to release grid position.");
+        }
+
+        Destroy(player);
+        Debug.Log("Player despawned and destroyed.");
     }
 }

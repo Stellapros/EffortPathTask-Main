@@ -2,65 +2,36 @@ using UnityEngine;
 using System.Collections;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// Controls the gameplay mechanics for each trial in the GridWorld scene and manages the flow between DecisionPhase and GridWorld scenes.
+/// </summary>
 public class GameController : MonoBehaviour
 {
-    // Serialized fields for Unity inspector
-    [SerializeField] private PlayerController playerController;
-    [SerializeField] private PlayerSpawner playerSpawner;
-    [SerializeField] private RewardSpawner rewardSpawner;
-    [SerializeField] private GridManager gridManager;
-    //[SerializeField] private CountdownTimer countdownTimer;
-    //[SerializeField] private ScoreManager scoreManager;
-
-    // Lazy-loaded components
-    private CountdownTimer _countdownTimer;
-    private ScoreManager _scoreManager;
-    [SerializeField] private int rewardValue = 10;
-    [SerializeField] private float maxTrialDuration = 10f; // Maximum duration for each trial
+    #region Serialized Fields
+    [SerializeField] private float maxTrialDuration = 10f;
     [SerializeField] private float restDuration = 3f;
-    [SerializeField] private int[] pressesPerStep = { 3, 2, 1 };
-    [SerializeField] private int trialsPerBlock = 20;
+    [SerializeField] private int[] pressesPerEffortLevel = { 1, 2, 3 };
+    #endregion
 
-    // Private fields for game state
+    #region Private Fields
+    private PlayerSpawner playerSpawner;
+    private RewardSpawner rewardSpawner;
+    private GridManager gridManager;
+    private EffortSpriteUI effortSpriteUI;
     private GameObject currentPlayer;
     private GameObject currentReward;
-    private int currentBlockIndex = 0;
-    private int currentTrialInBlock = 0;
-    private int currentTrialNumber = 0;
-    private const int TotalTrials = 90;
-    public bool rewardCollected = false;
+    private bool rewardCollected = false;
     private float trialStartTime;
     private int buttonPressCount;
     private bool isTrialActive = false;
-
-    // Get ready
-    public float getReadyTime;
-    public float getReadyDuration;
-
-
-    // Full screen check
-    public bool FLAG_fullScreenModeError;
-    public const int STATE_STARTSCREEN = 0;
-
-
-    // Event for reward collection
-    public event System.Action OnRewardCollected;
-
-    // Reference to the experiment manager
-    private IExperimentManager _experimentManager;
-
-
-    // Store the actual reward position
     private Vector2 actualRewardPosition;
-
-
+    private CountdownTimer countdownTimer;
+    private ScoreManager scoreManager;
+    private ExperimentManager experimentManager;
+    private int currentEffortLevel = 0;
+    #endregion
 
     #region Unity Lifecycle Methods
-    /// <summary>
-    /// Awake is called when the script instance is being loaded.
-    /// Here we try to find the ExperimentManager in the scene.
-    /// </summary>
-
     private void Awake()
     {
         // Only initialize if we're in the GridWorld scene
@@ -72,90 +43,22 @@ public class GameController : MonoBehaviour
         {
             // Disable this component if we're not in the GridWorld scene
             enabled = false;
+            Debug.LogWarning("GameController disabled: Not in GridWorld scene");
         }
     }
 
-    private void Initialize()
-    {
-        DontDestroyOnLoad(gameObject);
-
-        ExperimentManager experimentManagerInstance = ExperimentManager.Instance;
-        if (experimentManagerInstance != null)
-        {
-            _experimentManager = experimentManagerInstance as IExperimentManager;
-            if (_experimentManager == null)
-            {
-                Debug.LogError("ExperimentManager does not implement IExperimentManager!");
-            }
-            else
-            {
-                // Subscribe to the OnTrialEnded event
-                _experimentManager.OnTrialEnded += OnTrialEnd;
-            }
-        }
-        else
-        {
-            Debug.LogError("ExperimentManager instance not found!");
-        }
-
-        // Ensure GridManager is assigned
-        if (gridManager == null)
-        {
-            gridManager = FindObjectOfType<GridManager>();
-            if (gridManager == null)
-            {
-                Debug.LogError("GridManager not found in the scene!");
-            }
-        }
-
-        ValidateComponents();
-    }
-
-    private void EnsureExperimentManagerExists()
-    {
-        if (ExperimentManager.Instance == null)
-        {
-            Debug.LogWarning("ExperimentManager not found. Attempting to load Managers scene.");
-            StartCoroutine(LoadPersistentScene());
-        }
-    }
-
-    private IEnumerator LoadPersistentScene()
-    {
-        // AsyncOperation asyncLoad = SceneManagement.LoadSceneAsync("Persistent", LoadSceneMode.Additive);
-        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("Persistent", LoadSceneMode.Additive);
-        while (!asyncLoad.isDone)
-        {
-            yield return null;
-        }
-
-        if (ExperimentManager.Instance == null)
-        {
-            Debug.LogError("Failed to load ExperimentManager. Please ensure it's in the Managers scene.");
-        }
-    }
-
-    /// <summary>
-    /// Start is called before the first frame update.
-    /// Here we start the experiment if the ExperimentManager is set.
-    /// </summary>
     private void Start()
     {
-        // Ensure all required components are assigned
         if (enabled)
-        { ValidateComponents(); }
+        {
+            StartCoroutine(StartTrial());
+        }
     }
 
     private void Update()
     {
         if (isTrialActive)
         {
-            // Count button presses
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                buttonPressCount++;
-            }
-
             // Check if trial time is up
             if (Time.time - trialStartTime >= maxTrialDuration)
             {
@@ -163,32 +66,69 @@ public class GameController : MonoBehaviour
             }
         }
     }
+
+    private void OnDestroy()
+    {
+        // Unsubscribe from events to prevent memory leaks
+        if (experimentManager != null)
+        {
+            experimentManager.OnTrialEnded -= OnTrialEnd;
+        }
+    }
+    #endregion
+
+    #region Initialization Methods
+    /// <summary>
+    /// Initializes the GameController, finding necessary components and subscribing to events.
+    /// </summary>
+    private void Initialize()
+    {
+        // Find all necessary components in the scene
+        experimentManager = ExperimentManager.Instance;
+        countdownTimer = FindObjectOfType<CountdownTimer>();
+        scoreManager = FindObjectOfType<ScoreManager>();
+        gridManager = FindObjectOfType<GridManager>();
+        effortSpriteUI = FindObjectOfType<EffortSpriteUI>();
+        playerSpawner = FindObjectOfType<PlayerSpawner>();
+        rewardSpawner = FindObjectOfType<RewardSpawner>();
+
+        // Validate that all components are found
+        ValidateComponents();
+
+        // Subscribe to events
+        if (experimentManager != null)
+        {
+            experimentManager.OnTrialEnded += OnTrialEnd;
+        }
+    }
+
     /// <summary>
     /// Validates that all required components are assigned.
     /// </summary>
     private void ValidateComponents()
     {
-        if (playerController == null) Debug.LogError("PlayerController is not assigned!");
-        if (playerSpawner == null) Debug.LogError("PlayerSpawner is not assigned!");
-        if (rewardSpawner == null) Debug.LogError("RewardSpawner is not assigned!");
-        if (gridManager == null) Debug.LogError("GridManager is not assigned!");
-        //if (countdownTimer == null) Debug.LogError("CountdownTimer is not assigned!");
-        //if (scoreManager == null) Debug.LogError("ScoreManager is not assigned!");
+        if (experimentManager == null) Debug.LogError("ExperimentManager not found!");
+        if (countdownTimer == null) Debug.LogError("CountdownTimer not found in the scene!");
+        if (scoreManager == null) Debug.LogError("ScoreManager not found in the scene!");
+        if (gridManager == null) Debug.LogError("GridManager not found in the scene!");
+        if (effortSpriteUI == null) Debug.LogError("EffortSpriteUI not found in the scene!");
+        if (playerSpawner == null) Debug.LogError("PlayerSpawner not found in the scene!");
+        if (rewardSpawner == null) Debug.LogError("RewardSpawner not found in the scene!");
     }
     #endregion
 
-
-
-    #region Experiment Control Methods
+    #region Trial Control Methods
     /// <summary>
     /// Starts a new trial, spawning player and reward, and setting up the timer.
     /// </summary>
-    public void StartTrial()
+    private IEnumerator StartTrial()
     {
+        yield return new WaitForSeconds(0.5f); // Short delay to ensure all components are ready
+
         if (isTrialActive)
         {
             Debug.Log("Trial already active, ignoring start request.");
-            return;
+            yield break;
         }
 
         isTrialActive = true;
@@ -197,22 +137,8 @@ public class GameController : MonoBehaviour
         trialStartTime = Time.time;
 
         ShowGrid();
-
         SpawnPlayer();
-
-        // Enable player movement
-        if (playerController != null)
-        {
-            playerController.EnableMovement();
-        }
-        else
-        {
-            Debug.LogError("PlayerController is null. Cannot enable movement.");
-        }
-
-        // Spawn the reward
-        int effortLevel = (int)_experimentManager.GetCurrentTrialEV();
-        SpawnReward(effortLevel);
+        SpawnReward();
 
         // Start the countdown timer
         if (countdownTimer != null)
@@ -224,48 +150,17 @@ public class GameController : MonoBehaviour
             Debug.LogError("CountdownTimer is not assigned!");
         }
 
+        // Set current effort level
+        currentEffortLevel = (int)experimentManager.GetCurrentTrialEV();
+
         // Log the trial start
-        Debug.Log($"Trial started - Player at: {currentPlayer.transform.position}, Reward at: {actualRewardPosition}, Effort Level: {effortLevel}");
-    }
-
-
-    /// <summary>
-    /// Coroutine to check if the timer has ended.
-    /// </summary>
-    private IEnumerator CheckTimerCoroutine()
-    {
-        while (countdownTimer.TimeLeft > 0 && !rewardCollected)
-        {
-            yield return null;
-        }
-        if (!rewardCollected)
-        {
-            EndTrial(false); // Time's up, end trial without reward collection
-        }
-    }
-
-    /// <summary>
-    /// Start the experiment by calling StartTrial on the ExperimentManager.
-    /// </summary>
-    private void StartExperiment()
-    {
-        currentTrialNumber = 0;
-        _experimentManager.StartTrial();
-    }
-
-    /// <summary>
-    /// Callback for when a trial ends. This method is subscribed to the ExperimentManager's OnTrialEnded event.
-    /// </summary>
-    /// <param name="rewardCollected">Whether the reward was collected or not</param>
-    private void OnTrialEnd(bool rewardCollected)
-    {
-        EndTrial(rewardCollected);
+        Debug.Log($"Trial started - Player at: {currentPlayer.transform.position}, Reward at: {actualRewardPosition}, Effort Level: {currentEffortLevel}");
     }
 
     /// <summary>
     /// Ends the current trial.
     /// </summary>
-    private void EndTrial(bool rewardCollected)
+    public void EndTrial(bool rewardCollected) // Changed to public
     {
         if (!isTrialActive) return;
 
@@ -273,125 +168,64 @@ public class GameController : MonoBehaviour
         float trialDuration = Time.time - trialStartTime;
 
         // Log trial data
-        _experimentManager.LogTrialData(rewardCollected, trialDuration, buttonPressCount);
+        experimentManager.LogTrialData(rewardCollected, trialDuration, buttonPressCount);
 
         // Clean up the scene
         CleanupTrial();
 
         // Notify ExperimentManager that the trial has ended
-        _experimentManager.EndTrial(rewardCollected);
+        experimentManager.EndTrial(rewardCollected);
     }
-
-
 
     /// <summary>
     /// Cleans up the scene after a trial ends.
     /// </summary>
     private void CleanupTrial()
     {
-        if (playerController != null)
-        {
-            playerController.DisableMovement();
-            playerController.OnRewardCollected -= RewardCollected;
-        }
-
         if (currentPlayer != null)
         {
-            playerSpawner.DespawnPlayer(currentPlayer);
+            PlayerController playerController = currentPlayer.GetComponent<PlayerController>();
+            if (playerController != null)
+            {
+                playerController.DisableMovement();
+            }
+            Destroy(currentPlayer);
             currentPlayer = null;
         }
 
         if (currentReward != null)
         {
-            rewardSpawner.ClearReward();
+            Destroy(currentReward);
             currentReward = null;
         }
 
         countdownTimer.StopTimer();
-    }
-
-
-    // Properties for lazy-loaded components
-    private CountdownTimer countdownTimer
-    {
-        get
-        {
-            if (_countdownTimer == null)
-            {
-                _countdownTimer = FindObjectOfType<CountdownTimer>();
-                if (_countdownTimer == null)
-                {
-                    Debug.LogError("CountdownTimer not found in the scene!");
-                }
-            }
-            return _countdownTimer;
-        }
-    }
-
-    private ScoreManager scoreManager
-    {
-        get
-        {
-            if (_scoreManager == null)
-            {
-                _scoreManager = FindObjectOfType<ScoreManager>();
-                if (_scoreManager == null)
-                {
-                    Debug.LogError("ScoreManager not found in the scene!");
-                }
-            }
-            return _scoreManager;
-        }
-    }
-
-
-
-    /// <summary>
-    /// Coroutine to start the next trial after a short delay.
-    /// </summary>
-    private IEnumerator StartNextTrialAfterDelay()
-    {
-        yield return new WaitForSeconds(1f); // 1 second delay between trials
-        StartTrial();
+        HideGrid();
     }
 
     /// <summary>
-    /// Called when the player collects the reward.
+    /// Callback for when a trial ends. This method is subscribed to the ExperimentManager's OnTrialEnded event.
     /// </summary>
-    public void RewardCollected()
+    private void OnTrialEnd(bool rewardCollected)
     {
-        if (!isTrialActive) return;
-
-        scoreManager.IncreaseScore(rewardValue);
-        EndTrial(true);
+        // This method is called by the ExperimentManager, so we don't need to do anything here
+        // The next trial will be started by the ExperimentManager
     }
-
-    /// <summary>
-    /// Ends the experiment and transitions to the end screen.
-    /// </summary>
-
-
-    private void EndExperiment()
-    {
-        Debug.Log("Experiment completed. Loading end screen.");
-        SceneManager.LoadScene("EndExperiment");
-    }
-
     #endregion
 
     #region Spawning Methods
     /// <summary>
-    /// Spawns the player at the given position.
+    /// Spawns the player at a random position using the PlayerSpawner.
     /// </summary>
     private void SpawnPlayer()
     {
         if (playerSpawner != null)
         {
-            Vector2 initialPlayerPosition = _experimentManager.GetCurrentTrialPlayerPosition();
-            currentPlayer = playerSpawner.SpawnPlayer(initialPlayerPosition);
+            Vector2 playerPosition = playerSpawner.GetRandomSpawnPosition();
+            currentPlayer = playerSpawner.SpawnPlayer(playerPosition);
             if (currentPlayer != null)
             {
-                playerController = currentPlayer.GetComponent<PlayerController>();
+                PlayerController playerController = currentPlayer.GetComponent<PlayerController>();
                 if (playerController == null)
                 {
                     Debug.LogError("PlayerController component not found on spawned player!");
@@ -412,16 +246,17 @@ public class GameController : MonoBehaviour
         }
     }
 
-
     /// <summary>
-    /// Spawns the reward at the given position with the specified effort level.
+    /// Spawns the reward at a random position using the RewardSpawner.
     /// </summary>
-    private void SpawnReward(int effortLevel)
+    private void SpawnReward()
     {
         if (rewardSpawner != null)
         {
-            int pressesRequired = GetPressesRequired(effortLevel);
-            currentReward = rewardSpawner.SpawnReward(currentBlockIndex, currentTrialInBlock, pressesRequired);
+            Vector2 rewardPosition = rewardSpawner.GetRandomSpawnPosition();
+            int pressesRequired = GetPressesRequired(currentEffortLevel);
+            currentReward = rewardSpawner.SpawnReward(rewardPosition, pressesRequired);
+
             if (currentReward != null)
             {
                 actualRewardPosition = currentReward.transform.position;
@@ -438,44 +273,83 @@ public class GameController : MonoBehaviour
         }
     }
 
+    // #region Spawning Methods
+    // /// <summary>
+    // /// Spawns the player at a position determined by the ExperimentManager.
+    // /// </summary>
+    // private void SpawnPlayer()
+    // {
+    //     if (playerSpawner != null)
+    //     {
+    //         Vector2 playerPosition = experimentManager.GetCurrentTrialPlayerPosition();
+    //         currentPlayer = playerSpawner.SpawnPlayer(playerPosition);
+    //         if (currentPlayer != null)
+    //         {
+    //             PlayerController playerController = currentPlayer.GetComponent<PlayerController>();
+    //             if (playerController == null)
+    //             {
+    //                 Debug.LogError("PlayerController component not found on spawned player!");
+    //             }
+    //             else
+    //             {
+    //                 playerController.OnRewardCollected += RewardCollected;
+    //             }
+    //         }
+    //         else
+    //         {
+    //             Debug.LogError("Failed to spawn player!");
+    //         }
+    //     }
+    //     else
+    //     {
+    //         Debug.LogError("PlayerSpawner is not assigned!");
+    //     }
+    // }
+
+    // /// <summary>
+    // /// Spawns the reward at a position determined by the ExperimentManager.
+    // /// </summary>
+    // private void SpawnReward()
+    // {
+    //     if (rewardSpawner != null)
+    //     {
+    //         Vector2 rewardPosition = experimentManager.GetCurrentTrialRewardPosition();
+    //         int pressesRequired = GetPressesRequired(currentEffortLevel);
+    //         currentReward = rewardSpawner.SpawnReward(rewardPosition, pressesRequired);
+
+    //         if (currentReward != null)
+    //         {
+    //             actualRewardPosition = currentReward.transform.position;
+    //             Debug.Log($"Reward spawned at position: {actualRewardPosition}");
+    //         }
+    //         else
+    //         {
+    //             Debug.LogError("Failed to spawn reward!");
+    //         }
+    //     }
+    //     else
+    //     {
+    //         Debug.LogError("RewardSpawner is not assigned!");
+    //     }
+    // }
+
+    /// <summary>
+    /// Determines the number of button presses required based on the effort level.
+    /// </summary>
+    /// <param name="effortLevel">The current effort level</param>
+    /// <returns>The number of button presses required</returns>
     private int GetPressesRequired(int effortLevel)
     {
         // Ensure effortLevel is within bounds
-        effortLevel = Mathf.Clamp(effortLevel, 1, pressesPerStep.Length);
-        return pressesPerStep[effortLevel - 1];
-    }
-
-    /// <summary>
-    /// Method to despawn the player.
-    /// </summary>
-    private void DespawnPlayer()
-    {
-        if (currentPlayer != null)
-        {
-            playerSpawner.DespawnPlayer(currentPlayer);
-            currentPlayer = null;
-            playerController = null;
-        }
-    }
-
-    /// <summary>
-    /// Method to clear the reward from the scene.
-    /// </summary>
-    private void ClearReward()
-    {
-        if (currentReward != null)
-        {
-            rewardSpawner.ClearReward();
-            currentReward = null;
-        }
-        else
-        {
-            Debug.LogWarning("RewardSpawner is null during ClearReward.");
-        }
+        effortLevel = Mathf.Clamp(effortLevel, 1, pressesPerEffortLevel.Length);
+        return pressesPerEffortLevel[effortLevel - 1];
     }
     #endregion
 
     #region Grid Management
+    /// <summary>
+    /// Shows the grid in the scene.
+    /// </summary>
     private void ShowGrid()
     {
         if (gridManager != null)
@@ -488,6 +362,9 @@ public class GameController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Hides the grid in the scene.
+    /// </summary>
     private void HideGrid()
     {
         if (gridManager != null)
@@ -498,6 +375,31 @@ public class GameController : MonoBehaviour
         {
             Debug.LogError("GridManager is null. Cannot hide grid.");
         }
+    }
+    #endregion
+
+    #region Reward Collection
+    /// <summary>
+    /// Called when the player collects the reward.
+    /// </summary>
+    public void RewardCollected()
+    {
+        if (!isTrialActive) return;
+
+        rewardCollected = true;
+        float rewardValue = experimentManager.GetCurrentTrialRewardValue();
+        scoreManager.IncreaseScore(Mathf.RoundToInt(rewardValue));
+        EndTrial(true);
+    }
+    #endregion
+
+    #region Public Methods
+    /// <summary>
+    /// Increments the button press count for the current trial.
+    /// </summary>
+    public void IncrementButtonPressCount()
+    {
+        buttonPressCount++;
     }
     #endregion
 }
