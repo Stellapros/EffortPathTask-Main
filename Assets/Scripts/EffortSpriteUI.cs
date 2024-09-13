@@ -60,7 +60,7 @@ public class EffortSpriteUI : MonoBehaviour
         EnableButtons();
     }
 
-    private void UpdateEffortSprite()
+    public void UpdateEffortSprite()
     {
         if (experimentManager != null)
         {

@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 9142966634683444702}
   - component: {fileID: 5581758657356121867}
-  - component: {fileID: 801434694064525574}
   - component: {fileID: -7278008816248787419}
   m_Layer: 0
   m_Name: Reward_Cherries
@@ -86,19 +85,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &801434694064525574
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1766563905567626122}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 303e41e36e9b444db9b574fb1590711a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gameController: {fileID: 0}
 --- !u!114 &-7278008816248787419
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -112,3 +98,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   scoreValue: 10
+  pressesRequired: 0

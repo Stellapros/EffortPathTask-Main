@@ -5028,59 +5028,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1147825103
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1147825105}
-  - component: {fileID: 1147825104}
-  m_Layer: 0
-  m_Name: GridManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!114 &1147825104
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1147825103}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1908fd724767b4298bcec9e304aa5ad0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gridWidth: 18
-  gridHeight: 10
-  cellSize: 1
-  centerCells: 1
-  gridLayoutFile: {fileID: 4900000, guid: efcf6c73cf2b64b19bd8e3c00f05038d, type: 3}
-  floorTilePrefab: {fileID: 8186859408161923349, guid: 95e44167dff434b01b80b01fb9df9af6,
-    type: 3}
-  wallTilePrefab: {fileID: 8770710742148091357, guid: 2dcb99774aa5a4b7589cd7eaa595c514,
-    type: 3}
---- !u!4 &1147825105
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1147825103}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1370198796
 GameObject:
   m_ObjectHideFlags: 0
@@ -5676,11 +5623,9 @@ MonoBehaviour:
   squareSprite: {fileID: 21300000, guid: 384daf03cbc23432199d6270d7a42420, type: 3}
   circleSprite: {fileID: 21300000, guid: 72d21cfaf1e6e4442904d8f00ae6097a, type: 3}
   triangleSprite: {fileID: 21300000, guid: ab78d5ee03e624226af5a3c191588251, type: 3}
-  welcomePageScene: TitlePage
   decisionPhaseScene: DecisionPhase
   gridWorldScene: GridWorld
   endExperimentScene: EndExperiment
-  sceneTransitions: []
 --- !u!1 &1815108233
 GameObject:
   m_ObjectHideFlags: 0
@@ -5712,7 +5657,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rewardPrefab: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
     type: 3}
-  gridManager: {fileID: 1147825104}
+  gridManager: {fileID: 0}
 --- !u!4 &1815108235
 Transform:
   m_ObjectHideFlags: 0
@@ -5762,9 +5707,7 @@ MonoBehaviour:
   pressesPerStep: 1
   trialRunning: 0
   errorSound: {fileID: 8300000, guid: 1617e0d71b004419da18e026c82adefe, type: 3}
-  gridManager: {fileID: 1147825104}
-  movementParticles: {fileID: 473212955}
-  movementTrail: {fileID: 1370198797}
+  gridManager: {fileID: 0}
 --- !u!54 &1935064467
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -5840,7 +5783,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerPrefab: {fileID: 197052547065130213, guid: ab9f9bb94afc64c7e89ec2641835a2f1,
     type: 3}
-  gridManager: {fileID: 1147825104}
+  gridManager: {fileID: 0}
 --- !u!4 &2108336557
 Transform:
   m_ObjectHideFlags: 0
@@ -5867,6 +5810,5 @@ SceneRoots:
   - {fileID: 1935064468}
   - {fileID: 2108336557}
   - {fileID: 1815108235}
-  - {fileID: 1147825105}
   - {fileID: 1533612007}
   - {fileID: 1412936891}

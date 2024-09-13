@@ -10,7 +10,7 @@ public class DetectCollisions : MonoBehaviour
     {
         if (gameController == null)
             gameController = FindObjectOfType<GameController>();
-        
+
         if (gridWorldManager == null)
             gridWorldManager = FindObjectOfType<GridWorldManager>();
 
@@ -31,9 +31,14 @@ public class DetectCollisions : MonoBehaviour
                 // Collect the reward
                 gameController.RewardCollected();
                 playerController.HandleRewardCollection();
-                
-                // Destroy the reward object
+
+                // Destroy the reward object - The DetectCollisions script is attached to the player object, not the reward
                 Destroy(other.gameObject);
+
+                // Instead of destroying the player, we might want to disable it or handle it differently
+                // gameObject.SetActive(false);
+                playerController.DisableMovement();
+
                 Debug.Log($"Reward collected!");
 
                 // End the trial
@@ -45,7 +50,6 @@ public class DetectCollisions : MonoBehaviour
             }
         }
     }
-
     private void EndTrial(bool rewardCollected)
     {
         // Update score if reward was collected

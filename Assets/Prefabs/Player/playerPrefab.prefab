@@ -167,7 +167,5 @@ MonoBehaviour:
   moveStepSize: 1
   pressesPerStep: 1
   trialRunning: 0
-  errorSound: {fileID: 0}
+  errorSound: {fileID: 8300000, guid: 1617e0d71b004419da18e026c82adefe, type: 3}
   gridManager: {fileID: 0}
-  movementParticles: {fileID: 0}
-  movementTrail: {fileID: 0}
