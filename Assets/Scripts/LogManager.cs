@@ -10,6 +10,7 @@ public class LogManager : MonoBehaviour
     public static LogManager instance = null; //Static instance of LogManager which allows it to be accessed by any other script.
     private string filePath;
     [SerializeField] private bool m_ShowDebugLogManager;
+    private ExperimentManager experimentManager;
     public static class LogManagerHelper
     {
         public static void Log(string message)
@@ -61,6 +62,15 @@ public class LogManager : MonoBehaviour
         writer = new StreamWriter(filePath, true);
         */
 
+    }
+    public void LogPlayerMovement(Vector2 initialPosition, Vector2 finalPosition, float distanceMoved)
+    {
+        string movementData = $"Initial Position: {initialPosition}, Final Position: {finalPosition}, Distance Moved: {distanceMoved}";
+        Debug.Log($"Player Movement: {movementData}");
+
+        // Add this data to your experiment log or database
+        // For example:
+        // experimentLog.Add(new ExperimentLogEntry(currentBlockIndex, currentTrialIndex, "PlayerMovement", movementData));
     }
 
     private void InitializeLogFile()
@@ -127,4 +137,6 @@ public class LogManager : MonoBehaviour
             }
         }
     }
+
+
 }

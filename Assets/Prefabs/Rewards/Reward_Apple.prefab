@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 6546236378165721280}
   - component: {fileID: 5458651005487794875}
-  - component: {fileID: 3052549395631441208}
   - component: {fileID: -6177631717539055439}
   - component: {fileID: -3668304964543851364}
+  - component: {fileID: -6533580360772687580}
   m_Layer: 0
   m_Name: Reward_Apple
   m_TagString: Reward
@@ -87,20 +87,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &3052549395631441208
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2455364387646690396}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1e1f30ed8e9fb45af8cf696422d3a905, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  scoreValue: 10
-  pressesRequired: 0
 --- !u!54 &-6177631717539055439
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -149,3 +135,17 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 0.2}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &-6533580360772687580
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2455364387646690396}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e1f30ed8e9fb45af8cf696422d3a905, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  scoreValue: 10
+  pressesRequired: 0

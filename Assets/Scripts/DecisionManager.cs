@@ -1,56 +1,133 @@
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using TMPro;
+using System;
 
-/// <summary>
-/// Controls the decision phase of each trial, where the participant chooses to work or skip.
-/// This script acts as a bridge between the EffortSpriteUI and the ExperimentManager.
-/// </summary>
 public class DecisionManager : MonoBehaviour
 {
-    [SerializeField] private EffortSpriteUI effortSpriteUI;
+    [SerializeField] private Image effortSpriteImage;
+    [SerializeField] private TextMeshProUGUI effortLevelText;
+    [SerializeField] private Button workButton;
+    [SerializeField] private Button skipButton;
+
+    // New audio-related fields
+    private AudioSource audioSource;
+    [SerializeField] private AudioClip workButtonSound;
+    [SerializeField] private AudioClip skipButtonSound;
+
+
+
     private ExperimentManager experimentManager;
 
-    private void Start()
+    private void Awake()
     {
         experimentManager = ExperimentManager.Instance;
         if (experimentManager == null)
         {
             Debug.LogError("ExperimentManager not found!");
-            return;
+        }
+        SetupButtonListeners();
+
+        // Ensure we have an AudioSource
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+    }
+
+    private void SetupButtonListeners()
+    {
+        if (workButton != null)
+        {
+            workButton.onClick.RemoveAllListeners();
+            workButton.onClick.AddListener(() => OnDecisionMade(true));
+        }
+        else
+        {
+            Debug.LogError("Work button is not assigned!");
         }
 
-        if (effortSpriteUI == null)
+        if (skipButton != null)
         {
-            effortSpriteUI = FindObjectOfType<EffortSpriteUI>();
-            if (effortSpriteUI == null)
-            {
-                Debug.LogError("EffortSpriteUI not found in the scene!");
-                return;
-            }
+            skipButton.onClick.RemoveAllListeners();
+            skipButton.onClick.AddListener(() => OnDecisionMade(false));
         }
-        SetupDecisionPhase();
+        else
+        {
+            Debug.LogError("Skip button is not assigned!");
+        }
     }
 
     public void SetupDecisionPhase()
     {
         Debug.Log("DecisionManager: Setting up decision phase");
-        ShowEffortSprite();
-    }
-    /// <summary>
-    /// Displays the EffortSpriteUI to start the decision phase.
-    /// </summary>
-    private void ShowEffortSprite()
-    {
-        effortSpriteUI.Show(OnDecisionMade);
+        UpdateEffortSprite();
+        EnableButtons();
     }
 
-    /// <summary>
-    /// Callback method for when a decision is made in the EffortSpriteUI.
-    /// This method passes the decision to the ExperimentManager.
-    /// </summary>
-    /// <param name="workDecision">True if the participant chose to work, false if they chose to skip.</param>
+    private void UpdateEffortSprite()
+    {
+        if (experimentManager != null)
+        {
+            Sprite effortSprite = experimentManager.GetCurrentTrialSprite();
+            float effortValue = experimentManager.GetCurrentTrialEV();
+
+            if (effortSpriteImage != null && effortSprite != null)
+            {
+                effortSpriteImage.sprite = effortSprite;
+            }
+
+            if (effortLevelText != null)
+            {
+                effortLevelText.text = $"Effort Level: {effortValue}";
+            }
+        }
+    }
+
+    private void EnableButtons()
+    {
+        if (workButton != null) workButton.interactable = true;
+        if (skipButton != null) skipButton.interactable = true;
+    }
+
+    private void DisableButtons()
+    {
+        if (workButton != null) workButton.interactable = false;
+        if (skipButton != null) skipButton.interactable = false;
+    }
+
     private void OnDecisionMade(bool workDecision)
     {
-        Debug.Log($"DecisionManager: Decision made - {(workDecision ? "Work" : "Skip")}");
+        Debug.Log($"Decision made: {(workDecision ? "Work" : "Skip")}");
+
+        // Play the appropriate sound
+        if (audioSource != null)
+        {
+            AudioClip clipToPlay = workDecision ? workButtonSound : skipButtonSound;
+            if (clipToPlay != null)
+            {
+                audioSource.PlayOneShot(clipToPlay);
+            }
+            else
+            {
+                Debug.LogWarning($"{(workDecision ? "Work" : "Skip")} button sound is not assigned!");
+            }
+        }
+        else
+        {
+            Debug.LogError("AudioSource is not assigned!");
+        }
+
         experimentManager.HandleDecision(workDecision);
+        DisableButtons();
+        LogDecision(workDecision);
+    }
+
+    private void LogDecision(bool workDecision)
+    {
+        string logEntry = $"{System.DateTime.Now}: Player decided to {(workDecision ? "Work" : "Skip")}";
+        System.IO.File.AppendAllText("decision_log.txt", logEntry + System.Environment.NewLine);
+        Debug.Log(logEntry);
     }
 }

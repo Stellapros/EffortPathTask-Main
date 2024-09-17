@@ -28,7 +28,7 @@ public class BackgroundMusicManager : MonoBehaviour
         audioSource.clip = backgroundMusic;
         audioSource.loop = true;
         audioSource.playOnAwake = false;
-        audioSource.volume = 0.5f; // Adjust as needed
+        audioSource.volume = 0.3f; // Adjust as needed
     }
 
     public void PlayMusic()

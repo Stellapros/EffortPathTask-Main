@@ -26,7 +26,7 @@ public class CircularProgressBar : MonoBehaviour
         {
             elapsedTime += Time.deltaTime;
             loadingBar.fillAmount = elapsedTime / duration;
-            
+
             int remainingSeconds = Mathf.CeilToInt(duration - elapsedTime);
             countdownText.text = remainingSeconds.ToString();
             Debug.Log($"Countdown: {remainingSeconds}");

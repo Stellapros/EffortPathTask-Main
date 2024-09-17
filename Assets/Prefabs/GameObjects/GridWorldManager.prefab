@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7248009633563827252}
-  - component: {fileID: 1833278028662612437}
+  - component: {fileID: -8690266444773239620}
   m_Layer: 0
   m_Name: GridWorldManager
   m_TagString: Untagged
@@ -32,7 +32,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1833278028662612437
+--- !u!114 &-8690266444773239620
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -45,6 +45,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gridManager: {fileID: 284088274852642234, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
+    type: 3}
+  playerSpawner: {fileID: 9081304544560268536, guid: d85bd69af54564d66b9c7eca3ac10784,
+    type: 3}
+  playerController: {fileID: 731010972738096583, guid: fee829f012b0a4d11b6a3d514bed6687,
+    type: 3}
+  rewardSpawner: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
     type: 3}
   playerPrefab: {fileID: 197052547065130213, guid: ab9f9bb94afc64c7e89ec2641835a2f1,
     type: 3}

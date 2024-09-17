@@ -96,7 +96,7 @@ public class GridManager : MonoBehaviour
             {
                 Vector3 position = GridToWorldPosition(new Vector2Int(x, y));
                 GameObject tile = grid[x, y] == CellType.Floor ? floorPool.GetObject() : wallPool.GetObject();
-                
+
                 if (tile != null)
                 {
                     tile.transform.position = position;

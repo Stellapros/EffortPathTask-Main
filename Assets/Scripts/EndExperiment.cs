@@ -2,68 +2,139 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using System.Collections;
+using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 
 public class EndExperiment : MonoBehaviour
 {
+    [SerializeField] private ExperimentConfig config;
     [SerializeField] private TextMeshProUGUI totalTimeText;
+    [SerializeField] private TextMeshProUGUI totalScoreText;
     [SerializeField] private TMP_InputField feedbackInputField;
     [SerializeField] private Button submitButton;
+    // [SerializeField] private string serverUrl = "https://your-server-url.com/api/submit-data";
 
     [Header("Input Field Settings")]
-    [SerializeField] private Vector2 inputFieldSize = new Vector2(800, 400); // Width, Height
+    [SerializeField] public Vector2 inputFieldSize = new Vector2(300, 50);
     [SerializeField] private int fontSize = 16;
     [SerializeField] private int characterLimit = 500;
 
-    private float startTime;
+    private float totalTime;
+    private int totalScore;
 
     private void Start()
     {
+        // Add null checks for serialized fields
+        if (totalTimeText == null) Debug.LogError("totalTimeText is not assigned in the inspector!");
+        if (totalScoreText == null) Debug.LogError("totalScoreText is not assigned in the inspector!");
+        if (feedbackInputField == null) Debug.LogError("feedbackInputField is not assigned in the inspector!");
+        if (submitButton == null) Debug.LogError("submitButton is not assigned in the inspector!");
+        if (config == null)
+        {
+            Debug.LogError("ExperimentConfig is not assigned!");
+        }
+
         SetupInputField();
 
-        // Assume we've stored the start time when the experiment began
-        startTime = PlayerPrefs.GetFloat("ExperimentStartTime", Time.time);
+        // Retrieve the experiment start time and calculate total time
+        float startTime = PlayerPrefs.GetFloat("ExperimentStartTime", Time.time);
+        totalTime = Time.time - startTime;
 
-        // Calculate and display total time
-        float totalTime = Time.time - startTime;
-        TimeSpan timeSpan = TimeSpan.FromSeconds(totalTime);
-        totalTimeText.text = $"Total Time: {timeSpan.Hours:D2}:{timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}";
+        DisplayTotalTime();
+        DisplayTotalScore();
 
-        // Add listener to the submit button
-        submitButton.onClick.AddListener(SubmitFeedback);
+        if (submitButton != null)
+        {
+            submitButton.onClick.AddListener(SubmitFeedbackAndData);
+        }
+    }
+
+    private void DisplayTotalTime()
+    {
+        if (totalTimeText != null)
+        {
+            TimeSpan timeSpan = TimeSpan.FromSeconds(totalTime);
+            totalTimeText.text = $"Total Time: {timeSpan.Hours:D2}:{timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}";
+        }
+    }
+
+    private void DisplayTotalScore()
+    {
+        // Get the total score from ScoreManager
+        if (ScoreManager.Instance != null)
+        {
+            totalScore = ScoreManager.Instance.GetTotalScore();
+        }
+        else
+        {
+            Debug.LogError("ScoreManager instance not found!");
+        }
+
+        if (totalScoreText != null)
+        {
+            totalScoreText.text = $"Total Score: {totalScore}";
+        }
     }
 
     private void SetupInputField()
     {
-        // Set the size of the input field
-        RectTransform rectTransform = feedbackInputField.GetComponent<RectTransform>();
-        rectTransform.sizeDelta = inputFieldSize;
-
-        // Set the font size
-        feedbackInputField.pointSize = fontSize;
-
-        // Set character limit
-        feedbackInputField.characterLimit = characterLimit;
-
-        // Make it multi-line
-        feedbackInputField.lineType = TMP_InputField.LineType.MultiLineNewline;
-
-        // Optionally, adjust text area size within the input field
-        feedbackInputField.textViewport.sizeDelta = new Vector2(inputFieldSize.x - 10, inputFieldSize.y - 10);
+        if (feedbackInputField != null)
+        {
+            RectTransform rectTransform = feedbackInputField.GetComponent<RectTransform>();
+            if (rectTransform != null)
+            {
+                rectTransform.sizeDelta = inputFieldSize;
+            }
+            feedbackInputField.pointSize = fontSize;
+            feedbackInputField.characterLimit = characterLimit;
+            feedbackInputField.lineType = TMP_InputField.LineType.MultiLineNewline;
+            if (feedbackInputField.textViewport != null)
+            {
+                feedbackInputField.textViewport.sizeDelta = new Vector2(inputFieldSize.x - 10, inputFieldSize.y - 10);
+            }
+        }
     }
 
-    private void SubmitFeedback()
+    private void SubmitFeedbackAndData()
     {
-        string feedback = feedbackInputField.text;
-        
-        // Here you would typically send this feedback to a server or save it locally
-        Debug.Log($"Feedback submitted: {feedback}");
+        string feedback = feedbackInputField != null ? feedbackInputField.text : "";
+        StartCoroutine(SubmitDataToServer(feedback));
+    }
 
-        // For demonstration, we'll save it to PlayerPrefs
-        PlayerPrefs.SetString("ExperimentFeedback", feedback);
-        PlayerPrefs.Save();
+    private IEnumerator SubmitDataToServer(string feedback)
+    {
+        if (config == null)
+        {
+            Debug.LogError("ExperimentConfig is not assigned. Cannot submit data.");
+            yield break;
+        }
 
-        // You might want to show a thank you message or load a different scene here
-        // SceneManager.LoadScene("ThankYouScene");
+        WWWForm form = new WWWForm();
+        form.AddField("totalTime", totalTime.ToString());
+        form.AddField("totalScore", totalScore.ToString());
+        form.AddField("feedback", feedback);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(config.ServerUrl, form))
+        {
+            yield return www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log("Data submitted successfully");
+                ShowMessage("Thank you for your participation!");
+            }
+            else
+            {
+                Debug.LogError($"Error submitting data: {www.error}");
+                ShowMessage("There was an error submitting your data. Please try again.");
+            }
+        }
+    }
+
+    private void ShowMessage(string message)
+    {
+        Debug.Log(message);
+        // Implement UI feedback here
     }
 }

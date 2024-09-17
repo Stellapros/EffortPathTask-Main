@@ -11,7 +11,7 @@ public class GameInitializer : MonoBehaviour
         {
             Instantiate(experimentManagerPrefab);
         }
-        
+
         // Load your first actual game scene
         SceneManager.LoadScene("TitlePage");
     }

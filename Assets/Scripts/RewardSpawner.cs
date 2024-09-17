@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Collections.Generic;
 using System.Collections;
 
 /// <summary>
@@ -10,7 +9,7 @@ public class RewardSpawner : MonoBehaviour
     [SerializeField] private GameObject rewardPrefab;
     [SerializeField] private GridManager gridManager;
 
-    private List<GameObject> currentRewards = new List<GameObject>();
+    private GameObject currentReward;
 
     private void Awake()
     {
@@ -41,15 +40,18 @@ public class RewardSpawner : MonoBehaviour
     /// Spawns a reward at the specified position with the given parameters.
     /// </summary>
     /// <param name="rewardPosition">The position to spawn the reward.</param>
+    /// <param name="blockIndex">The current block index.</param>
+    /// <param name="trialIndex">The current trial index.</param>
     /// <param name="pressesRequired">The number of presses required to collect the reward.</param>
+    /// <param name="scoreValue">The score value of the reward.</param>
     /// <returns>The spawned reward GameObject, or null if spawning failed.</returns>
-    public GameObject SpawnReward(Vector2 rewardPosition, int pressesRequired)
+    public GameObject SpawnReward(Vector2 rewardPosition, int blockIndex, int trialIndex, int pressesRequired, int scoreValue)
     {
         Debug.Log($"Attempting to spawn reward at position: {rewardPosition}");
 
-        if (currentRewards.Count > 0)
+        if (currentReward != null)
         {
-            Debug.LogWarning("Attempting to spawn a reward when one already exists. Clearing existing rewards first.");
+            Debug.LogWarning("Attempting to spawn a reward when one already exists. Clearing existing reward first.");
             ClearReward();
         }
 
@@ -59,30 +61,31 @@ public class RewardSpawner : MonoBehaviour
             return null;
         }
 
-        // Convert Vector2 to Vector3 for instantiation
         Vector3 spawnPosition = new Vector3(rewardPosition.x, rewardPosition.y, 0f);
-        GameObject newReward = Instantiate(rewardPrefab, spawnPosition, Quaternion.identity);
+        currentReward = Instantiate(rewardPrefab, spawnPosition, Quaternion.identity);
+        Debug.Log($"Reward instantiated: {currentReward != null}");
 
-        if (newReward == null)
+        if (currentReward == null)
         {
             Debug.LogError("Failed to instantiate reward prefab.");
             return null;
         }
 
-        Reward rewardComponent = newReward.GetComponent<Reward>();
+        Reward rewardComponent = currentReward.GetComponent<Reward>();
         if (rewardComponent != null)
         {
-            rewardComponent.SetRewardParameters(0, 0, pressesRequired); // Set block and trial to 0 for now
-            currentRewards.Add(newReward);
-            Vector2 actualRewardPosition = newReward.transform.position;
+            rewardComponent.SetRewardParameters(blockIndex, trialIndex, pressesRequired, scoreValue);
+            Vector2 actualRewardPosition = currentReward.transform.position;
 
-            Debug.Log($"Reward spawned - Intended: {rewardPosition}, Actual: {actualRewardPosition}, Presses required: {pressesRequired}");
-            return newReward;
+            Debug.Log($"Reward spawned - Intended: {rewardPosition}, Actual: {actualRewardPosition}, " +
+                      $"Block: {blockIndex}, Trial: {trialIndex}, Presses required: {pressesRequired}, Score: {scoreValue}");
+            return currentReward;
         }
         else
         {
             Debug.LogError("Reward component not found on spawned reward!");
-            Destroy(newReward);
+            Destroy(currentReward);
+            currentReward = null;
             return null;
         }
     }
@@ -102,23 +105,20 @@ public class RewardSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// Clears all current rewards from the scene.
+    /// Clears the current reward from the scene.
     /// </summary>
     public void ClearReward()
     {
-        Debug.Log("Clearing all rewards");
-        foreach (GameObject reward in currentRewards)
+        if (currentReward != null)
         {
-            if (reward != null)
+            Debug.Log("Clearing current reward");
+            if (gridManager != null)
             {
-                if (gridManager != null)
-                {
-                    gridManager.ReleasePosition(reward.transform.position);
-                }
-                Destroy(reward);
+                gridManager.ReleasePosition(currentReward.transform.position);
             }
+            Destroy(currentReward);
+            currentReward = null;
         }
-        currentRewards.Clear();
 
         StartCoroutine(FinalRewardCheck());
     }

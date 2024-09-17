@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 6382901151627789725}
   - component: {fileID: 100146633506672638}
   - component: {fileID: -7198420545532246115}
-  - component: {fileID: -2898216514934644671}
+  - component: {fileID: -8813595882768349982}
   m_Layer: 8
   m_Name: playerPrefab
   m_TagString: Player
@@ -132,7 +132,7 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 0
-  m_IsKinematic: 1
+  m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 120
   m_CollisionDetection: 1
@@ -152,7 +152,7 @@ MonoBehaviour:
     type: 3}
   gridWorldManager: {fileID: 1833278028662612437, guid: 96d776e8ee130440d8b6e04107cc91e0,
     type: 3}
---- !u!114 &-2898216514934644671
+--- !u!114 &-8813595882768349982
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -166,6 +166,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveStepSize: 1
   pressesPerStep: 1
-  trialRunning: 0
   errorSound: {fileID: 8300000, guid: 1617e0d71b004419da18e026c82adefe, type: 3}
+  rewardSound: {fileID: 8300000, guid: 5151f6de3fc24bc43a3c6daf0eb5ae1a, type: 3}
+  stepSound: {fileID: 8300000, guid: 701f4fd2ed05a6e47a664dbe700d74b8, type: 3}
   gridManager: {fileID: 0}
