@@ -17,7 +17,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private GridManager gridManager;
     private Vector2 lastMoveDirection = Vector2.right; // Initialize facing right
     private Vector2 lastNonZeroMovement = Vector2.right; // Initialize facing right
-    private Vector2 lastHorizontalDirection = Vector2.right; // To keep track of last horizontal movement
+    private SpriteRenderer spriteRenderer;
+    private Vector2 lastHorizontalDirection = Vector2.right; // To keep track of last horizontal movement; Initialize facing right
 
     private bool isTrialRunning = false;
     private float moveStartTime;
@@ -56,6 +57,13 @@ public class PlayerController : MonoBehaviour
     {
         playerRigidbody = GetComponent<Rigidbody>();
         ConfigureRigidbody();
+
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer == null)
+        {
+            spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+            Debug.Log("SpriteRenderer component added to PlayerController.");
+        }
 
         audioSource = GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
         if (audioSource == null)
@@ -267,10 +275,23 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // private void ApplyFacingDirection()
+    // {
+    //     // Apply the rotation based on lastHorizontalDirection
+    //     transform.rotation = Quaternion.Euler(0, lastHorizontalDirection.x < 0 ? 180 : 0, 0);
+    // }
+
     private void ApplyFacingDirection()
     {
-        // Apply the rotation based on lastHorizontalDirection
-        transform.rotation = Quaternion.Euler(0, lastHorizontalDirection.x < 0 ? 180 : 0, 0);
+        if (spriteRenderer != null)
+        {
+            // Flip the sprite horizontally if moving left
+            spriteRenderer.flipX = (lastHorizontalDirection.x < 0);
+        }
+        else
+        {
+            Debug.LogWarning("SpriteRenderer is missing. Unable to flip sprite.");
+        }
     }
 
     private void UpdateSpriteDirection(Vector2 direction)

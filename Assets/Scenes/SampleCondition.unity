@@ -853,14 +853,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c2a55679c876416cb60c5851778b8b6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerMovement: {fileID: 0}
-  spawnManager: {fileID: 1779932117}
-  countdownTimer: {fileID: 1163549911}
-  scoreManager: {fileID: 1892833687}
   maxTrialDuration: 30
-  restDuration: 3
-  pressesPerStep: 030000000200000001000000
-  trialsPerBlock: 20
+  endTrialDelay: 0.5
+  pressesPerEffortLevel: 010000000200000003000000
+  sceneTransitionTimeout: 5
 --- !u!1001 &1258277148
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1294,7 +1290,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gameController: {fileID: 1251495502}
-  scoreManager: {fileID: 1892833687}
+  gridWorldManager: {fileID: 0}
 --- !u!114 &1514162926
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1307,8 +1303,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5df6673d4014458491c3531279b1f27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  stepDistance: 1
+  moveStepSize: 1
   pressesPerStep: 0
+  errorSound: {fileID: 0}
+  rewardSound: {fileID: 0}
+  stepSound: {fileID: 0}
+  gridManager: {fileID: 0}
 --- !u!1 &1672931801
 GameObject:
   m_ObjectHideFlags: 0
@@ -1432,14 +1432,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 47e3fc8bfa0014be3a14afed7885f579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rewardPrefab: {fileID: 1668982250371047218, guid: 13826ecbbb434473b8fffe9f6f9659a4,
-    type: 3}
-  gridSize: 10
-  ySpawnPosition: 0.1
-  minX: -10
-  maxX: 10
-  minZ: -50
-  maxZ: 50
+  rewardPrefabs: []
+  gridManager: {fileID: 0}
 --- !u!4 &1779932118
 Transform:
   m_ObjectHideFlags: 0

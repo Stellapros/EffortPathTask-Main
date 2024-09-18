@@ -35,7 +35,9 @@ public class GameController : MonoBehaviour
     [SerializeField] private float maxTrialDuration = 10f;
     // [SerializeField] private float restDuration = 3f;
     [SerializeField] private float endTrialDelay = 0.5f;
-    [SerializeField] private int[] pressesPerEffortLevel = { 1, 2, 3 };
+    // [SerializeField] private int[] pressesPerEffortLevel = { 1, 2, 3 }; // Default values
+    [SerializeField] private int[] pressesPerEffortLevel = { 1, 2, 3 }; // Default values
+
     [SerializeField] private float sceneTransitionTimeout = 5f; // Maximum time to wait for scene transition
 
     #endregion
@@ -61,7 +63,7 @@ public class GameController : MonoBehaviour
     private CountdownTimer countdownTimer;
     private ScoreManager scoreManager;
     private LogManager logManager;
-    private ExperimentManager experimentManager;
+    [SerializeField] private ExperimentManager experimentManager;
     private Coroutine trialTimerCoroutine;
     private int currentEffortLevel = 0;
     private int currentBlockIndex = 0;
@@ -88,6 +90,7 @@ public class GameController : MonoBehaviour
         // Initialize components
         Initialize();
         InitializeLogManager();
+        LoadCalibratedPressesPerEffortLevel();
     }
 
     private void Update()
@@ -343,6 +346,14 @@ public class GameController : MonoBehaviour
         LogTrialStart();
     }
 
+    private void LoadCalibratedPressesPerEffortLevel()
+    {
+        for (int i = 0; i < pressesPerEffortLevel.Length; i++)
+        {
+            pressesPerEffortLevel[i] = PlayerPrefs.GetInt("PressesPerEffortLevel_" + i, pressesPerEffortLevel[i]);
+        }
+        Debug.Log("Loaded calibrated presses per effort level: " + string.Join(", ", pressesPerEffortLevel));
+    }
 
     private void OnTimerExpired()
     {

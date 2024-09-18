@@ -1779,6 +1779,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: CalibrationCounterPrefab
       objectReference: {fileID: 0}
+    - target: {fileID: 3266480053149918069, guid: 5fc89ebebbcee4628bd584975ea82724,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7583497848042163014, guid: 5fc89ebebbcee4628bd584975ea82724,
         type: 3}
       propertyPath: m_LocalPosition.x

@@ -1,0 +1,10 @@
+Timestamp,EventType,TrialNumber,BlockIndex,BlockOrder,EffortLevel,Decision,ReactionTime,Outcome,CompletionTime
+2024-09-18 22:02:02.667,TrialDecision,1,0,0,3,Work,1.102,,
+2024-09-18 22:02:13.936,TrialOutcome,1,0,0,0,,,TimedOut,21.473
+2024-09-18 22:02:15.650,TrialDecision,3,0,0,3,Work,1.557,,
+2024-09-18 22:02:26.877,TrialOutcome,3,0,0,0,,,TimedOut,27.448
+2024-09-18 22:02:28.464,TrialDecision,5,0,0,2,Work,1.412,,
+2024-09-18 22:02:37.056,TrialOutcome,5,0,0,0,,,Completed,32.282
+2024-09-18 22:02:41.366,TrialDecision,7,2,1,2,Skip,2.483,,
+2024-09-18 22:02:46.245,TrialDecision,8,2,1,1,Work,1.732,,
+2024-09-18 22:02:52.701,TrialOutcome,8,0,0,0,,,Completed,43.547

@@ -9,13 +9,14 @@ public class ContinueScreen : MonoBehaviour
 
     private void Start()
     {
-        if (continueButton == null)
+        if (continueButton != null)
         {
-            Debug.LogError("Continue button is not assigned in the inspector!");
-            return;
+            continueButton.onClick.AddListener(ContinueToNextScreen);
         }
-
-        continueButton.onClick.AddListener(ContinueToNextScreen);
+        else
+        {
+            Debug.LogError("Continue button not assigned in WelcomePage!");
+        }
     }
 
     private void ContinueToNextScreen()
@@ -24,4 +25,17 @@ public class ContinueScreen : MonoBehaviour
         SceneManager.LoadScene(nextSceneName);
         ExperimentManager.Instance.StartExperiment();
     }
+
+    // public void ContinueToNextScreen()
+    // {
+    //     ExperimentManager experimentManager = ExperimentManager.Instance;
+    //     if (experimentManager != null)
+    //     {
+    //         experimentManager.StartExperiment();
+    //     }
+    //     else
+    //     {
+    //         Debug.LogError("ExperimentManager not found in ContinueToNextScreen!");
+    //     }
+    // }
 }

@@ -73,23 +73,7 @@ public class ExperimentManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            InitializeTrials();
-            InitializeSpriteToEffortMap();
-
-            // Initialize LogManager
-            logManager = FindObjectOfType<LogManager>();
-            if (logManager == null)
-            {
-                Debug.LogError("LogManager not found in the scene! Creating a new instance.");
-                logManager = new GameObject("LogManager").AddComponent<LogManager>();
-            }
-
-            // Initialize ScoreManager
-            scoreManager = FindObjectOfType<ScoreManager>();
-            if (scoreManager == null)
-            {
-                Debug.LogError("ScoreManager not found in the scene!");
-            }
+            InitializeComponents();
         }
         else
         {
@@ -98,14 +82,45 @@ public class ExperimentManager : MonoBehaviour
 
     }
 
+    private void InitializeComponents()
+    {
+        InitializeTrials();
+        InitializeSpriteToEffortMap();
+
+        // Initialize LogManager
+        logManager = FindObjectOfType<LogManager>();
+        if (logManager == null)
+        {
+            Debug.LogError("LogManager not found in the scene! Creating a new instance.");
+            logManager = new GameObject("LogManager").AddComponent<LogManager>();
+        }
+
+        // Initialize ScoreManager
+        scoreManager = FindObjectOfType<ScoreManager>();
+        if (scoreManager == null)
+        {
+            Debug.LogError("ScoreManager not found in the scene!");
+        }
+
+    }
+
     private void Start()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
         // Start the background music
-        BackgroundMusicManager.Instance.PlayMusic();
+        if (BackgroundMusicManager.Instance != null)
+        {
+            BackgroundMusicManager.Instance.PlayMusic();
+        }
+        else
+        {
+            Debug.LogWarning("BackgroundMusicManager not found.");
+        }
 
         // ensure that the total time is accurately calculated and displayed when the experiment ends
         PlayerPrefs.SetFloat("ExperimentStartTime", Time.time);
+
+        // StartCoroutine(InitializeScoreManager());
 
         if (logManager == null)
         {
@@ -114,6 +129,20 @@ public class ExperimentManager : MonoBehaviour
         else
         {
             logManager.LogExperimentStart();
+        }
+    }
+
+    private IEnumerator InitializeScoreManager()
+    {
+        // Wait for a short time to allow other scripts to initialize
+        yield return new WaitForSeconds(0.1f);
+
+        scoreManager = ScoreManager.Instance;
+        if (scoreManager == null)
+        {
+            Debug.LogWarning("ScoreManager not found. Creating a new instance.");
+            GameObject scoreManagerObj = new GameObject("ScoreManager");
+            scoreManager = scoreManagerObj.AddComponent<ScoreManager>();
         }
     }
 
@@ -410,7 +439,8 @@ public class ExperimentManager : MonoBehaviour
     /// <summary>
     /// Starts the experiment by transitioning to the DecisionPhase scene.
     /// </summary>
-    public void StartExperiment()
+    
+        public void StartExperiment()
     {
         if (!experimentStarted)
         {
@@ -425,6 +455,36 @@ public class ExperimentManager : MonoBehaviour
             MoveToNextTrial();
         }
     }
+    // public void StartExperiment()
+    // {
+    //     if (!experimentStarted)
+    //     {
+    //         Debug.Log("Starting experiment");
+    //         experimentStarted = true;
+    //         currentTrialIndex = 0;
+    //         currentBlockIndex = 0;
+
+    //         if (scoreManager != null)
+    //         {
+    //             scoreManager.ResetScore();// Reset score at the start of the experiment
+    //         }
+    //         else
+    //         {
+    //             Debug.LogError("ScoreManager is null in StartExperiment method!");
+    //         }
+    //         if (logManager != null)
+    //         {
+    //             logManager.LogExperimentStart();
+    //         }
+    //         else
+    //         {
+    //             Debug.LogError("LogManager is null in StartExperiment method!");
+    //         }
+
+    //         StartNewBlock();
+    //         MoveToNextTrial();
+    //     }
+    // }
 
     /// <summary>
     /// Handles the user's decision to work or skip.
@@ -636,6 +696,12 @@ public class ExperimentManager : MonoBehaviour
         Debug.Log($"Trial ended. Reward collected: {rewardCollected}");
         float completionTime = Time.time - trialStartTime;
         logManager.LogTrialOutcome(currentTrialIndex + 1, rewardCollected, completionTime);
+
+        // if (rewardCollected && scoreManager != null)
+        // {
+        //     float rewardValue = GetCurrentTrialRewardValue();
+        //     scoreManager.AddScore(Mathf.RoundToInt(rewardValue));
+        // }
 
         OnTrialEnded?.Invoke(rewardCollected);
 

@@ -1476,14 +1476,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 47e3fc8bfa0014be3a14afed7885f579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rewardPrefab: {fileID: 740225666475429489, guid: 52ef8d42e2ada4951a50ea505fdecafe,
-    type: 3}
-  gridSize: 0.1
-  ySpawnPosition: 0.5
-  minX: -1
-  maxX: 1
-  minZ: -1
-  maxZ: 1
+  rewardPrefabs: []
+  gridManager: {fileID: 0}
 --- !u!4 &1407844653
 Transform:
   m_ObjectHideFlags: 0
@@ -2267,7 +2261,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gameController: {fileID: 0}
-  scoreManager: {fileID: 0}
+  gridWorldManager: {fileID: 0}
 --- !u!114 &1904730761
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2280,8 +2274,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5df6673d4014458491c3531279b1f27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  stepDistance: 0.1
+  moveStepSize: 1
   pressesPerStep: 0
+  errorSound: {fileID: 0}
+  rewardSound: {fileID: 0}
+  stepSound: {fileID: 0}
+  gridManager: {fileID: 0}
 --- !u!54 &1904730762
 Rigidbody:
   m_ObjectHideFlags: 0
