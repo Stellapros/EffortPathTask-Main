@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 6382901151627789725}
   - component: {fileID: 100146633506672638}
   - component: {fileID: -7198420545532246115}
-  - component: {fileID: -8813595882768349982}
+  - component: {fileID: -6209513476219688336}
   m_Layer: 8
   m_Name: playerPrefab
   m_TagString: Player
@@ -150,9 +150,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gameController: {fileID: 4376569847124673037, guid: 70904f10d211b473590c2ecdbfba4c18,
     type: 3}
-  gridWorldManager: {fileID: 1833278028662612437, guid: 96d776e8ee130440d8b6e04107cc91e0,
-    type: 3}
---- !u!114 &-8813595882768349982
+  gridWorldManager: {fileID: 0}
+--- !u!114 &-6209513476219688336
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

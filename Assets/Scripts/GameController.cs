@@ -27,6 +27,7 @@ public class GameController : MonoBehaviour
 
         // Initialize components
         // Initialize();
+
     }
     #endregion
 
@@ -49,6 +50,7 @@ public class GameController : MonoBehaviour
     private GameObject currentReward;
     private bool rewardCollected = false;
     private float trialStartTime;
+    private float trialEndTime;
     private int buttonPressCount;
     private bool isTrialActive = false;
     private bool isTrialEnded = false;
@@ -85,6 +87,7 @@ public class GameController : MonoBehaviour
         }
         // Initialize components
         Initialize();
+        InitializeLogManager();
     }
 
     private void Update()
@@ -104,6 +107,20 @@ public class GameController : MonoBehaviour
             {
                 EndTrial(false);
             }
+        }
+    }
+
+    private void InitializeLogManager()
+    {
+        logManager = FindObjectOfType<LogManager>();
+        if (logManager == null)
+        {
+            Debug.LogWarning("LogManager not found in the scene. Creating a new instance.");
+            GameObject logManagerObject = new GameObject("LogManager");
+            LogManager.instance = logManagerObject.AddComponent<LogManager>();
+            // logManager = logManagerObject.AddComponent<LogManager>();
+
+            Debug.Log("LogManager initialized in GameController");
         }
     }
 
@@ -263,6 +280,9 @@ public class GameController : MonoBehaviour
         currentEffortLevel = experimentManager != null ? (int)experimentManager.GetCurrentTrialEV() : 1;
         Debug.Log($"Current effort level set to: {currentEffortLevel}");
 
+        // Set presses per step based on effort level
+        SetPressesPerStep(currentEffortLevel);
+
         // Start the countdown timer
         if (countdownTimer != null)
         {
@@ -308,6 +328,19 @@ public class GameController : MonoBehaviour
         {
             Debug.LogError("currentPlayer is null when trying to enable movement!");
         }
+
+        // Record initial player position
+        // if (currentPlayer != null)
+        // {
+        //     playerInitialPosition = currentPlayer.transform.position;
+        //     Debug.Log($"Initial player position: {playerInitialPosition}");
+        // }
+        // else
+        // {
+        //     Debug.LogError("Player not spawned correctly!");
+        // }
+        // Log the start of the trial
+        LogTrialStart();
     }
 
 
@@ -331,6 +364,7 @@ public class GameController : MonoBehaviour
 
         isTrialActive = false;
         isTrialEnded = true;
+        trialEndTime = Time.time;
         float trialDuration = Time.time - trialStartTime;
 
         // Stop all coroutines
@@ -368,6 +402,8 @@ public class GameController : MonoBehaviour
         if (currentPlayer != null)
         {
             FreezePlayer();
+            // playerFinalPosition = currentPlayer.transform.position;
+            Debug.Log($"Final player position: {playerFinalPosition}");
             Debug.Log("Player frozen in place.");
         }
         else
@@ -385,6 +421,9 @@ public class GameController : MonoBehaviour
         // Log trial data
         experimentManager.LogTrialData(rewardCollected, trialDuration, buttonPressCount);
 
+        // Log trial data
+        LogTrialEnd(rewardCollected, trialDuration);
+
         // Clean up the scene
         CleanupTrial(rewardCollected);
 
@@ -395,6 +434,56 @@ public class GameController : MonoBehaviour
     private float CalculateEuclideanDistance(Vector2 start, Vector2 end)
     {
         return Vector2.Distance(start, end);
+    }
+
+    private void LogTrialStart()
+    {
+        string logMessage = $"Trial Start," +
+                            $"Time: {System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}," +
+                            $"TrialIndex: {currentTrialIndex}," +
+                            $"BlockIndex: {currentBlockIndex}," +
+                            $"EffortLevel: {currentEffortLevel}," +
+                            $"RewardPosition: {actualRewardPosition}," +
+                            $"InitialPlayerPosition: {playerInitialPosition}," +
+                            $"RewardValue: {experimentManager.GetCurrentTrialRewardValue()}";
+
+        SafeLog(logMessage);
+    }
+
+    private void LogTrialEnd(bool rewardCollected, float trialDuration)
+    {
+        float distanceMoved = Vector2.Distance(playerInitialPosition, playerFinalPosition);
+
+        string logMessage = $"Trial End," +
+                            $"Time: {System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}," +
+                            $"TrialIndex: {currentTrialIndex}," +
+                            $"BlockIndex: {currentBlockIndex}," +
+                            $"EffortLevel: {currentEffortLevel}," +
+                            $"RewardCollected: {rewardCollected}," +
+                            $"TrialDuration: {trialDuration:F2}s," +
+                            $"ButtonPressCount: {buttonPressCount}," +
+                            $"InitialPlayerPosition: {playerInitialPosition}," +
+                            $"FinalPlayerPosition: {playerFinalPosition}," +
+                            $"DistanceMoved: {distanceMoved:F2}," +
+                            $"RewardPosition: {actualRewardPosition}," +
+                            $"RewardValue: {experimentManager.GetCurrentTrialRewardValue()}";
+
+        SafeLog(logMessage);
+    }
+
+    private void SafeLog(string message)
+    {
+        LogManager.LogManagerHelper.Log(message);
+
+        if (logManager != null)
+        {
+            logManager.WriteTimeStampedEntry(message);
+        }
+        else
+        {
+            Debug.LogWarning($"LogManager is null. Logging to Debug.Log instead. Message: {message}");
+            Debug.Log(message);
+        }
     }
 
     private void SetPressesPerStep(int effortLevel)
@@ -425,7 +514,6 @@ public class GameController : MonoBehaviour
             Debug.LogError("currentPlayer is null when trying to set presses per step!");
         }
     }
-
     /// <summary>
     /// Freezes the player's movement.
     /// </summary>

@@ -167,7 +167,7 @@ public class PlayerController : MonoBehaviour
         if (gridManager != null && gridManager.IsValidPosition(newPosition))
         {
             MoveCharacter(newPosition);
-            UpdateFacingDirection(direction);
+            UpdateFacingDirection(direction); // This line ensures the facing direction is updated after each move
             PlayStepSound();
 
             // Update current position after successful move
@@ -306,7 +306,6 @@ public class PlayerController : MonoBehaviour
         ResetCounters();
         Debug.Log($"Presses per step set to: {pressesPerStep}");
     }
-
     public void EnableMovement()
     {
         isTrialRunning = true;

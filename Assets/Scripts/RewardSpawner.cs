@@ -1,12 +1,14 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 /// <summary>
 /// Manages the spawning and clearing of rewards in the GridWorld scene.
 /// </summary>
 public class RewardSpawner : MonoBehaviour
 {
-    [SerializeField] private GameObject rewardPrefab;
+    // [SerializeField] private GameObject rewardPrefab;
+    [SerializeField] private List<GameObject> rewardPrefabs; // List of 6 different reward prefabs
     [SerializeField] private GridManager gridManager;
 
     private GameObject currentReward;
@@ -30,7 +32,7 @@ public class RewardSpawner : MonoBehaviour
             }
         }
 
-        if (rewardPrefab == null)
+        if (rewardPrefabs == null)
         {
             Debug.LogError("Reward prefab is not assigned in RewardSpawner. Please assign it in the inspector.");
         }
@@ -55,14 +57,21 @@ public class RewardSpawner : MonoBehaviour
             ClearReward();
         }
 
-        if (gridManager == null || rewardPrefab == null)
+        if (gridManager == null || rewardPrefabs == null || rewardPrefabs.Count == 0)
         {
-            Debug.LogError("Cannot spawn reward: GridManager or reward prefab is missing.");
+            Debug.LogError("Cannot spawn reward: GridManager or reward prefabs are missing.");
+            return null;
+        }
+
+        GameObject selectedRewardPrefab = GetRandomRewardPrefab();
+        if (selectedRewardPrefab == null)
+        {
+            Debug.LogError("Failed to select a random reward prefab.");
             return null;
         }
 
         Vector3 spawnPosition = new Vector3(rewardPosition.x, rewardPosition.y, 0f);
-        currentReward = Instantiate(rewardPrefab, spawnPosition, Quaternion.identity);
+        currentReward = Instantiate(selectedRewardPrefab, spawnPosition, Quaternion.identity);
         Debug.Log($"Reward instantiated: {currentReward != null}");
 
         if (currentReward == null)
@@ -89,6 +98,18 @@ public class RewardSpawner : MonoBehaviour
             return null;
         }
     }
+
+    private GameObject GetRandomRewardPrefab()
+    {
+        if (rewardPrefabs == null || rewardPrefabs.Count == 0)
+        {
+            Debug.LogError("No reward prefabs available.");
+            return null;
+        }
+        int randomIndex = Random.Range(0, rewardPrefabs.Count);
+        return rewardPrefabs[randomIndex];
+    }
+
 
     /// <summary>
     /// Gets a random spawn position from the grid manager.

@@ -1356,6 +1356,47 @@ PrefabInstance:
       propertyPath: gridManager
       value: 
       objectReference: {fileID: 1143267186}
+    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
+        type: 3}
+      propertyPath: rewardPrefabs.Array.size
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
+        type: 3}
+      propertyPath: rewardPrefabs.Array.data[0]
+      value: 
+      objectReference: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
+        type: 3}
+    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
+        type: 3}
+      propertyPath: rewardPrefabs.Array.data[1]
+      value: 
+      objectReference: {fileID: 8022593480357226567, guid: fa3db00718bc74c898e62edd28433419,
+        type: 3}
+    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
+        type: 3}
+      propertyPath: rewardPrefabs.Array.data[2]
+      value: 
+      objectReference: {fileID: 1766563905567626122, guid: f8e91945949c349a5ad7d8796fd15fcc,
+        type: 3}
+    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
+        type: 3}
+      propertyPath: rewardPrefabs.Array.data[3]
+      value: 
+      objectReference: {fileID: 9181912887003914726, guid: 989337141fe604338aed78ac97f42db1,
+        type: 3}
+    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
+        type: 3}
+      propertyPath: rewardPrefabs.Array.data[4]
+      value: 
+      objectReference: {fileID: 763663643615504316, guid: 7172e1edf5c314dcc89d4f8ff7f2b541,
+        type: 3}
+    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
+        type: 3}
+      propertyPath: rewardPrefabs.Array.data[5]
+      value: 
+      objectReference: {fileID: 6861172893992282259, guid: ab4849fe315e544faabccbbeb391c3e6,
+        type: 3}
     - target: {fileID: 5937271110036951152, guid: a53d84e7b0317482dbd4547d7b7592b3,
         type: 3}
       propertyPath: m_Name

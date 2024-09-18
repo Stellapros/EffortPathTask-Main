@@ -14,18 +14,24 @@ public class ExperimentManager : MonoBehaviour
     #endregion
 
     #region Constants
-    private const int TOTAL_TRIALS = 4; // Total number of trials in the experiment
+    private const int TOTAL_TRIALS = 3; // Total number of trials in the experiment
+    private const int TRIALS_PER_BLOCK = 1; // Number of trials in each block
+    private const int TOTAL_BLOCKS = 3; // Total number of blocks
     private const float TRIAL_DURATION = 10f; // Duration of each trial in seconds
     private const float REWARD_VALUE = 10f; // Value of the reward for each trial
     private const float SKIP_DELAY = 3f; // Delay before showing the next trial after skipping
     #endregion
 
     #region Serialized Fields
-    [SerializeField] private Sprite squareSprite;
-    [SerializeField] private Sprite circleSprite;
-    [SerializeField] private Sprite triangleSprite;
+    // [SerializeField] private Sprite squareSprite;
+    // [SerializeField] private Sprite circleSprite;
+    // [SerializeField] private Sprite triangleSprite;
+    [SerializeField] private Sprite level1Sprite;
+    [SerializeField] private Sprite level2Sprite;
+    [SerializeField] private Sprite level3Sprite;
     [SerializeField] private string decisionPhaseScene = "DecisionPhase";
     [SerializeField] private string gridWorldScene = "GridWorld";
+    [SerializeField] private string restBreakScene = "RestBreak";
     [SerializeField] private string endExperimentScene = "EndExperiment";
 
     [System.Serializable]
@@ -42,8 +48,10 @@ public class ExperimentManager : MonoBehaviour
 
     #region Private Fields
     private List<Trial> trials;
-    private Dictionary<Sprite, float> spriteToEffortMap;
+    // private Dictionary<Sprite, float> spriteToEffortMap;
+    private Dictionary<Sprite, int> spriteToEffortMap;
     private int currentTrialIndex = 0;
+    private int currentBlockIndex = 0;
     private bool experimentStarted = false;
     private List<Vector2> rewardPositions = new List<Vector2>();
     private List<(float collisionTime, float movementDuration)> rewardCollectionTimings = new List<(float, float)>();
@@ -98,46 +106,109 @@ public class ExperimentManager : MonoBehaviour
     /// <summary>
     /// Initializes all trials for the experiment.
     /// </summary>
+    // private void InitializeTrials()
+    // {
+    //     trials = new List<Trial>();
+    //     for (int i = 0; i < TOTAL_TRIALS; i++)
+    //     {
+    //         Vector2 playerSpawnPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
+    //         Vector2 rewardPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
+    //         Sprite randomEffortSprite = GetRandomEffortSprite();
+    //         trials.Add(new Trial(randomEffortSprite, playerSpawnPosition, rewardPosition));
+    //     }
+    //     trials = trials.OrderBy(x => Random.value).ToList(); // Shuffle trials
+    // }
+
+    // Generates trials for each block separately, 
+    //ensuring the correct distribution of effort levels within each block.
     private void InitializeTrials()
     {
         trials = new List<Trial>();
-        for (int i = 0; i < TOTAL_TRIALS; i++)
+        for (int block = 0; block < TOTAL_BLOCKS; block++)
+        {
+            List<Trial> blockTrials = GenerateBlockTrials(block);
+            trials.AddRange(blockTrials);
+        }
+    }
+
+    private List<Trial> GenerateBlockTrials(int blockIndex)
+    {
+        List<Trial> blockTrials = new List<Trial>();
+        int[] effortLevels = GetEffortLevelsForBlock(blockIndex);
+
+        for (int i = 0; i < TRIALS_PER_BLOCK; i++)
         {
             Vector2 playerSpawnPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
             Vector2 rewardPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
-            Sprite randomEffortSprite = GetRandomEffortSprite();
-            trials.Add(new Trial(randomEffortSprite, playerSpawnPosition, rewardPosition));
+            int effortLevel = effortLevels[i % effortLevels.Length];
+            Sprite effortSprite = GetSpriteForEffortLevel(effortLevel);
+            blockTrials.Add(new Trial(effortSprite, playerSpawnPosition, rewardPosition, blockIndex));
         }
-        trials = trials.OrderBy(x => Random.value).ToList(); // Shuffle trials
+
+        return blockTrials.OrderBy(x => Random.value).ToList(); // Shuffle trials within the block
     }
+
+    private int[] GetEffortLevelsForBlock(int blockIndex)
+    {
+        switch (blockIndex)
+        {
+            case 0: return new int[] { 3, 3, 3, 2, 2, 1 }; // Block 1: 3:2:1 ratio
+            case 1: return new int[] { 3, 2, 1 }; // Block 2: 1:1:1 ratio
+            case 2: return new int[] { 1, 2, 2, 3, 3, 3 }; // Block 3: 1:2:3 ratio
+            default: return new int[] { 1, 2, 3 };
+        }
+    }
+
+    private Sprite GetSpriteForEffortLevel(int effortLevel)
+    {
+        switch (effortLevel)
+        {
+            case 1: return level1Sprite;
+            case 2: return level2Sprite;
+            case 3: return level3Sprite;
+            default: return level1Sprite;
+        }
+    }
+
 
     /// <summary>
     /// Initializes the mapping between sprites and effort levels.
     /// </summary>
+
     private void InitializeSpriteToEffortMap()
     {
-        spriteToEffortMap = new Dictionary<Sprite, float>
+        spriteToEffortMap = new Dictionary<Sprite, int>
         {
-            { squareSprite, 1f },
-            { circleSprite, 2f },
-            { triangleSprite, 3f }
+            { level1Sprite, 1 },
+            { level2Sprite, 2 },
+            { level3Sprite, 3 }
         };
     }
+    // private void InitializeSpriteToEffortMap()
+    // {
+    //     spriteToEffortMap = new Dictionary<Sprite, float>
+    //     {
+    //         { squareSprite, 1f },
+    //         { circleSprite, 2f },
+    //         { triangleSprite, 3f }
+    //     };
+    // }
+
 
     /// <summary>
     /// Returns a random effort sprite.
     /// </summary>
-    private Sprite GetRandomEffortSprite()
-    {
-        int randomIndex = Random.Range(0, 3);
-        switch (randomIndex)
-        {
-            case 0: return squareSprite;
-            case 1: return circleSprite;
-            case 2: return triangleSprite;
-            default: return squareSprite;
-        }
-    }
+    // private Sprite GetRandomEffortSprite()
+    // {
+    //     int randomIndex = Random.Range(0, 3);
+    //     switch (randomIndex)
+    //     {
+    //         case 0: return squareSprite;
+    //         case 1: return circleSprite;
+    //         case 2: return triangleSprite;
+    //         default: return squareSprite;
+    //     }
+    // }
     #endregion
 
     #region Scene Management Methods
@@ -237,6 +308,7 @@ public class ExperimentManager : MonoBehaviour
             Debug.Log("Starting experiment");
             experimentStarted = true;
             currentTrialIndex = 0;
+            currentBlockIndex = 0;
             ScoreManager.Instance.ResetScore(); // Reset score at the start of the experiment
         }
     }
@@ -270,24 +342,57 @@ public class ExperimentManager : MonoBehaviour
         MoveToNextTrial();
     }
 
-    /// <summary>
-    /// Moves to the next trial or ends the experiment if all trials are completed.
-    /// </summary>
     public void MoveToNextTrial()
     {
         currentTrialIndex++;
         Debug.Log($"Moving to trial {currentTrialIndex}");
-        if (currentTrialIndex >= TOTAL_TRIALS)
+
+        if (currentTrialIndex % TRIALS_PER_BLOCK == 0)
+        {
+            if (currentBlockIndex < TOTAL_BLOCKS - 1)
+            {
+                currentBlockIndex++;
+                Debug.Log($"Block {currentBlockIndex} completed. Taking a break.");
+                LoadScene(restBreakScene);
+            }
+            else
+            {
+                Debug.Log("Experiment ended");
+                EndExperiment();
+            }
+        }
+        else if (currentTrialIndex >= TOTAL_TRIALS)
         {
             Debug.Log("Experiment ended");
             EndExperiment();
         }
         else
         {
-            Debug.Log($"Moving to trial {currentTrialIndex}");
             LoadScene(decisionPhaseScene);
         }
     }
+    // public void MoveToNextTrial()
+    // {
+    //     currentTrialIndex++;
+    //     Debug.Log($"Moving to trial {currentTrialIndex}");
+    //     if (currentTrialIndex >= TOTAL_TRIALS)
+    //     {
+    //         Debug.Log("Experiment ended");
+    //         EndExperiment();
+    //     }
+    //     else
+    //     {
+    //         Debug.Log($"Moving to trial {currentTrialIndex}");
+    //         LoadScene(decisionPhaseScene);
+    //     }
+    // }
+
+public void ContinueAfterBreak()
+{
+    Debug.Log($"ExperimentManager: Continuing to Block {currentBlockIndex + 1}");
+    Debug.Log($"ExperimentManager: Loading scene: {decisionPhaseScene}");
+    LoadScene(decisionPhaseScene);
+}
 
     /// <summary>
     /// Sets up the DecisionPhase scene.
@@ -379,7 +484,7 @@ public class ExperimentManager : MonoBehaviour
     /// </summary>
     private void LogTrialOutcome(bool rewardCollected)
     {
-        Debug.Log($"Trial {currentTrialIndex}: Outcome - {(rewardCollected ? "Reward Collected" : "Time Out")}, Effort Level: {GetCurrentTrialEV()}");
+        Debug.Log($"Block {currentBlockIndex}, Trial {currentTrialIndex}: Outcome - {(rewardCollected ? "Reward Collected" : "Time Out")}, Effort Level: {GetCurrentTrialEV()}");
     }
 
     /// <summary>
@@ -432,24 +537,27 @@ public class ExperimentManager : MonoBehaviour
     /// <summary>
     /// Gets the effort value for the current trial.
     /// </summary>
-    public float GetCurrentTrialEV()
+    public int GetCurrentTrialEV()
     {
         if (trials == null || currentTrialIndex >= trials.Count)
         {
             Debug.LogWarning($"Trials not initialized or currentTrialIndex ({currentTrialIndex}) out of range. Trials count: {(trials != null ? trials.Count.ToString() : "null")}");
-            return 0f;
+            return 0;
         }
 
         Sprite currentSprite = trials[currentTrialIndex].EffortSprite;
         if (spriteToEffortMap == null || !spriteToEffortMap.ContainsKey(currentSprite))
         {
             Debug.LogWarning($"spriteToEffortMap not initialized or doesn't contain the current sprite. Current sprite: {currentSprite?.name ?? "null"}");
-            return 0f;
+            return 0;
         }
 
         return spriteToEffortMap[currentSprite];
     }
 
+    public int GetCurrentBlockIndex() => currentBlockIndex;
+    public int GetCurrentTrialInBlock() => currentTrialIndex % TRIALS_PER_BLOCK + 1;
+    public int GetTotalTrialsInBlock() => TRIALS_PER_BLOCK;
     public Vector2 GetCurrentTrialPlayerPosition() => trials[currentTrialIndex].PlayerPosition;
     public Vector2 GetCurrentTrialRewardPosition() => trials[currentTrialIndex].RewardPosition;
     public float GetCurrentTrialRewardValue() => REWARD_VALUE;
@@ -468,12 +576,14 @@ public class ExperimentManager : MonoBehaviour
         public Sprite EffortSprite { get; private set; }
         public Vector2 PlayerPosition { get; private set; }
         public Vector2 RewardPosition { get; private set; }
+        public int BlockIndex { get; private set; }
 
-        public Trial(Sprite effortSprite, Vector2 playerPosition, Vector2 rewardPosition)
+        public Trial(Sprite effortSprite, Vector2 playerPosition, Vector2 rewardPosition, int blockIndex)
         {
             this.EffortSprite = effortSprite;
             this.PlayerPosition = playerPosition;
             this.RewardPosition = rewardPosition;
+            this.BlockIndex = blockIndex;
         }
     }
 }

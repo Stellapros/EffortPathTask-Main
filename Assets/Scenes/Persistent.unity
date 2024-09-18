@@ -563,11 +563,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c50b06d2d146945deaaedd43f152efe0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  squareSprite: {fileID: 21300000, guid: 384daf03cbc23432199d6270d7a42420, type: 3}
-  circleSprite: {fileID: 21300000, guid: 72d21cfaf1e6e4442904d8f00ae6097a, type: 3}
-  triangleSprite: {fileID: 21300000, guid: ab78d5ee03e624226af5a3c191588251, type: 3}
+  level1Sprite: {fileID: 21300000, guid: 384daf03cbc23432199d6270d7a42420, type: 3}
+  level2Sprite: {fileID: 21300000, guid: 72d21cfaf1e6e4442904d8f00ae6097a, type: 3}
+  level3Sprite: {fileID: 21300000, guid: ab78d5ee03e624226af5a3c191588251, type: 3}
   decisionPhaseScene: DecisionPhase
   gridWorldScene: GridWorld
+  restBreakScene: RestBreak
   endExperimentScene: EndExperiment
   sceneTransitions: []
 --- !u!1 &1935064465
