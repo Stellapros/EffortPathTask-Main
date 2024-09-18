@@ -14,8 +14,8 @@ public class ExperimentManager : MonoBehaviour
     #endregion
 
     #region Constants
-    private const int TOTAL_TRIALS = 3; // Total number of trials in the experiment
-    private const int TRIALS_PER_BLOCK = 1; // Number of trials in each block
+    private const int TOTAL_TRIALS = 18; // Total number of trials in the experiment
+    private const int TRIALS_PER_BLOCK = 6; // Number of trials in each block
     private const int TOTAL_BLOCKS = 3; // Total number of blocks
     private const float TRIAL_DURATION = 10f; // Duration of each trial in seconds
     private const float REWARD_VALUE = 10f; // Value of the reward for each trial
@@ -53,9 +53,12 @@ public class ExperimentManager : MonoBehaviour
     private int currentTrialIndex = 0;
     private int currentBlockIndex = 0;
     private bool experimentStarted = false;
+    private float decisionStartTime;
+    private float trialStartTime;
     private List<Vector2> rewardPositions = new List<Vector2>();
     private List<(float collisionTime, float movementDuration)> rewardCollectionTimings = new List<(float, float)>();
     private ScoreManager scoreManager;
+    private LogManager logManager;
     #endregion
 
     #region Events
@@ -73,6 +76,14 @@ public class ExperimentManager : MonoBehaviour
             InitializeTrials();
             InitializeSpriteToEffortMap();
 
+            // Initialize LogManager
+            logManager = FindObjectOfType<LogManager>();
+            if (logManager == null)
+            {
+                Debug.LogError("LogManager not found in the scene! Creating a new instance.");
+                logManager = new GameObject("LogManager").AddComponent<LogManager>();
+            }
+
             // Initialize ScoreManager
             scoreManager = FindObjectOfType<ScoreManager>();
             if (scoreManager == null)
@@ -84,6 +95,7 @@ public class ExperimentManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
+
     }
 
     private void Start()
@@ -94,6 +106,15 @@ public class ExperimentManager : MonoBehaviour
 
         // ensure that the total time is accurately calculated and displayed when the experiment ends
         PlayerPrefs.SetFloat("ExperimentStartTime", Time.time);
+
+        if (logManager == null)
+        {
+            Debug.LogError("LogManager is still null in Start method!");
+        }
+        else
+        {
+            logManager.LogExperimentStart();
+        }
     }
 
     private void OnDestroy()
@@ -106,58 +127,147 @@ public class ExperimentManager : MonoBehaviour
     /// <summary>
     /// Initializes all trials for the experiment.
     /// </summary>
-    // private void InitializeTrials()
-    // {
-    //     trials = new List<Trial>();
-    //     for (int i = 0; i < TOTAL_TRIALS; i++)
-    //     {
-    //         Vector2 playerSpawnPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
-    //         Vector2 rewardPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
-    //         Sprite randomEffortSprite = GetRandomEffortSprite();
-    //         trials.Add(new Trial(randomEffortSprite, playerSpawnPosition, rewardPosition));
-    //     }
-    //     trials = trials.OrderBy(x => Random.value).ToList(); // Shuffle trials
-    // }
-
     // Generates trials for each block separately, 
-    //ensuring the correct distribution of effort levels within each block.
+    // //ensuring the correct distribution of effort levels within each block.
     private void InitializeTrials()
     {
+        List<int> blockOrder = new List<int> { 0, 1, 2 };
+        blockOrder = blockOrder.OrderBy(x => Random.value).ToList(); // Randomize block order
+
         trials = new List<Trial>();
-        for (int block = 0; block < TOTAL_BLOCKS; block++)
+        for (int i = 0; i < TOTAL_BLOCKS; i++)
         {
-            List<Trial> blockTrials = GenerateBlockTrials(block);
+            int blockIndex = blockOrder[i];
+            List<Trial> blockTrials = GenerateBlockTrials(blockIndex, i);
             trials.AddRange(blockTrials);
+
+            // Log information about the generated block
+            Debug.Log($"Generated Block {i + 1} (Original Index: {blockIndex}): {blockTrials.Count} trials");
         }
+
+        Debug.Log($"Total trials generated: {trials.Count}");
     }
 
-    private List<Trial> GenerateBlockTrials(int blockIndex)
+    private List<Trial> GenerateBlockTrials(int blockIndex, int blockOrder)
     {
         List<Trial> blockTrials = new List<Trial>();
-        int[] effortLevels = GetEffortLevelsForBlock(blockIndex);
+        List<int> effortLevels = GetEffortLevelsForBlock(blockIndex);
 
         for (int i = 0; i < TRIALS_PER_BLOCK; i++)
         {
             Vector2 playerSpawnPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
             Vector2 rewardPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
-            int effortLevel = effortLevels[i % effortLevels.Length];
+            int effortLevel = effortLevels[i];
             Sprite effortSprite = GetSpriteForEffortLevel(effortLevel);
-            blockTrials.Add(new Trial(effortSprite, playerSpawnPosition, rewardPosition, blockIndex));
+
+            // Create a trial with additional block information
+            Trial trial = new Trial(effortSprite, playerSpawnPosition, rewardPosition, blockIndex, blockOrder);
+            blockTrials.Add(trial);
         }
 
         return blockTrials.OrderBy(x => Random.value).ToList(); // Shuffle trials within the block
     }
 
-    private int[] GetEffortLevelsForBlock(int blockIndex)
+    /// <summary>
+    /// Together with total trials = 12
+    /// </summary>
+    /// <param name="blockIndex"></param>
+    /// <returns></returns>
+    private List<int> GetEffortLevelsForBlock(int blockIndex)
     {
+        List<int> effortLevels = new List<int>();
         switch (blockIndex)
         {
-            case 0: return new int[] { 3, 3, 3, 2, 2, 1 }; // Block 1: 3:2:1 ratio
-            case 1: return new int[] { 3, 2, 1 }; // Block 2: 1:1:1 ratio
-            case 2: return new int[] { 1, 2, 2, 3, 3, 3 }; // Block 3: 1:2:3 ratio
-            default: return new int[] { 1, 2, 3 };
+            case 0: // Block 1: 3:2:1 ratio
+                effortLevels.AddRange(Enumerable.Repeat(3, 3));
+                effortLevels.AddRange(Enumerable.Repeat(2, 2));
+                effortLevels.AddRange(Enumerable.Repeat(1, 1));
+                break;
+            case 1: // Block 2: 1:1:1 ratio
+                effortLevels.AddRange(Enumerable.Repeat(3, 2));
+                effortLevels.AddRange(Enumerable.Repeat(2, 2));
+                effortLevels.AddRange(Enumerable.Repeat(1, 2));
+                break;
+            case 2: // Block 3: 1:2:3 ratio
+                effortLevels.AddRange(Enumerable.Repeat(3, 1));
+                effortLevels.AddRange(Enumerable.Repeat(2, 2));
+                effortLevels.AddRange(Enumerable.Repeat(1, 3));
+                break;
         }
+        return effortLevels.OrderBy(x => Random.value).ToList(); // Shuffle effort levels within the block
     }
+
+
+
+    /// <summary>
+    /// Together with total trials = 90
+    /// </summary>
+    /// <param name="blockIndex"></param>
+    /// <returns></returns>
+    // private List<int> GetEffortLevelsForBlock(int blockIndex)
+    // {
+    //     List<int> effortLevels = new List<int>();
+    //     switch (blockIndex)
+    //     {
+    //         case 0: // Block 1: 3:2:1 ratio
+    //             effortLevels.AddRange(Enumerable.Repeat(3, 15));
+    //             effortLevels.AddRange(Enumerable.Repeat(2, 10));
+    //             effortLevels.AddRange(Enumerable.Repeat(1, 5));
+    //             break;
+    //         case 1: // Block 2: 1:1:1 ratio
+    //             effortLevels.AddRange(Enumerable.Repeat(3, 10));
+    //             effortLevels.AddRange(Enumerable.Repeat(2, 10));
+    //             effortLevels.AddRange(Enumerable.Repeat(1, 10));
+    //             break;
+    //         case 2: // Block 3: 1:2:3 ratio
+    //             effortLevels.AddRange(Enumerable.Repeat(3, 15));
+    //             effortLevels.AddRange(Enumerable.Repeat(2, 10));
+    //             effortLevels.AddRange(Enumerable.Repeat(1, 5));
+    //             break;
+    //     }
+    //     return effortLevels.OrderBy(x => Random.value).ToList(); // Shuffle effort levels within the block
+    // }
+
+
+
+
+    // private void InitializeTrials()
+    // {
+    //     trials = new List<Trial>();
+    //     for (int block = 0; block < TOTAL_BLOCKS; block++)
+    //     {
+    //         List<Trial> blockTrials = GenerateBlockTrials(block);
+    //         trials.AddRange(blockTrials);
+    //     }
+    // }
+
+    // private List<Trial> GenerateBlockTrials(int blockIndex)
+    // {
+    //     List<Trial> blockTrials = new List<Trial>();
+    //     int[] effortLevels = GetEffortLevelsForBlock(blockIndex);
+
+    //     for (int i = 0; i < TRIALS_PER_BLOCK; i++)
+    //     {
+    //         Vector2 playerSpawnPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
+    //         Vector2 rewardPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
+    //         int effortLevel = effortLevels[i % effortLevels.Length];
+    //         Sprite effortSprite = GetSpriteForEffortLevel(effortLevel);
+    //         blockTrials.Add(new Trial(effortSprite, playerSpawnPosition, rewardPosition, blockIndex));
+    //     }
+
+    //     return blockTrials.OrderBy(x => Random.value).ToList(); // Shuffle trials within the block
+    // }
+
+    // private int[] GetEffortLevelsForBlock(int blockIndex)
+    // {
+    //     switch (blockIndex)
+    //     {
+    //         case 0: return new int[] { 3, 3, 3, 2, 2, 1 }; // Block 1: 3:2:1 ratio
+    //         case 1: return new int[] { 3, 3, 2, 2, 1, 1 }; // Block 2: 1:1:1 ratio
+    //         case 2: return new int[] { 1, 2, 2, 3, 3, 3 }; // Block 3: 1:2:3 ratio
+    //         default: return new int[] { 1, 2, 3 };
+    //     }
+    // }
 
     private Sprite GetSpriteForEffortLevel(int effortLevel)
     {
@@ -169,7 +279,6 @@ public class ExperimentManager : MonoBehaviour
             default: return level1Sprite;
         }
     }
-
 
     /// <summary>
     /// Initializes the mapping between sprites and effort levels.
@@ -310,6 +419,10 @@ public class ExperimentManager : MonoBehaviour
             currentTrialIndex = 0;
             currentBlockIndex = 0;
             ScoreManager.Instance.ResetScore(); // Reset score at the start of the experiment
+            logManager.LogExperimentStart();
+
+            StartNewBlock();
+            MoveToNextTrial();
         }
     }
 
@@ -318,8 +431,20 @@ public class ExperimentManager : MonoBehaviour
     /// </summary>
     public void HandleDecision(bool workDecision)
     {
-        Debug.Log($"ExperimentManager: Decision handled: {(workDecision ? "Work" : "Skip")}");
-        LogDecision(workDecision);
+        if (logManager == null)
+        {
+            Debug.LogError("LogManager is null in HandleDecision method!");
+            logManager = FindObjectOfType<LogManager>();
+            if (logManager == null)
+            {
+                Debug.LogError("Failed to find LogManager in the scene!");
+                return;
+            }
+        }
+
+        Trial currentTrial = trials[currentTrialIndex];
+        float reactionTime = Time.time - decisionStartTime;
+        logManager.LogTrialInfo(currentTrialIndex + 1, currentTrial.BlockIndex, currentTrial.BlockOrder, GetCurrentTrialEV(), workDecision, reactionTime);
 
         if (workDecision)
         {
@@ -331,6 +456,58 @@ public class ExperimentManager : MonoBehaviour
             Debug.Log("ExperimentManager: Player decided to skip. Waiting for 3 seconds before showing next trial.");
             StartCoroutine(ShowNextTrialAfterDelay());
         }
+        // else
+        // {
+        //     Debug.Log("Skip decision made. Moving to next trial.");
+        //     MoveToNextTrial();
+        // }
+    }
+
+    // public void HandleDecision(bool workDecision)
+    // {
+    //     Trial currentTrial = trials[currentTrialIndex];
+    //     float reactionTime = Time.time - decisionStartTime;
+    //     logManager.LogTrialInfo(currentTrialIndex + 1, currentTrial.BlockIndex, currentTrial.BlockOrder, GetCurrentTrialEV(), workDecision, reactionTime);
+
+    //     if (workDecision)
+    //     {
+    //         StartGridWorldPhase();
+    //     }
+    //     else
+    //     {
+    //         // If skipped, move to the next trial
+    //         // currentTrialIndex++;
+    //         MoveToNextTrial();
+    //     }
+    // }
+    // public void HandleDecision(bool workDecision)
+    // {
+    //     Debug.Log($"ExperimentManager: Decision handled: {(workDecision ? "Work" : "Skip")}");
+    //     LogDecision(workDecision);
+
+    //     if (workDecision)
+    //     {
+    //         Debug.Log("ExperimentManager: Player decided to work. Loading GridWorld scene.");
+    //         LoadScene(gridWorldScene);
+    //     }
+    //     else
+    //     {
+    //         Debug.Log("ExperimentManager: Player decided to skip. Waiting for 3 seconds before showing next trial.");
+    //         StartCoroutine(ShowNextTrialAfterDelay());
+    //     }
+
+    //     Trial currentTrial = trials[currentTrialIndex];
+
+    //     float reactionTime = Time.time - decisionStartTime; // Assume decisionStartTime is set when the decision phase starts
+    //     logManager.LogTrialInfo(currentTrialIndex + 1, currentTrial.BlockIndex, currentTrial.BlockOrder, GetCurrentTrialEV(), workDecision, reactionTime);
+
+    // }
+
+    private void StartGridWorldPhase()
+    {
+        trialStartTime = Time.time;
+        // ... (code to set up and start the grid world phase)
+        Debug.Log($"Grid world phase started for trial {currentTrialIndex + 1}");
     }
 
     /// <summary>
@@ -387,12 +564,13 @@ public class ExperimentManager : MonoBehaviour
     //     }
     // }
 
-public void ContinueAfterBreak()
-{
-    Debug.Log($"ExperimentManager: Continuing to Block {currentBlockIndex + 1}");
-    Debug.Log($"ExperimentManager: Loading scene: {decisionPhaseScene}");
-    LoadScene(decisionPhaseScene);
-}
+    public void ContinueAfterBreak()
+    {
+        Debug.Log($"ExperimentManager: Continuing to Block {currentBlockIndex + 1}");
+        Debug.Log($"ExperimentManager: Loading scene: {decisionPhaseScene}");
+        LoadScene(decisionPhaseScene);
+    }
+
 
     /// <summary>
     /// Sets up the DecisionPhase scene.
@@ -409,6 +587,9 @@ public void ContinueAfterBreak()
         {
             Debug.LogError("DecisionManager not found in the scene!");
         }
+
+        decisionStartTime = Time.time;
+        Debug.Log($"Decision phase started for trial {currentTrialIndex + 1}");
     }
 
     /// <summary>
@@ -446,10 +627,51 @@ public void ContinueAfterBreak()
 
     public void EndTrial(bool rewardCollected)
     {
+        if (logManager == null)
+        {
+            Debug.LogError("LogManager is null in EndTrial method!");
+            return;
+        }
+
         Debug.Log($"Trial ended. Reward collected: {rewardCollected}");
-        LogTrialOutcome(rewardCollected);
+        float completionTime = Time.time - trialStartTime;
+        logManager.LogTrialOutcome(currentTrialIndex + 1, rewardCollected, completionTime);
+
         OnTrialEnded?.Invoke(rewardCollected);
-        MoveToNextTrial();
+
+        currentTrialIndex++;
+        if (currentTrialIndex % TRIALS_PER_BLOCK == 0)
+        {
+            EndCurrentBlock();
+            if (currentBlockIndex < TOTAL_BLOCKS - 1)
+            {
+                currentBlockIndex++;
+                StartNewBlock();
+                LoadScene(restBreakScene);
+            }
+            else
+            {
+                EndExperiment();
+            }
+        }
+        else if (currentTrialIndex >= TOTAL_TRIALS)
+        {
+            EndExperiment();
+        }
+        else
+        {
+            MoveToNextTrial();
+        }
+    }
+
+    private void StartNewBlock()
+    {
+        logManager?.LogBlockStart(currentBlockIndex, trials[currentTrialIndex].BlockOrder);
+    }
+
+    private void EndCurrentBlock()
+    {
+        logManager?.LogBlockEnd(currentBlockIndex, trials[currentTrialIndex - 1].BlockOrder);
     }
 
     /// <summary>
@@ -466,7 +688,8 @@ public void ContinueAfterBreak()
         Debug.Log($"Total experiment time: {totalTime} seconds");
 
         // Save experiment data
-        SaveExperimentData();
+        // SaveExperimentData();
+        logManager.LogExperimentEnd();
     }
     #endregion
 
@@ -577,13 +800,15 @@ public void ContinueAfterBreak()
         public Vector2 PlayerPosition { get; private set; }
         public Vector2 RewardPosition { get; private set; }
         public int BlockIndex { get; private set; }
+        public int BlockOrder { get; private set; }
 
-        public Trial(Sprite effortSprite, Vector2 playerPosition, Vector2 rewardPosition, int blockIndex)
+        public Trial(Sprite effortSprite, Vector2 playerPosition, Vector2 rewardPosition, int blockIndex, int blockOrder)
         {
             this.EffortSprite = effortSprite;
             this.PlayerPosition = playerPosition;
             this.RewardPosition = rewardPosition;
             this.BlockIndex = blockIndex;
+            this.BlockOrder = blockOrder;
         }
     }
 }

@@ -1,0 +1,143 @@
+---
+title: "EffortPatchData"
+output: html_document
+date: "2024-09-18"
+---
+
+```{r setup, include=FALSE}
+rm(list = ls(all = TRUE))
+library(bruceR)
+```
+
+## R Markdown
+
+```{r data import}
+set.wd()
+data = import('20240918-114231_data.txt')
+Describe(data)
+Corr(data)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r Figure, echo=FALSE}
+# Load required libraries
+library(tidyverse)
+library(ggplot2)
+library(readr)
+
+# Filter for TrialDecision events and select relevant columns
+trial_data <- data %>%
+  filter(EventType == "TrialDecision") %>%
+  select(EffortLevel, Decision)
+
+# Convert EffortLevel to factor for better plotting
+trial_data$EffortLevel <- as.factor(trial_data$EffortLevel)
+
+# Calculate the proportion of "Work" decisions for each effort level
+decision_summary <- trial_data %>%
+  group_by(EffortLevel) %>%
+  summarize(
+    TotalTrials = n(),
+    WorkDecisions = sum(Decision == "Work"),
+    WorkProportion = WorkDecisions / TotalTrials
+  )
+
+# Create the plot
+ggplot(decision_summary, aes(x = EffortLevel, y = WorkProportion)) +
+  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  geom_text(aes(label = sprintf("%.2f", WorkProportion)), 
+            vjust = -0.5, size = 3.5) +
+  labs(title = "Proportion of 'Work' Decisions by Effort Level",
+       x = "Effort Level",
+       y = "Proportion of 'Work' Decisions") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(size = 10)
+  ) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2))
+
+# Save the plot
+ggsave("effort_level_decisions.png", width = 10, height = 6, dpi = 300)
+```
+
+
+
+```{r Figure - BlockIndex, echo=FALSE}
+# Load required libraries
+library(tidyverse)
+library(ggplot2)
+library(readr)
+
+# Filter for TrialDecision events and select relevant columns
+trial_data <- data %>%
+  filter(EventType == "TrialDecision") %>%
+  select(BlockIndex, EffortLevel, Decision)
+
+# Convert EffortLevel and BlockIndex to factors for better plotting
+trial_data$EffortLevel <- as.factor(trial_data$EffortLevel)
+trial_data$BlockIndex <- as.factor(trial_data$BlockIndex)
+
+# Calculate the proportion of "Work" decisions for each effort level and block index
+decision_summary <- trial_data %>%
+  group_by(BlockIndex, EffortLevel) %>%
+  summarize(
+    TotalTrials = n(),
+    WorkDecisions = sum(Decision == "Work"),
+    WorkProportion = WorkDecisions / TotalTrials,
+    .groups = "drop"
+  )
+
+# Get unique BlockIndex values
+block_indices <- sort(unique(decision_summary$BlockIndex))
+
+# Create a color palette for the number of unique BlockIndex values
+color_palette <- colorRampPalette(c("#FF9999", "#66B2FF", "#99FF99"))(length(block_indices))
+
+# Create a named vector for the color scale
+color_scale <- setNames(color_palette, block_indices)
+
+# Create a function to generate plots
+create_plot <- function(data, title) {
+  ggplot(data, aes(x = EffortLevel, y = WorkProportion, fill = BlockIndex)) +
+    geom_bar(stat = "identity", position = position_dodge()) +
+    geom_text(aes(label = sprintf("%.2f", WorkProportion)), 
+              position = position_dodge(width = 0.9), 
+              vjust = -0.5, size = 3) +
+    labs(title = paste("Proportion of 'Work' Decisions by Effort Level -", title),
+         x = "Effort Level",
+         y = "Proportion of 'Work' Decisions",
+         fill = "Block Index") +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      axis.title = element_text(face = "bold"),
+      axis.text = element_text(size = 10),
+      legend.position = "bottom"
+    ) +
+    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+    scale_fill_manual(values = color_scale)
+}
+
+# Create and save plots for each block index
+for (index in block_indices) {
+  plot_data <- decision_summary %>% filter(BlockIndex == index)
+  plot <- create_plot(plot_data, paste("Block", index))
+  ggsave(paste0("effort_level_decisions_block_", index, ".png"), 
+         plot, width = 10, height = 6, dpi = 300)
+}
+
+# Create an overall plot with all block indices
+overall_plot <- create_plot(decision_summary, "All Blocks")
+ggsave("effort_level_decisions_overall.png", overall_plot, width = 12, height = 8, dpi = 300)
+
+# Print summary of the data
+print(summary(decision_summary))
+print(table(trial_data$BlockIndex))
+overall_plot
+```
+

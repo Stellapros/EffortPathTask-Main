@@ -1,0 +1,26 @@
+Timestamp,EventType,TrialNumber,BlockIndex,BlockOrder,EffortLevel,Decision,ReactionTime,Outcome,CompletionTime
+2024-09-18 11:42:31.189,ExperimentStart,,,,,,,,
+2024-09-18 11:43:17.287,TrialDecision,1,,,2,Work,28.827,,
+2024-09-18 11:43:28.866,TrialOutcome,1,,,,,,TimedOut,47.548
+2024-09-18 11:43:49.408,TrialDecision,3,,,1,Skip,19.570,,
+2024-09-18 11:43:53.207,TrialDecision,4,,,3,Skip,0.525,,
+2024-09-18 11:43:57.208,TrialDecision,5,,,3,Skip,0.845,,
+2024-09-18 11:44:02.251,TrialDecision,6,,,2,Work,1.887,,
+2024-09-18 11:44:13.166,TrialOutcome,6,,,,,,Completed,84.006
+2024-09-18 11:44:13.167,BlockEnd,,,,,,,,
+2024-09-18 11:44:13.167,BlockStart,,1,1,,,,,
+2024-09-18 11:44:16.755,TrialDecision,7,2,1,1,Work,1.587,,
+2024-09-18 11:44:21.047,TrialOutcome,7,,,,,,Completed,89.132
+2024-09-18 11:44:22.064,TrialDecision,9,2,1,1,Work,0.852,,
+2024-09-18 11:44:24.779,TrialOutcome,9,,,,,,Completed,91.341
+2024-09-18 11:44:25.611,TrialDecision,11,2,1,2,Work,0.575,,
+2024-09-18 11:44:32.074,TrialOutcome,11,,,,,,Completed,94.752
+2024-09-18 11:44:34.524,TrialDecision,13,1,2,3,Skip,1.014,,
+2024-09-18 11:44:38.449,TrialDecision,14,1,2,1,Skip,0.747,,
+2024-09-18 11:44:42.410,TrialDecision,15,1,2,3,Skip,0.777,,
+2024-09-18 11:44:47.641,TrialDecision,16,1,2,1,Work,2.048,,
+2024-09-18 11:44:50.116,TrialOutcome,16,,,,,,Completed,110.593
+2024-09-18 11:44:51.539,TrialDecision,18,1,2,2,Work,1.237,,
+2024-09-18 11:44:56.560,TrialOutcome,18,,,,,,Completed,114.355
+2024-09-18 11:44:56.560,BlockEnd,,2,2,,,,,
+2024-09-18 11:44:56.561,ExperimentEnd,,,,,,,,
