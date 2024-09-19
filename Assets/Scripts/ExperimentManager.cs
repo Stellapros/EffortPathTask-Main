@@ -101,7 +101,6 @@ public class ExperimentManager : MonoBehaviour
         {
             Debug.LogError("ScoreManager not found in the scene!");
         }
-
     }
 
     private void Start()
@@ -439,8 +438,8 @@ public class ExperimentManager : MonoBehaviour
     /// <summary>
     /// Starts the experiment by transitioning to the DecisionPhase scene.
     /// </summary>
-    
-        public void StartExperiment()
+
+    public void StartExperiment()
     {
         if (!experimentStarted)
         {

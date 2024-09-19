@@ -37,7 +37,6 @@ public class GameController : MonoBehaviour
     [SerializeField] private float endTrialDelay = 0.5f;
     // [SerializeField] private int[] pressesPerEffortLevel = { 1, 2, 3 }; // Default values
     [SerializeField] private int[] pressesPerEffortLevel = { 1, 2, 3 }; // Default values
-
     [SerializeField] private float sceneTransitionTimeout = 5f; // Maximum time to wait for scene transition
 
     #endregion
@@ -346,14 +345,34 @@ public class GameController : MonoBehaviour
         LogTrialStart();
     }
 
-    private void LoadCalibratedPressesPerEffortLevel()
+    // private void LoadCalibratedPressesPerEffortLevel()
+    // {
+    //     for (int i = 0; i < pressesPerEffortLevel.Length; i++)
+    //     {
+    //         pressesPerEffortLevel[i] = PlayerPrefs.GetInt("PressesPerEffortLevel_" + i, pressesPerEffortLevel[i]);
+    //     }
+    //     Debug.Log("Loaded calibrated presses per effort level: " + string.Join(", ", pressesPerEffortLevel));
+    // }
+
+private void LoadCalibratedPressesPerEffortLevel()
+{
+    Debug.Log("LoadCalibratedPressesPerEffortLevel method called");
+    for (int i = 0; i < pressesPerEffortLevel.Length; i++)
     {
-        for (int i = 0; i < pressesPerEffortLevel.Length; i++)
+        int savedValue = PlayerPrefs.GetInt("PressesPerEffortLevel_" + i, -1);
+        Debug.Log($"Loaded value for level {i}: {savedValue}");
+        if (savedValue != -1)
         {
-            pressesPerEffortLevel[i] = PlayerPrefs.GetInt("PressesPerEffortLevel_" + i, pressesPerEffortLevel[i]);
+            pressesPerEffortLevel[i] = savedValue;
         }
-        Debug.Log("Loaded calibrated presses per effort level: " + string.Join(", ", pressesPerEffortLevel));
+        else
+        {
+            Debug.LogWarning($"No saved value found for level {i}, using default: {pressesPerEffortLevel[i]}");
+        }
     }
+    Debug.Log("Final calibrated presses per effort level: " + string.Join(", ", pressesPerEffortLevel));
+}
+
 
     private void OnTimerExpired()
     {
@@ -498,33 +517,63 @@ public class GameController : MonoBehaviour
     }
 
     private void SetPressesPerStep(int effortLevel)
+{
+    if (effortLevel < 0 || effortLevel >= pressesPerEffortLevel.Length)
     {
-        if (effortLevel <= 0 || effortLevel > pressesPerEffortLevel.Length)
-        {
-            Debug.LogError($"Invalid effort level: {effortLevel}. Using default value.");
-            effortLevel = 1;
-        }
+        Debug.LogError($"Invalid effort level: {effortLevel}");
+        return;
+    }
 
-        int pressesRequired = pressesPerEffortLevel[effortLevel - 1];
-
-        if (currentPlayer != null)
+    int pressesRequired = pressesPerEffortLevel[effortLevel];
+    if (currentPlayer != null)
+    {
+        PlayerController playerController = currentPlayer.GetComponent<PlayerController>();
+        if (playerController != null)
         {
-            PlayerController playerController = currentPlayer.GetComponent<PlayerController>();
-            if (playerController != null)
-            {
-                playerController.SetPressesPerStep(pressesRequired);
-                Debug.Log($"Set presses per step to {pressesRequired} for effort level {effortLevel}");
-            }
-            else
-            {
-                Debug.LogError("PlayerController component not found on currentPlayer!");
-            }
+            playerController.SetPressesPerStep(pressesRequired);
+            Debug.Log($"Set presses per step to {pressesRequired} for effort level {effortLevel}");
         }
         else
         {
-            Debug.LogError("currentPlayer is null when trying to set presses per step!");
+            Debug.LogError("PlayerController component not found on currentPlayer!");
         }
     }
+    else
+    {
+        Debug.LogError("currentPlayer is null when trying to set presses per step!");
+    }
+}
+
+    // private void SetPressesPerStep(int effortLevel)
+    // {
+    //     Debug.Log($"SetPressesPerStep called with effort level: {effortLevel}");
+        
+    //     if (effortLevel <= 0 || effortLevel > pressesPerEffortLevel.Length)
+    //     {
+    //         Debug.LogError($"Invalid effort level: {effortLevel}. Using default value.");
+    //         effortLevel = 1;
+    //     }
+
+    //     int pressesRequired = pressesPerEffortLevel[effortLevel - 1];
+
+    //     if (currentPlayer != null)
+    //     {
+    //         PlayerController playerController = currentPlayer.GetComponent<PlayerController>();
+    //         if (playerController != null)
+    //         {
+    //             playerController.SetPressesPerStep(pressesRequired);
+    //             Debug.Log($"Set presses per step to {pressesRequired} for effort level {effortLevel}");
+    //         }
+    //         else
+    //         {
+    //             Debug.LogError("PlayerController component not found on currentPlayer!");
+    //         }
+    //     }
+    //     else
+    //     {
+    //         Debug.LogError("currentPlayer is null when trying to set presses per step!");
+    //     }
+    // }
     /// <summary>
     /// Freezes the player's movement.
     /// </summary>

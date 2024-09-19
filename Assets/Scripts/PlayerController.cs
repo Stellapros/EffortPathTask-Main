@@ -325,7 +325,8 @@ public class PlayerController : MonoBehaviour
     {
         pressesPerStep = presses;
         ResetCounters();
-        Debug.Log($"Presses per step set to: {pressesPerStep}");
+        // Debug.Log($"Presses per step set to: {pressesPerStep}");
+        Debug.Log($"PlayerController: Presses per step set to {pressesPerStep}");
     }
     public void EnableMovement()
     {

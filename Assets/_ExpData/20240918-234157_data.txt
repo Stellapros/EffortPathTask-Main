@@ -1,8 +1,0 @@
-Timestamp,EventType,TrialNumber,BlockIndex,BlockOrder,EffortLevel,Decision,ReactionTime,Outcome,CompletionTime
-2024-09-18 23:41:57.237,ExperimentStart,0,0,0,0,,,,
-2024-09-18 23:42:00.526,ExperimentStart,0,0,0,0,,,,
-2024-09-18 23:42:00.526,BlockStart,0,0,0,0,,,,
-2024-09-18 23:42:01.423,TrialDecision,2,2,0,1,Work,0.708,,
-2024-09-18 23:42:08.127,TrialOutcome,2,0,0,0,,,Completed,6.251
-2024-09-18 23:42:09.435,TrialDecision,4,2,0,1,Work,1.154,,
-2024-09-18 23:42:16.039,TrialOutcome,4,0,0,0,,,Completed,10.322
