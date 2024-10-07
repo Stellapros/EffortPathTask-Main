@@ -1,284 +1,353 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEditor;
 using System.IO;
 using System.Linq;
-using System;
 using System.Text;
+using UnityEngine;
 
 
-/// <summary>
-/// How to use logging methods 
-/// </summary>
-/// logManager.LogExperimentStart();
-/// logManager.LogTrialInfo(trialNumber, blockIndex, blockOrder, effortLevel, decision, reactionTime);
-/// logManager.LogTrialOutcome(trialNumber, rewardCollected, completionTime);
-/// logManager.LogBlockStart(blockIndex, blockOrder);
-/// logManager.LogBlockEnd(blockIndex, blockOrder);
-/// logManager.LogExperimentEnd();
 
 public class LogManager : MonoBehaviour
 {
-    public static LogManager instance = null; //Static instance of LogManager which allows it to be accessed by any other script.
+    public static LogManager Instance { get; private set; }
+
     private string filePath;
-    private List<string[]> dataRows = new List<string[]>();
+    private List<string> dataColumns;
+   private Dictionary<int, TrialData> trialDataDict = new Dictionary<int, TrialData>();
     [SerializeField] private bool m_ShowDebugLogManager;
-    private ExperimentManager experimentManager;
-    public static class LogManagerHelper
+
+    // Participant info
+    private string participantID;
+    private int participantAge;
+    private string participantGender;
+
+    private class TrialData
     {
-        public static void Log(string message)
+        public int TrialNumber;
+        public int BlockNumber;
+        public float BlockDistance;
+        public DateTime TrialStart;
+        public DateTime DecisionPhaseStart;
+        public DateTime? GridWorldPhaseStart;
+        public DateTime? DecisionMade;
+        public DateTime? CollisionTime;
+        public DateTime? TrialEnd;
+        public string Decision;
+        public string Outcome;
+        public int EffortLevel;
+        public int PressesRequired;
+        public bool IsPractice;
+
+        public bool IsComplete()
         {
-            if (LogManager.instance != null)
-            {
-                LogManager.instance.WriteTimeStampedEntry(message);
-            }
-            else
-            {
-                Debug.LogWarning($"LogManager instance is null. Cannot log message: {message}");
-            }
+            return TrialEnd.HasValue && !string.IsNullOrEmpty(Decision) && !string.IsNullOrEmpty(Outcome);
         }
     }
 
-    //Awake is always called before any Start functions
-    void Awake()
+    private void Awake()
     {
-        Debug.Log("LogManager Awake called");
-
-        if (m_ShowDebugLogManager)
+        if (Instance == null)
         {
-            print("LogManager::Awake");
-        }
-        if (instance == null)
-        {
-            //if not, set instance to this
-            instance = this;
+            Instance = this;
             DontDestroyOnLoad(gameObject);
+            LoadParticipantInfo();
             InitializeCSVFile();
         }
-
-        //If instance already exists and it's not this:
-        else if (instance != this)
+        else if (Instance != this)
         {
-            //Then destroy this. This enforces our singleton pattern, meaning there can only ever be one instance of a GameManager.
             Destroy(gameObject);
         }
-        DontDestroyOnLoad(gameObject);
-
-        //string
-        //string strDir = Path.Combine(Application.streamingAssetsPath);
-        string strDir = Path.Combine(Application.dataPath, "_ExpData");
-        //string strDir = Application.persistentDataPath;
-        filePath = Path.Combine(strDir, System.DateTime.Now.ToString("yyyyMMdd-HHmmss") + "_data.txt");
-
-        /* opening the writer here causes obscure problems (file access permission) errors when Unity loses focus.
-            sadly, we therefore have to re-open the file every time we want to write 
-        writer = new StreamWriter(filePath, true);
-        */
-
     }
-    public void LogPlayerMovement(Vector2 initialPosition, Vector2 finalPosition, float distanceMoved)
-    {
-        string movementData = $"Initial Position: {initialPosition}, Final Position: {finalPosition}, Distance Moved: {distanceMoved}";
-        Debug.Log($"Player Movement: {movementData}");
 
-        // Add this data to your experiment log or database
-        // For example:
-        // experimentLog.Add(new ExperimentLogEntry(currentBlockIndex, currentTrialIndex, "PlayerMovement", movementData));
+    private void LoadParticipantInfo()
+    {
+        participantID = PlayerPrefs.GetString("ParticipantID", "Unknown");
+        participantAge = PlayerPrefs.GetInt("ParticipantAge", 0);
+        participantGender = PlayerPrefs.GetString("ParticipantGender", "Unknown");
     }
 
     private void InitializeCSVFile()
     {
         string strDir = Path.Combine(Application.dataPath, "_ExpData");
-        if (!Directory.Exists(strDir))
-        {
-            Directory.CreateDirectory(strDir);
-        }
-        filePath = Path.Combine(strDir, $"ExperimentData_{DateTime.Now:yyyyMMdd-HHmmss}.csv");
+        Directory.CreateDirectory(strDir);
+        filePath = Path.Combine(strDir, $"ExperimentData_{participantID}_{DateTime.Now:yyyyMMdd-HHmmss}.csv");
 
-        string[] header = new string[]
+        dataColumns = new List<string>
         {
-            "Timestamp", "EventType", "TrialNumber", "BlockIndex", "BlockOrder",
-            "EffortLevel", "Decision", "ReactionTime", "Outcome", "CompletionTime"
+            "ParticipantID", "ParticipantAge", "ParticipantGender", "TrialType",
+            "TrialNumber", "BlockNumber", "BlockDistance", "TrialStartTime", "DecisionPhaseStartTime",
+            "GridWorldPhaseStartTime", "DecisionMadeTime", "CollisionTime", "TrialEndTime",
+            "DecisionReactionTime", "RewardCollectionTime", "Decision", "Outcome",
+            "EffortLevel", "PressesRequired"
         };
-        dataRows.Add(header);
-        Debug.Log($"CSV file initialized at: {filePath}");
-    }
 
-    public void WriteTimeStampedEntry(string strMessage)
+        WriteCSVLine(dataColumns);
+        if (m_ShowDebugLogManager) Debug.Log($"CSV file initialized at: {filePath}");
+    }
+    public void LogTrialStart(int trialNumber, int blockNumber, float blockDistance, int effortLevel, int pressesRequired, bool isPractice)
     {
-        Debug.Log($"[{System.DateTime.Now}] {strMessage}");
+        var trialData = new TrialData
+        {
+            TrialNumber = trialNumber,
+            BlockNumber = blockNumber,
+            BlockDistance = blockDistance,
+            TrialStart = DateTime.Now,
+            EffortLevel = effortLevel,
+            PressesRequired = pressesRequired,
+            IsPractice = isPractice
+        };
 
-        if (m_ShowDebugLogManager)
-        {
-            print("LogManager::writeEntry");
-        }
-        using (StreamWriter sw = new StreamWriter(filePath, true))
-        {
-            sw.WriteLine(Time.realtimeSinceStartup + ";" + strMessage);
-        }
+        trialDataDict[trialNumber] = trialData;
+
+        Debug.Log($"{(isPractice ? "Practice" : "Formal")} Trial {trialNumber} started. Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
     }
-
-    public void WriteEntry(string strMessage)
-    {
-        if (m_ShowDebugLogManager)
-        {
-            print("LogManager::writeEntry");
-        }
-        using (StreamWriter sw = new StreamWriter(filePath, true))
-        {
-            sw.WriteLine(strMessage);
-        }
-    }
-
-    public void WriteEntry(List<string> data)
-    {
-        if (m_ShowDebugLogManager)
-        {
-            print("LogManager::writeEntry");
-        }
-        using (StreamWriter sw = new StreamWriter(filePath, true))
-        {
-            data.ForEach(delegate (string s)
-            {
-                sw.WriteLine(s);
-            });
-        }
-    }
-
-
-    public void WriteCSV(string[] header, IList<string[]> data)
-    {
-        if (m_ShowDebugLogManager)
-        {
-            print("LogManager::WriteCSV");
-        }
-
-        using (StreamWriter sw = new StreamWriter(filePath, true))
-        {
-            sw.WriteLine(string.Join(",", header));
-            for (int i = 0; i < data.Count; i++)
-            {
-                sw.WriteLine(string.Join(",", data[i]));
-            }
-        }
-    }
-
-    //     public void LogTrialInfo(int trialNumber, int blockIndex, int blockOrder, int effortLevel, bool decision, float reactionTime)
+    // public void LogTrialStart(int trialNumber, int blockNumber, float blockDistance, int effortLevel, int pressesRequired)
     // {
-    //     string logEntry = $"Trial:{trialNumber},BlockIndex:{blockIndex},BlockOrder:{blockOrder},EffortLevel:{effortLevel},Decision:{(decision ? "Work" : "Skip")},ReactionTime:{reactionTime:F2}";
-    //     WriteTimeStampedEntry(logEntry);
-    // // }
-    // public void LogTrialInfo(int trialNumber, int blockIndex, int blockOrder, int effortLevel, bool decision, float reactionTime)
-    // {
-    //     LogEvent("TrialDecision", trialNumber, blockIndex, blockOrder, effortLevel, decision ? "Work" : "Skip", reactionTime);
-    //     Debug.Log($"Logged trial info: Trial {trialNumber}, Block {blockIndex}, Decision {(decision ? "Work" : "Skip")}");
+    //     if (!trialDataDict.ContainsKey(trialNumber))
+    //     {
+    //         trialDataDict[trialNumber] = new TrialData
+    //         {
+    //             TrialNumber = trialNumber + 1, // Add 1 to convert from 0-based to 1-based index for logging
+    //             BlockNumber = blockNumber + 1, // Add 1 to convert from 0-based to 1-based index for logging
+    //             BlockDistance = blockDistance,
+    //             TrialStart = DateTime.Now,
+    //             EffortLevel = effortLevel,
+    //             PressesRequired = pressesRequired
+    //         };
+    //         Debug.Log($"New trial data created for Trial {trialNumber + 1}");
+    //     }
+    //     else
+    //     {
+    //         var trial = trialDataDict[trialNumber];
+    //         trial.BlockNumber = blockNumber + 1; // Add 1 to convert from 0-based to 1-based index for logging
+    //         trial.BlockDistance = blockDistance;
+    //         trial.TrialStart = DateTime.Now;
+    //         trial.EffortLevel = effortLevel;
+    //         trial.PressesRequired = pressesRequired;
+    //         Debug.Log($"Existing trial data updated for Trial {trialNumber + 1}");
+    //     }
+    //     Debug.Log($"Trial {trialNumber + 1} in Block {blockNumber + 1} started. Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
     // }
-    public void LogTrialInfo(int trialNumber, int blockIndex, int blockOrder, int effortLevel, bool decision, float reactionTime)
+
+
+    public void LogDecisionPhaseStart(int trialNumber)
     {
-        LogEvent("TrialDecision", trialNumber, blockIndex, blockOrder, effortLevel, decision ? "Work" : "Skip", reactionTime);
-        Debug.Log($"Logged trial info: Trial {trialNumber}, Block {blockIndex}, BlockOrder {blockOrder}, EffortLevel {effortLevel}, Decision {(decision ? "Work" : "Skip")}, ReactionTime {reactionTime:F2}");
+        if (trialDataDict.TryGetValue(trialNumber, out var trial))
+        {
+            trial.DecisionPhaseStart = DateTime.Now;
+        }
+    }
+    public void LogGridWorldPhaseStart(int trialNumber)
+    {
+        if (trialDataDict.TryGetValue(trialNumber, out var trial))
+        {
+            trial.GridWorldPhaseStart = DateTime.Now;
+        }
+    }
+    public void LogDecisionMade(int trialNumber, string decision)
+    {
+        if (trialDataDict.TryGetValue(trialNumber, out var trial))
+        {
+            trial.DecisionMade = DateTime.Now;
+            trial.Decision = decision;
+        }
+    }
+    public void LogCollisionTime(int trialNumber)
+    {
+        if (trialDataDict.TryGetValue(trialNumber, out var trial))
+        {
+            trial.CollisionTime = DateTime.Now;
+        }
+    }
+
+    // public void LogTrialEnd(int trialNumber, string outcome)
+    // {
+    //     EnsureTrialDataExists(trialNumber);
+    //     var trial = trialDataDict[trialNumber];
+    //     trial.TrialEnd = DateTime.Now;
+    //     trial.Outcome = outcome;
+    //     if (m_ShowDebugLogManager) Debug.Log($"Trial {trialNumber} ended at {trial.TrialEnd} with outcome: {outcome}");
+
+    //     if (trial.IsComplete())
+    //     {
+    //         WriteTrialData(trial);
+    //     }
+    //     else
+    //     {
+    //         Debug.LogWarning($"Trial {trialNumber} data is incomplete and will not be logged.");
+    //     }
+    // }
+
+    public void LogTrialEnd(int trialNumber, string outcome)
+    {
+        if (trialDataDict.TryGetValue(trialNumber, out var trial))
+        {
+            trial.TrialEnd = DateTime.Now;
+            trial.Outcome = outcome;
+
+            WriteTrialData(trial);
+
+            trialDataDict.Remove(trialNumber);
+            Debug.Log($"{(trial.IsPractice ? "Practice" : "Formal")} Trial {trialNumber} data logged and removed from memory. Outcome: {outcome}");
+        }
+        else
+        {
+            Debug.LogWarning($"Trial {trialNumber} data not found when ending trial.");
+        }
+    }
+    private void WriteTrialData(TrialData trial)
+    {
+        TimeSpan? decisionReactionTime = trial.DecisionMade - trial.DecisionPhaseStart;
+        TimeSpan? rewardCollectionTime = trial.CollisionTime - trial.GridWorldPhaseStart;
+
+        var rowData = new string[]
+        {
+            participantID,
+            participantAge.ToString(),
+            participantGender,
+            trial.IsPractice ? "Practice" : "Formal",
+            trial.TrialNumber.ToString(),
+            trial.BlockNumber.ToString(),
+            trial.BlockDistance.ToString("F2"),
+            FormatDateTime(trial.TrialStart),
+            FormatDateTime(trial.DecisionPhaseStart),
+            FormatDateTime(trial.GridWorldPhaseStart),
+            FormatDateTime(trial.DecisionMade),
+            FormatDateTime(trial.CollisionTime),
+            FormatDateTime(trial.TrialEnd),
+            FormatTimeSpan(decisionReactionTime),
+            FormatTimeSpan(rewardCollectionTime),
+            trial.Decision ?? "N/A",
+            trial.Outcome ?? "N/A",
+            trial.EffortLevel.ToString(),
+            trial.PressesRequired.ToString()
+        };
+
+        WriteCSVLine(rowData);
+    }
+
+    // Update the WritePartialTrialData method to include participant info
+    private void WritePartialTrialData(TrialData trial)
+    {
+        var rowData = new string[]
+        {
+            participantID,
+            participantAge.ToString(),
+            participantGender,
+            trial.TrialNumber.ToString(),
+            trial.BlockNumber.ToString(),
+            trial.BlockDistance.ToString("F2"),
+            FormatDateTime(trial.TrialStart),
+            "N/A", // DecisionPhaseStartTime
+            "N/A", // GridWorldPhaseStartTime
+            "N/A", // DecisionMadeTime
+            "N/A", // CollisionTime
+            "N/A", // TrialEndTime
+            "N/A", // DecisionReactionTime
+            "N/A", // RewardCollectionTime
+            "N/A", // Decision
+            "N/A", // Outcome
+            trial.EffortLevel.ToString(),
+            trial.PressesRequired.ToString()
+        };
+
+        WriteCSVLine(rowData);
+    }
+
+    private string FormatDateTime(DateTime? dateTime)
+    {
+        return dateTime?.ToString("yyyy-MM-dd HH:mm:ss.fff") ?? "N/A";
+    }
+
+    private string FormatTimeSpan(TimeSpan? timeSpan)
+    {
+        return timeSpan?.TotalSeconds.ToString("F3") ?? "N/A";
+    }
+
+    private void WriteCSVLine(IEnumerable<string> data)
+    {
+        string line = string.Join(",", data.Select(field => field.Contains(",") ? $"\"{field}\"" : field));
+        File.AppendAllText(filePath, line + Environment.NewLine);
+    }
+
+    public void LogBlockStart(int blockNumber)
+    {
+        Debug.Log($"Block {blockNumber} started at {DateTime.Now}");
+    }
+
+    public void LogBlockEnd(int blockNumber)
+    {
+        Debug.Log($"Block {blockNumber} ended at {DateTime.Now}");
     }
 
 
-    public void LogTrialOutcome(int trialNumber, bool rewardCollected, float completionTime)
+    public void LogExperimentStart(bool isPractice)
     {
-        LogEvent("TrialOutcome", trialNumber, outcome: rewardCollected ? "Completed" : "TimedOut", completionTime: completionTime);
-    }
-
-    public void LogBlockStart(int blockIndex, int blockOrder)
-    {
-        LogEvent("BlockStart", blockIndex: blockIndex, blockOrder: blockOrder);
-    }
-
-    public void LogBlockEnd(int blockIndex, int blockOrder)
-    {
-        LogEvent("BlockEnd", blockIndex: blockIndex, blockOrder: blockOrder);
-    }
-
-    public void LogExperimentStart()
-    {
-        LogEvent("ExperimentStart");
+        Debug.Log($"{(isPractice ? "Practice" : "Formal")} experiment started.");
     }
 
     public void LogExperimentEnd()
     {
-        LogEvent("ExperimentEnd");
-        WriteCSVFile();
+        Debug.Log($"Experiment ended at {DateTime.Now}. Total trials completed: {trialDataDict.Count}");
+        DumpUnloggedTrials();
     }
 
-    // private void LogEvent(string eventType, int trialNumber = 0, int blockIndex = 0, int blockOrder = 0,
-    //                       int effortLevel = 0, string decision = "", float reactionTime = 0f,
-    //                       string outcome = "", float completionTime = 0f)
+    // public void LogPracticeTrialStart(int trialNumber, int effortLevel, int pressesRequired)
     // {
-    //     string[] rowData = new string[]
+    //     practiceTrialDataDict[trialNumber] = new TrialData
     //     {
-    //         DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
-    //         eventType,
-    //         trialNumber > 0 ? trialNumber.ToString() : "",
-    //         blockIndex > 0 ? blockIndex.ToString() : "",
-    //         blockOrder > 0 ? blockOrder.ToString() : "",
-    //         effortLevel > 0 ? effortLevel.ToString() : "",
-    //         decision,
-    //         reactionTime > 0 ? reactionTime.ToString("F3") : "",
-    //         outcome,
-    //         completionTime > 0 ? completionTime.ToString("F3") : ""
+    //         TrialNumber = trialNumber,
+    //         BlockNumber = 0,
+    //         BlockDistance = 3,
+    //         TrialStart = DateTime.Now,
+    //         EffortLevel = effortLevel,
+    //         PressesRequired = pressesRequired
     //     };
-    //     dataRows.Add(rowData);
+    //     Debug.Log($"Practice Trial {trialNumber} started. Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
+    // }
 
-    //     if (m_ShowDebugLogManager)
+    // public void LogPracticeDecisionMade(int trialNumber, string decision, int effortLevel, int pressesRequired)
+    // {
+    //     if (practiceTrialDataDict.TryGetValue(trialNumber, out var trial))
     //     {
-    //         Debug.Log($"Logged event: {string.Join(", ", rowData)}");
+    //         trial.DecisionMade = DateTime.Now;
+    //         trial.Decision = decision;
+    //         trial.EffortLevel = effortLevel;
+    //         trial.PressesRequired = pressesRequired;
+    //     }
+    // }
+    // public void LogPracticeTrialEnd(int trialNumber, string outcome)
+    // {
+    //     if (practiceTrialDataDict.TryGetValue(trialNumber, out var trial))
+    //     {
+    //         trial.TrialEnd = DateTime.Now;
+    //         trial.Outcome = outcome;
+    //         WritePracticeTrialData(trial);
+    //         practiceTrialDataDict.Remove(trialNumber);
     //     }
     // }
 
-    public void LogBlockStructure(List<(int trialNumber, int blockIndex, int blockOrder, int effortLevel)> trialInfo)
+    // public void LogFormalTrialStart(int trialNumber, int blockNumber, float blockDistance, int effortLevel, int pressesRequired)
+    // {
+    //     formalTrialDataDict[trialNumber] = new TrialData
+    //     {
+    //         TrialNumber = trialNumber,
+    //         BlockNumber = blockNumber,
+    //         BlockDistance = blockDistance,
+    //         TrialStart = DateTime.Now,
+    //         EffortLevel = effortLevel,
+    //         PressesRequired = pressesRequired
+    //     };
+    //     Debug.Log($"Formal Trial {trialNumber} in Block {blockNumber} started. Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
+    // }
+
+    // Add a method to dump all trial data for debugging purposes
+    public void DumpUnloggedTrials()
     {
-        StringBuilder sb = new StringBuilder();
-        sb.AppendLine("Block Structure:");
-        foreach (var trial in trialInfo)
+        foreach (var trial in trialDataDict.Values)
         {
-            sb.AppendLine($"Trial {trial.trialNumber}: BlockIndex {trial.blockIndex}, BlockOrder {trial.blockOrder}, EffortLevel {trial.effortLevel}");
+            WriteTrialData(trial);
         }
-        Debug.Log(sb.ToString());
-        WriteEntry(sb.ToString());
-    }
-    private void LogEvent(string eventType, int trialNumber = 0, int blockIndex = 0, int blockOrder = 0,
-                          int effortLevel = 0, string decision = "", float reactionTime = 0f,
-                          string outcome = "", float completionTime = 0f)
-    {
-        string[] rowData = new string[]
-        {
-        DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
-        eventType,
-        trialNumber.ToString(),  // Always log the trial number
-        blockIndex.ToString(),   // Always log the block index
-        blockOrder.ToString(),   // Always log the block order
-        effortLevel.ToString(),  // Always log the effort level
-        decision,
-        reactionTime > 0 ? reactionTime.ToString("F3") : "",
-        outcome,
-        completionTime > 0 ? completionTime.ToString("F3") : ""
-        };
-        dataRows.Add(rowData);
-
-        Debug.Log($"Logged event: {string.Join(", ", rowData)}");
-    }
-
-
-    private void WriteCSVFile()
-    {
-        StringBuilder csv = new StringBuilder();
-        foreach (string[] row in dataRows)
-        {
-            csv.AppendLine(string.Join(",", row));
-        }
-        File.WriteAllText(filePath, csv.ToString());
-        Debug.Log($"CSV file written to: {filePath}");
-    }
-
-    private void OnApplicationQuit()
-    {
-        WriteCSVFile();
+        trialDataDict.Clear();
     }
 }

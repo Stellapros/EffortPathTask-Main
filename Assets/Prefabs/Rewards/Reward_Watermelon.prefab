@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 5878168430073409348}
   - component: {fileID: -2257709906297168636}
   - component: {fileID: -1138432241143218546}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Reward_Watermelon
   m_TagString: Reward
   m_Icon: {fileID: 0}

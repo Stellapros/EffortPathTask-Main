@@ -7,9 +7,10 @@ using System.Collections.Generic;
 /// </summary>
 public class RewardSpawner : MonoBehaviour
 {
-    // [SerializeField] private GameObject rewardPrefab;
-    [SerializeField] private List<GameObject> rewardPrefabs; // List of 6 different reward prefabs
+    [SerializeField] private List<GameObject> rewardPrefabs;
     [SerializeField] private GridManager gridManager;
+    [SerializeField] private ExperimentManager experimentManager;
+    [SerializeField] private PlayerSpawner playerSpawner;
 
     private GameObject currentReward;
 
@@ -18,84 +19,114 @@ public class RewardSpawner : MonoBehaviour
         ValidateComponents();
     }
 
-    /// <summary>
-    /// Validates that all required components are assigned or found in the scene.
-    /// </summary>
     private void ValidateComponents()
     {
         if (gridManager == null)
-        {
             gridManager = FindObjectOfType<GridManager>();
-            if (gridManager == null)
-            {
-                Debug.LogError("GridManager not found in the scene. Please ensure it exists in the scene.");
-            }
-        }
+        if (experimentManager == null)
+            experimentManager = FindObjectOfType<ExperimentManager>();
+        if (playerSpawner == null)
+            playerSpawner = FindObjectOfType<PlayerSpawner>();
 
-        if (rewardPrefabs == null)
-        {
-            Debug.LogError("Reward prefab is not assigned in RewardSpawner. Please assign it in the inspector.");
-        }
+        if (gridManager == null || experimentManager == null || playerSpawner == null)
+            Debug.LogError("Required components are missing in RewardSpawner.");
+        if (rewardPrefabs == null || rewardPrefabs.Count == 0)
+            Debug.LogError("Reward prefabs are not assigned in RewardSpawner.");
     }
 
-    /// <summary>
-    /// Spawns a reward at the specified position with the given parameters.
-    /// </summary>
-    /// <param name="rewardPosition">The position to spawn the reward.</param>
-    /// <param name="blockIndex">The current block index.</param>
-    /// <param name="trialIndex">The current trial index.</param>
-    /// <param name="pressesRequired">The number of presses required to collect the reward.</param>
-    /// <param name="scoreValue">The score value of the reward.</param>
-    /// <returns>The spawned reward GameObject, or null if spawning failed.</returns>
-    public GameObject SpawnReward(Vector2 rewardPosition, int blockIndex, int trialIndex, int pressesRequired, int scoreValue)
+    public GameObject SpawnReward(int blockIndex, int trialIndex, int pressesRequired, int scoreValue)
     {
-        Debug.Log($"Attempting to spawn reward at position: {rewardPosition}");
+        Debug.Log($"SpawnReward called: Block {blockIndex}, Trial {trialIndex}");
 
         if (currentReward != null)
         {
-            Debug.LogWarning("Attempting to spawn a reward when one already exists. Clearing existing reward first.");
+            Debug.LogWarning("Clearing existing reward before spawning new one.");
             ClearReward();
         }
 
-        if (gridManager == null || rewardPrefabs == null || rewardPrefabs.Count == 0)
+        Vector2 playerPosition = GetPlayerPosition();
+        Debug.Log($"Player position: {playerPosition}");
+
+        float distance = experimentManager.GetCurrentBlockDistance();
+        Debug.Log($"Desired distance: {distance}");
+
+        // Get a valid spawn position within the grid
+        Vector2 spawnPosition = GetValidSpawnPosition(playerPosition, distance);
+        Debug.Log($"Calculated spawn position: {spawnPosition}");
+
+        if (spawnPosition == Vector2.negativeInfinity)
         {
-            Debug.LogError("Cannot spawn reward: GridManager or reward prefabs are missing.");
+            Debug.LogError("Failed to find a valid spawn position within the grid. Aborting spawn.");
             return null;
         }
 
         GameObject selectedRewardPrefab = GetRandomRewardPrefab();
         if (selectedRewardPrefab == null)
         {
-            Debug.LogError("Failed to select a random reward prefab.");
+            Debug.LogError("Failed to select a random reward prefab. Aborting spawn.");
             return null;
         }
 
-        Vector3 spawnPosition = new Vector3(rewardPosition.x, rewardPosition.y, 0f);
         currentReward = Instantiate(selectedRewardPrefab, spawnPosition, Quaternion.identity);
         Debug.Log($"Reward instantiated: {currentReward != null}");
 
-        if (currentReward == null)
+        if (currentReward != null)
         {
-            Debug.LogError("Failed to instantiate reward prefab.");
-            return null;
-        }
-
-        Reward rewardComponent = currentReward.GetComponent<Reward>();
-        if (rewardComponent != null)
-        {
-            rewardComponent.SetRewardParameters(blockIndex, trialIndex, pressesRequired, scoreValue);
-            Vector2 actualRewardPosition = currentReward.transform.position;
-
-            Debug.Log($"Reward spawned - Intended: {rewardPosition}, Actual: {actualRewardPosition}, " +
-                      $"Block: {blockIndex}, Trial: {trialIndex}, Presses required: {pressesRequired}, Score: {scoreValue}");
-            return currentReward;
+            Reward rewardComponent = currentReward.GetComponent<Reward>();
+            if (rewardComponent != null)
+            {
+                rewardComponent.SetRewardParameters(blockIndex, trialIndex, pressesRequired, scoreValue);
+                Debug.Log("Reward parameters set successfully.");
+            }
+            else
+            {
+                Debug.LogError("Reward component not found on spawned reward!");
+            }
         }
         else
         {
-            Debug.LogError("Reward component not found on spawned reward!");
-            Destroy(currentReward);
-            currentReward = null;
-            return null;
+            Debug.LogError("Failed to instantiate reward prefab.");
+        }
+
+        return currentReward;
+    }
+
+    private Vector2 GetValidSpawnPosition(Vector2 playerPosition, float targetDistance)
+    {
+        int maxAttempts = 100;
+        for (int i = 0; i < maxAttempts; i++)
+        {
+            // Generates a random direction
+            Vector2 randomDirection = Random.insideUnitCircle.normalized;
+
+            // Calculates a target position by adding the random direction multiplied by the target distance to the player's position
+            Vector2 targetPosition = playerPosition + randomDirection * targetDistance;
+
+            // Converts the world position to a grid position
+            Vector2Int gridPosition = gridManager.WorldToGridPosition(targetPosition);
+
+            // Checks if the grid position is valid; If valid, returns the center world position of that grid cell
+            if (gridManager.IsValidFloorPosition(gridPosition))
+            {
+                return gridManager.GetCellCenterWorldPosition(gridPosition);
+            }
+        }
+
+        Debug.LogWarning($"Failed to find valid spawn position after {maxAttempts} attempts.");
+        return Vector2.negativeInfinity;
+    }
+
+    private Vector2 GetPlayerPosition()
+    {
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            return player.transform.position;
+        }
+        else
+        {
+            Debug.LogError("Player not found in scene.");
+            return Vector2.negativeInfinity;
         }
     }
 
@@ -110,24 +141,63 @@ public class RewardSpawner : MonoBehaviour
         return rewardPrefabs[randomIndex];
     }
 
-
-    /// <summary>
-    /// Gets a random spawn position from the grid manager.
-    /// </summary>
-    /// <returns>A random available position on the grid.</returns>
-    public Vector2 GetRandomSpawnPosition()
+    public Vector2 GetSpawnPositionAtDistance(Vector2 playerPosition, float distance)
     {
+        Debug.Log($"GetSpawnPositionAtDistance called with playerPosition: {playerPosition}, distance: {distance}");
+
         if (gridManager == null)
         {
-            Debug.LogError("Cannot get random spawn position: GridManager is not assigned.");
+            Debug.LogError("Cannot get spawn position: GridManager is not assigned.");
             return Vector2.zero;
         }
-        return gridManager.GetRandomAvailablePosition();
+
+        if (float.IsNaN(distance) || float.IsInfinity(distance))
+        {
+            Debug.LogError($"Invalid distance value: {distance}");
+            return Vector2.zero;
+        }
+
+        Vector2Int playerGridPos = gridManager.WorldToGridPosition(playerPosition);
+        int gridDistance = Mathf.RoundToInt(distance / gridManager.cellSize);
+        Vector2Int rewardGridPos = gridManager.GetGridPositionAtDistance(playerGridPos, gridDistance);
+        Vector2 spawnPosition = gridManager.GetCellCenterWorldPosition(rewardGridPos);
+
+        float actualDistance = Vector2.Distance(playerPosition, spawnPosition);
+        Debug.Log($"Spawn position found: {spawnPosition}. Actual distance from player: {actualDistance}");
+
+        return spawnPosition;
     }
 
-    /// <summary>
-    /// Clears the current reward from the scene.
-    /// </summary>
+    private Vector2 FindNearestValidPosition(Vector2 initialPosition)
+    {
+        // Define a search radius and increment
+        float searchRadius = 1f;
+        float increment = 0.5f;
+        int maxIterations = 20; // Prevent infinite loop
+
+        for (int i = 0; i < maxIterations; i++)
+        {
+            // Check positions in a circle around the initial position
+            for (float angle = 0; angle < 360; angle += 45)
+            {
+                float radian = angle * Mathf.Deg2Rad;
+                Vector2 checkPosition = initialPosition + new Vector2(Mathf.Cos(radian), Mathf.Sin(radian)) * searchRadius;
+
+                if (gridManager.IsValidPosition(checkPosition))
+                {
+                    Debug.Log($"Found nearest valid position: {checkPosition}");
+                    return checkPosition;
+                }
+            }
+
+            // Increase search radius
+            searchRadius += increment;
+        }
+
+        Debug.LogError("Could not find a valid position after maximum iterations.");
+        return Vector2.zero;
+    }
+
     public void ClearReward()
     {
         if (currentReward != null)

@@ -17,17 +17,17 @@ public class Reward : MonoBehaviour
     /// <param name="trial">The trial index.</param>
     /// <param name="presses">The number of presses required.</param>
     /// <param name="value">The score value of the reward.</param>
-    public void SetRewardParameters(int block, int trial, int presses, int value)
+    public void SetRewardParameters(int block, int trial, int pressesRequired, int value)
     {
         blockIndex = block;
         trialIndex = trial;
-        pressesRequired = presses;
+        this.pressesRequired = pressesRequired;
         scoreValue = value;
-        Debug.Log($"Reward parameters set: Block {block}, Trial {trial}, Presses required {presses}, Value {value}");
+        // Debug.Log($"Reward parameters set: Block {block}, Trial {trial}, Presses required {pressesRequired}, Value {value}");
     }
 
     // Getter methods
-    public int GetScoreValue() => scoreValue;
-    public int GetPressesRequired() => pressesRequired;
-    public (int, int) GetBlockAndTrialIndex() => (blockIndex, trialIndex);
+    // public int GetScoreValue() => scoreValue;
+    // public int GetPressesRequired() => pressesRequired;
+    // public (int, int) GetBlockAndTrialIndex() => (blockIndex, trialIndex);
 }

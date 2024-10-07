@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: -7278008816248787419}
   - component: {fileID: -83534271672295469}
   - component: {fileID: 3100491010404074701}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Reward_Cherries
   m_TagString: Reward
   m_Icon: {fileID: 0}

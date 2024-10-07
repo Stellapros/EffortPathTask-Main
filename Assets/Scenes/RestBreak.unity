@@ -364,7 +364,7 @@ MonoBehaviour:
   continueButton: {fileID: 1166040812}
   blockInfoText: {fileID: 1369938735}
   scoreText: {fileID: 1318258815}
-  nextSceneName: DecisionPhase
+  buttonClickSound: {fileID: 8300000, guid: eea496a1404bd450181a09bc7b6f7b1c, type: 3}
 --- !u!4 &295824196
 Transform:
   m_ObjectHideFlags: 0

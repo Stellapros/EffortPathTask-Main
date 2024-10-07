@@ -116,43 +116,6 @@ public class PlayerController : MonoBehaviour
             IncrementCounter(3, Vector2.right);
     }
 
-    // private int GetDirectionIndex(Vector2 direction)
-    // {
-    //     if (direction == Vector2.up) return 0;
-    //     if (direction == Vector2.down) return 1;
-    //     if (direction == Vector2.left) return 2;
-    //     if (direction == Vector2.right) return 3;
-    //     return -1;
-    // }
-
-    // private void HandleMovement()
-    // {
-    //     // Check if we should move based on the counter
-    //     int directionIndex = System.Array.IndexOf(directionCounters, pressesPerStep);
-    //     if (directionIndex != -1)
-    //     {
-    //         Vector2 moveDirection = GetDirectionFromIndex(directionIndex);
-    //         AttemptMove(moveDirection);
-    //         ResetCounters();
-    //     }
-
-    //     // Always update facing direction, even if not moving
-    //     UpdateFacingDirection(currentMovementVector);
-    // }
-
-
-    // private Vector2 GetDirectionFromIndex(int index)
-    // {
-    //     switch (index)
-    //     {
-    //         case 0: return Vector2.up;
-    //         case 1: return Vector2.down;
-    //         case 2: return Vector2.left;
-    //         case 3: return Vector2.right;
-    //         default: return Vector2.zero;
-    //     }
-    // }
-
     private void IncrementCounter(int index, Vector2 direction)
     {
         directionCounters[index]++;
@@ -239,32 +202,6 @@ public class PlayerController : MonoBehaviour
         ApplyFacingDirection(); // Apply the last known facing direction
         Debug.Log($"Player position reset to: {position}, Total button presses reset to 0");
     }
-
-    // private void UpdateFacingDirection(Vector2 movement)
-    // {
-    //     if (movement.x != 0)
-    //         transform.localScale = new Vector3(Mathf.Sign(movement.x), 1, 1);
-    // }
-
-    // negative scale or size on the BoxCollider is likely due to the player's scale being set to a negative value. 
-    // This can happen when you're flipping the player sprite to face left or right
-
-    // private void UpdateFacingDirection(Vector2 direction)
-    // {
-    //     if (direction.x != 0)
-    //     {
-    //         lastHorizontalDirection = direction;
-    //         // Only update rotation for horizontal movement
-    //         transform.rotation = Quaternion.Euler(0, direction.x < 0 ? 180 : 0, 0);
-    //     }
-
-    //     // Only update rotation for horizontal movement
-    //     if (lastMoveDirection.x != 0)
-    //     {
-    //         transform.rotation = Quaternion.Euler(0, lastMoveDirection.x < 0 ? 180 : 0, 0);
-    //     }
-    //     // For vertical movement, we don't change the facing direction
-    // }
     private void UpdateFacingDirection(Vector2 direction)
     {
         // Only update for horizontal movement
@@ -328,8 +265,23 @@ public class PlayerController : MonoBehaviour
         // Debug.Log($"Presses per step set to: {pressesPerStep}");
         Debug.Log($"PlayerController: Presses per step set to {pressesPerStep}");
     }
+
+    public void UpdatePressesPerStep()
+    {
+        if (ExperimentManager.Instance != null)
+        {
+            pressesPerStep = ExperimentManager.Instance.GetCurrentTrialEV();
+            Debug.Log($"PlayerController: Updated presses per step to {pressesPerStep}");
+        }
+        else
+        {
+            Debug.LogError("ExperimentManager.Instance is null in PlayerController.UpdatePressesPerStep");
+        }
+    }
+
     public void EnableMovement()
     {
+        UpdatePressesPerStep(); // Add this line
         isTrialRunning = true;
         isMoving = false;
         moveStartTime = 0f;
@@ -355,28 +307,6 @@ public class PlayerController : MonoBehaviour
     }
 
     public int GetButtonPressCount() => totalButtonPresses;
-
-    // public void HandleRewardCollection(GameObject rewardObject)
-    // {
-    //     if (!isTrialRunning) return;
-
-    //     isTrialRunning = false;
-    //     if (playerRigidbody != null)
-    //         playerRigidbody.constraints = RigidbodyConstraints.FreezeAll;
-
-    //     rewardObject.SetActive(false);
-    //     PlaySound(rewardSound);
-
-    //     GameController gameController = FindObjectOfType<GameController>();
-    //     if (gameController != null)
-    //         gameController.RewardCollected(true);
-    //     else
-    //         Debug.LogError("GameController not found in the scene!");
-
-    //     OnRewardCollected?.Invoke();
-    //     Debug.Log("Reward collected! Player frozen.");
-    // }
-
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Reward") && isTrialRunning)
@@ -408,38 +338,4 @@ public class PlayerController : MonoBehaviour
             Debug.Log("Reward collected!");
         }
     }
-
-    // private void OnTriggerEnter(Collider other)
-    // {
-    //     if (other.CompareTag("Reward") && isTrialRunning )
-    //     {
-    //         float collisionTime = Time.time;
-    //         float movementDuration = isMoving ? collisionTime - moveStartTime : 0f;
-
-    //         GameController gameController = GameController.Instance;
-    //         if (gameController != null)
-    //         {
-    //             gameController.LogRewardCollectionTiming(collisionTime, movementDuration);
-    //             gameController.RewardCollected(true);
-    //         }
-    //         else
-    //         {
-    //             Debug.LogError("GameController not found in the scene!");
-    //         }
-
-    //         // Disable the reward object
-    //         // other.gameObject.SetActive(false);
-
-    //         // Disable player movement
-    //         // DisableMovement();
-
-    //         // Play reward sound
-    //         PlaySound(rewardSound);
-
-    //         // Invoke the reward collected event
-    //         OnRewardCollected?.Invoke();
-
-    //         Debug.Log("Reward collected! Player frozen.");
-    //     }
-    // }
 }

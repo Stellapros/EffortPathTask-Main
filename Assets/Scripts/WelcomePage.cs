@@ -6,7 +6,8 @@ public class ContinueScreen : MonoBehaviour
 {
     [SerializeField] private Button continueButton;
     [SerializeField] private string nextSceneName = "StartScreen";
-
+    [SerializeField] public AudioClip buttonClickSound;
+    private AudioSource audioSource;
     private void Start()
     {
         if (continueButton != null)

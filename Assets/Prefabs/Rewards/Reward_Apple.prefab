@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: -6177631717539055439}
   - component: {fileID: -3668304964543851364}
   - component: {fileID: -6533580360772687580}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Reward_Apple
   m_TagString: Reward
   m_Icon: {fileID: 0}

@@ -80,11 +80,9 @@ public class ArrowKeyCounter : MonoBehaviour
 
         // Calculate presses per effort level
         CalculateAndSetPressesPerEffortLevel();
-        
-        
 
         // Load the next scene or start the experiment
-        SceneManager.LoadScene("GetReady");
+        SceneManager.LoadScene("InstructionsScreen");
     }
 
     private void CalculateAndSetPressesPerEffortLevel()
@@ -92,12 +90,11 @@ public class ArrowKeyCounter : MonoBehaviour
         float pressRate = (float)counter / calibrationTime;
         int[] pressesPerEffortLevel = new int[3];
 
-        pressesPerEffortLevel[0] = Mathf.RoundToInt(pressRate * 0.5f);  // Easy
-        pressesPerEffortLevel[1] = Mathf.RoundToInt(pressRate);         // Medium
-        pressesPerEffortLevel[2] = Mathf.RoundToInt(pressRate * 1.5f);  // Hard
+        pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressRate * 0.5f));  // Easy
+        pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressRate));         // Medium
+        pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressRate * 1.5f));  // Hard
 
-        // Ensure minimum difference between levels: ensure that each difficulty level 
-        // is noticeably different from the previous one
+        // Ensure minimum difference between levels
         for (int i = 1; i < pressesPerEffortLevel.Length; i++)
         {
             if (pressesPerEffortLevel[i] - pressesPerEffortLevel[i - 1] < 2)
@@ -109,11 +106,16 @@ public class ArrowKeyCounter : MonoBehaviour
         // Save the calculated values
         for (int i = 0; i < pressesPerEffortLevel.Length; i++)
         {
-            PlayerPrefs.SetInt("PressesPerEffortLevel_" + i, pressesPerEffortLevel[i]);
+            PlayerPrefs.SetInt($"PressesPerEffortLevel_{i}", pressesPerEffortLevel[i]);
             Debug.Log($"Saved PressesPerEffortLevel_{i}: {pressesPerEffortLevel[i]}");
         }
         PlayerPrefs.Save(); // Ensure the values are immediately saved to disk
-        Debug.Log("Presses per effort level set and saved: " + string.Join(", ", pressesPerEffortLevel));
-        Debug.Log($"Calibration completed. Press rate: {pressRate}, Calculated presses per effort level: {string.Join(", ", pressesPerEffortLevel)}");
+
+        string effortLevelsString = string.Join(", ", pressesPerEffortLevel);
+        Debug.Log($"Calibration completed. Press rate: {pressRate}, Final presses per effort level: {effortLevelsString}");
+
+        // Log to a file for persistent record
+        string logEntry = $"{System.DateTime.Now}: Calibration - Press rate: {pressRate}, Effort levels: {effortLevelsString}";
+        System.IO.File.AppendAllText("calibration_log.txt", logEntry + System.Environment.NewLine);
     }
 }

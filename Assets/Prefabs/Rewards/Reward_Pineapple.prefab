@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 873586092359164055}
   - component: {fileID: 880307382914563056}
   - component: {fileID: 6615361037282086581}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Reward_Pineapple
   m_TagString: Reward
   m_Icon: {fileID: 0}

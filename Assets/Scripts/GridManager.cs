@@ -10,7 +10,7 @@ public class GridManager : MonoBehaviour
 {
     [SerializeField] private int gridWidth = 18;
     [SerializeField] private int gridHeight = 10;
-    [SerializeField] private float cellSize = 1f;
+    [SerializeField] public float cellSize = 1f;
     [SerializeField] private bool centerCells = true;
     [SerializeField] private TextAsset gridLayoutFile;
     [SerializeField] private GameObject floorTilePrefab;
@@ -21,6 +21,7 @@ public class GridManager : MonoBehaviour
     private GameObject[,] gridObjects;
     private ObjectPool floorPool;
     private ObjectPool wallPool;
+    private bool[,] occupiedPositions;
 
     public int GridWidth => gridWidth;
     public int GridHeight => gridHeight;
@@ -144,6 +145,131 @@ public class GridManager : MonoBehaviour
 
         return GridToWorldPosition(gridPos);
     }
+    public Vector2Int GetGridPositionAtDistance(Vector2Int startGridPos, int distance)
+    {
+        Debug.Log($"GetGridPositionAtDistance called: Start {startGridPos}, Distance {distance}");
+        List<Vector2Int> candidatePositions = new List<Vector2Int>();
+
+        for (int x = 0; x < gridWidth; x++)
+        {
+            for (int y = 0; y < gridHeight; y++)
+            {
+                if (grid[x, y] == CellType.Floor)
+                {
+                    Vector2Int gridPos = new Vector2Int(x, y);
+                    int gridDistance = Mathf.Abs(gridPos.x - startGridPos.x) + Mathf.Abs(gridPos.y - startGridPos.y);
+                    if (gridDistance == distance)
+                    {
+                        candidatePositions.Add(gridPos);
+                    }
+                }
+            }
+        }
+
+        Debug.Log($"Candidate positions found: {candidatePositions.Count}");
+
+        if (candidatePositions.Count == 0)
+        {
+            Debug.LogWarning("No positions found at the exact distance. Returning closest available position.");
+            return GetClosestAvailableGridPosition(startGridPos, distance);
+        }
+
+        Vector2Int selectedPosition = candidatePositions[Random.Range(0, candidatePositions.Count)];
+        Debug.Log($"Selected position: {selectedPosition}");
+        return selectedPosition;
+    }
+
+    public Vector2 GetPositionAtDistance(Vector2 startPosition, float distance)
+    {
+        Vector2Int startGridPos = WorldToGridPosition(startPosition);
+        List<Vector2Int> candidatePositions = new List<Vector2Int>();
+
+        for (int x = 0; x < gridWidth; x++)
+        {
+            for (int y = 0; y < gridHeight; y++)
+            {
+                if (grid[x, y] == CellType.Floor && !occupiedPositions[x, y])
+                {
+                    Vector2Int gridPos = new Vector2Int(x, y);
+                    float gridDistance = Vector2Int.Distance(startGridPos, gridPos);
+                    if (Mathf.Abs(gridDistance - distance) < 0.5f) // Allow some tolerance
+                    {
+                        candidatePositions.Add(gridPos);
+                    }
+                }
+            }
+        }
+        if (candidatePositions.Count == 0)
+        {
+            Debug.LogWarning("No positions found at the exact distance. Returning closest available position.");
+            return GetClosestAvailablePosition(startPosition, distance);
+        }
+
+        Vector2Int selectedGridPos = candidatePositions[Random.Range(0, candidatePositions.Count)];
+        return GridToWorldPosition(selectedGridPos);
+    }
+    public Vector2 GetCellCenterWorldPosition(Vector2Int gridPos)
+    {
+        Vector2 worldPos = new Vector2(gridPos.x * cellSize, gridPos.y * cellSize);
+        Vector2 cellCenter = worldPos + new Vector2(cellSize * 0.5f, cellSize * 0.5f);
+        Vector2 gridCenter = new Vector2(gridWidth * 0.5f, gridHeight * 0.5f) * cellSize;
+        return cellCenter - gridCenter;
+    }
+
+    private Vector2 GetClosestAvailablePosition(Vector2 startPosition, float targetDistance)
+    {
+        Vector2Int startGridPos = WorldToGridPosition(startPosition);
+        Vector2Int closestPos = startGridPos;
+        float closestDistanceDiff = float.MaxValue;
+
+        for (int x = 0; x < gridWidth; x++)
+        {
+            for (int y = 0; y < gridHeight; y++)
+            {
+                if (grid[x, y] == CellType.Floor)
+                {
+                    Vector2Int gridPos = new Vector2Int(x, y);
+                    float distance = Vector2.Distance(GridToWorldPosition(startGridPos), GridToWorldPosition(gridPos));
+                    float distanceDiff = Mathf.Abs(distance - targetDistance);
+                    if (distanceDiff < closestDistanceDiff)
+                    {
+                        closestDistanceDiff = distanceDiff;
+                        closestPos = gridPos;
+                    }
+                }
+            }
+        }
+
+        return GridToWorldPosition(closestPos);
+    }
+
+    public Vector2Int GetClosestAvailableGridPosition(Vector2Int startGridPos, int targetDistance)
+    {
+        Debug.Log($"GetClosestAvailableGridPosition called: Start {startGridPos}, Target Distance {targetDistance}");
+        Vector2Int closestPos = startGridPos;
+        int closestDistanceDiff = int.MaxValue;
+
+        for (int x = 0; x < gridWidth; x++)
+        {
+            for (int y = 0; y < gridHeight; y++)
+            {
+                if (grid[x, y] == CellType.Floor)
+                {
+                    Vector2Int gridPos = new Vector2Int(x, y);
+                    int distance = Mathf.Abs(gridPos.x - startGridPos.x) + Mathf.Abs(gridPos.y - startGridPos.y);
+                    int distanceDiff = Mathf.Abs(distance - targetDistance);
+                    if (distanceDiff < closestDistanceDiff)
+                    {
+                        closestDistanceDiff = distanceDiff;
+                        closestPos = gridPos;
+                    }
+                }
+            }
+        }
+
+        Debug.Log($"Closest available position: {closestPos}, Distance difference: {closestDistanceDiff}");
+        return closestPos;
+    }
 
     public void ReleasePosition(Vector2 worldPosition)
     {
@@ -160,7 +286,7 @@ public class GridManager : MonoBehaviour
         return IsValidFloorPosition(gridPos);
     }
 
-    private bool IsValidFloorPosition(Vector2Int gridPos)
+    public bool IsValidFloorPosition(Vector2Int gridPos)
     {
         return gridPos.x >= 0 && gridPos.x < gridWidth &&
                gridPos.y >= 0 && gridPos.y < gridHeight &&
@@ -178,7 +304,7 @@ public class GridManager : MonoBehaviour
         return worldPos - gridCenter;
     }
 
-    private Vector2Int WorldToGridPosition(Vector2 worldPosition)
+    public Vector2Int WorldToGridPosition(Vector2 worldPosition)
     {
         Vector2 gridCenter = new Vector2(gridWidth * 0.5f, gridHeight * 0.5f) * cellSize;
         Vector2 offsetPosition = worldPosition + gridCenter;

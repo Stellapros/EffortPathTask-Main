@@ -148,22 +148,11 @@ public class GridWorldManager : MonoBehaviour
         // Let GameController handle the trial end
         gameController.EndTrial(rewardCollected);
         playerController.DisableMovement();
+
+        // Add this line to move to the next trial
+        // ExperimentManager.Instance.MoveToNextTrial();
     }
 
-    /// <summary>
-    /// Handles the collection of a reward by the player.
-    /// </summary>
-    // public void HandleRewardCollection()
-    // {
-    //     if (!isTrialActive) return;
-
-    //     // if (scoreManager != null)
-    //     //     scoreManager.AddScore(1);
-
-    //     Debug.Log("Reward collected!");
-
-    //     // EndTrial(true);
-    // }
 
     /// <summary>
     /// Gets a random empty position on the grid.

@@ -8,8 +8,10 @@ public class RestBreakManager : MonoBehaviour
     [SerializeField] private Button continueButton;
     [SerializeField] private TextMeshProUGUI blockInfoText;
     [SerializeField] private TextMeshProUGUI scoreText;
-    [SerializeField] private string nextSceneName = "DecisionPhase"; // Fallback scene name
-
+    // [SerializeField] private string nextSceneName = "DecisionPhase"; // Fallback scene name
+    [SerializeField] public AudioClip buttonClickSound;
+    private AudioSource audioSource;
+    
     private void Start()
     {
         Debug.Log("RestBreakManager: Start method called");
@@ -34,10 +36,13 @@ public class RestBreakManager : MonoBehaviour
         {
             if (ExperimentManager.Instance != null)
             {
-                int currentBlock = ExperimentManager.Instance.GetCurrentBlockIndex() + 1;
+                int completedBlock = ExperimentManager.Instance.GetCurrentBlockNumber();
+                int displayCompletedBlock = completedBlock; // Adjust for display
+                int nextBlock = displayCompletedBlock + 1;
                 int totalBlocks = 3; // Assuming 3 blocks as per your experiment design
-                blockInfoText.text = $"You have completed Block {currentBlock - 1} of {totalBlocks}.\n\nTake a short break, then click 'Continue' when you're ready to start Block {currentBlock}.";
-                Debug.Log($"RestBreakManager: Block info updated. Current block: {currentBlock}");
+
+                blockInfoText.text = $"You have completed Block {displayCompletedBlock} of {totalBlocks}.\n\nTake a short break, then click 'Continue' when you're ready to start Block {nextBlock}.";
+                Debug.Log($"RestBreakManager: Block info updated. Completed block: {displayCompletedBlock}, Next block: {nextBlock}");
             }
             else
             {

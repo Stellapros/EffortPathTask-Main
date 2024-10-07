@@ -6,6 +6,8 @@ public class StartPractice : MonoBehaviour
 {
     [SerializeField] private Button continueButton;
     [SerializeField] private string nextSceneName = "NextScene";
+    [SerializeField] public AudioClip buttonClickSound;
+    private AudioSource audioSource;
 
     private void Start()
     {

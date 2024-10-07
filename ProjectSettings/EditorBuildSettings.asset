@@ -18,26 +18,32 @@ EditorBuildSettings:
     path: Assets/Scenes/StartScreen.unity
     guid: cf04f9ca06f654f24bbc0a19c2bf38f2
   - enabled: 1
+    path: Assets/Scenes/CalibrationCounter1.unity
+    guid: 9304e3675861c4ad5adce6ae4747f5a9
+  - enabled: 1
     path: Assets/Scenes/InstructionsScreen.unity
     guid: a16e6968b753c402db62d92eeeb6d91d
-  - enabled: 1
-    path: Assets/Scenes/CalibrationCounter.unity
-    guid: 9304e3675861c4ad5adce6ae4747f5a9
   - enabled: 0
-    path: Assets/Scenes/CalibrationPhase.unity
-    guid: 3e75e872e4a39490d830e6a6df582a50
+    path: Assets/Scenes/CalibrationCounter2.unity
+    guid: e16f40048dd214f3aa209108f3f9fbf0
+  - enabled: 0
+    path: Assets/Scenes/Check1_Preference.unity
+    guid: 423d28289887e44659c67efe3037ac33
+  - enabled: 0
+    path: Assets/Scenes/Check2_Recognition.unity
+    guid: ebaf3849afee44cec8d694c98d3414ee
   - enabled: 1
-    path: Assets/Scenes/GetReady.unity
+    path: Assets/Scenes/GetReadyPractise.unity
     guid: 3b21cad07faf74dec88c66a631234e24
+  - enabled: 1
+    path: Assets/Scenes/GetReadyFormal.unity
+    guid: 4548849bdb80a468286516d993c41fd4
   - enabled: 1
     path: Assets/Scenes/DecisionPhase.unity
     guid: 273b0feac00794dadbb805eaa16a639c
   - enabled: 1
     path: Assets/Scenes/GridWorld.unity
     guid: e0d495b684b404cdabe7ad0008a36b0a
-  - enabled: 0
-    path: Assets/Scenes/MainExperiment.unity
-    guid: b0beba59402a24a8795a646a02d70114
   - enabled: 1
     path: Assets/Scenes/RestBreak.unity
     guid: aeef525b77894402f97b7531be261b15

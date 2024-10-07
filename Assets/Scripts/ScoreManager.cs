@@ -47,12 +47,27 @@ public class ScoreManager : MonoBehaviour
     //     UpdateScoreDisplay();
     // }
 
-    public void AddScore(int points)
+    // public void AddScore(int points)
+    // {
+    //     totalScore += points;
+    //     UpdateScoreDisplay();
+    //     Debug.Log($"Score added: {points}. Total score: {totalScore}");
+    // }
+
+
+public void AddScore(int points, bool isFormalTrial)
+{
+    if (isFormalTrial)
     {
         totalScore += points;
         UpdateScoreDisplay();
         Debug.Log($"Score added: {points}. Total score: {totalScore}");
     }
+    else
+    {
+        Debug.Log($"Practice trial completed. No score added.");
+    }
+}
 
     public void ResetScore()
     {

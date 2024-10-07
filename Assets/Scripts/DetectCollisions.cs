@@ -51,39 +51,11 @@ public class DetectCollisions : MonoBehaviour
 
 
     /// <summary>
-    /// Collects the reward and ends the trial.
-    /// </summary>
-    /// <param name="rewardObject">The GameObject of the reward to be collected.</param>
-    // private void CollectReward(GameObject rewardObject)
-    // {
-    //     gameController.GetComponent<ScoreManager>()?.AddScore(1);
-    //     gameController.RewardCollected();
-    //     playerController.HandleRewardCollection(rewardObject);
-
-    //     // Destroy only the reward object
-    //     Destroy(rewardObject);
-
-    //     // Disable player movement
-    //     playerController.DisableMovement();
-    //     Debug.Log("Reward collected!");
-
-    //     // End the trial
-    //     EndTrial(true);
-    // }
-
-    /// <summary>
     /// Ends the current trial and updates the game state.
     /// </summary>
     /// <param name="rewardCollected">Whether a reward was collected during the trial.</param>
     private void EndTrial(bool rewardCollected)
     {
-        // // Update score if reward was collected
-        // if (rewardCollected)
-        // {
-        //     // Assuming ScoreManager is a component of GameController
-        //     gameController.GetComponent<ScoreManager>()?.AddScore(1);
-        // }
-
         // End the trial in GridWorldManager
         gridWorldManager.EndTrial(rewardCollected);
 

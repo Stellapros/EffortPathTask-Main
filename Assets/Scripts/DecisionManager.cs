@@ -1,22 +1,17 @@
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 using TMPro;
-using System;
 
 public class DecisionManager : MonoBehaviour
 {
     [SerializeField] private Image effortSpriteImage;
     [SerializeField] private TextMeshProUGUI effortLevelText;
+    [SerializeField] private TextMeshProUGUI pressesRequiredText; // New field for presses required
     [SerializeField] private Button workButton;
     [SerializeField] private Button skipButton;
-
-    // New audio-related fields
     private AudioSource audioSource;
     [SerializeField] private AudioClip workButtonSound;
     [SerializeField] private AudioClip skipButtonSound;
-
-
 
     private ExperimentManager experimentManager;
 
@@ -71,7 +66,10 @@ public class DecisionManager : MonoBehaviour
         if (experimentManager != null)
         {
             Sprite effortSprite = experimentManager.GetCurrentTrialSprite();
-            float effortValue = experimentManager.GetCurrentTrialEV();
+            int effortLevel = experimentManager.GetCurrentTrialEffortLevel();
+            int pressesRequired = experimentManager.GetCurrentTrialEV();
+
+            Debug.Log($"UpdateEffortSprite: Effort Level = {effortLevel}, Presses Required = {pressesRequired}");
 
             if (effortSpriteImage != null && effortSprite != null)
             {
@@ -80,8 +78,17 @@ public class DecisionManager : MonoBehaviour
 
             if (effortLevelText != null)
             {
-                effortLevelText.text = $"Effort Level: {effortValue}";
+                effortLevelText.text = $"Effort Level: {effortLevel}";
             }
+
+            if (pressesRequiredText != null)
+            {
+                pressesRequiredText.text = $"Presses Required: {pressesRequired}";
+            }
+        }
+        else
+        {
+            Debug.LogError("ExperimentManager is null in UpdateEffortSprite!");
         }
     }
 

@@ -10,6 +10,8 @@ public class TitlePage : MonoBehaviour
     [SerializeField] private TextMeshProUGUI subtitleText;
     [SerializeField] private Button startButton;
     [SerializeField] private string nextSceneName = "GameScene"; // Name of the scene to load
+    [SerializeField] public AudioClip buttonClickSound;
+    private AudioSource audioSource;
 
     private void Start()
     {

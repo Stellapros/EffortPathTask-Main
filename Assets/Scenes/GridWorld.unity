@@ -559,8 +559,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Score: --'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
+  m_sharedMaterial: {fileID: 2140032, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -584,8 +584,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 50
-  m_fontSizeBase: 50
+  m_fontSize: 45
+  m_fontSizeBase: 45
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -773,6 +773,61 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 078f49e90b8ce42a088437dd8fea7807, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &1615654600
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1615654602}
+  - component: {fileID: 1615654601}
+  m_Layer: 0
+  m_Name: GridWorldManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1615654601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1615654600}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f2789b80781e443e9eb684a4fe424fb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gridManager: {fileID: 1143267186}
+  playerSpawner: {fileID: 1772104562}
+  playerController: {fileID: 896695778}
+  rewardSpawner: {fileID: 559933965}
+  playerPrefab: {fileID: 197052547065130213, guid: ab9f9bb94afc64c7e89ec2641835a2f1,
+    type: 3}
+  rewardPrefab: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
+    type: 3}
+  defaultTrialDuration: 10
+  scoreManager: {fileID: 4872053700752718782}
+  countdownTimer: {fileID: 1577038607}
+--- !u!4 &1615654602
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1615654600}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1704339047
 GameObject:
   m_ObjectHideFlags: 0
@@ -832,8 +887,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Time: --'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
+  m_sharedMaterial: {fileID: 2140032, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -857,8 +912,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 50
-  m_fontSizeBase: 50
+  m_fontSize: 45
+  m_fontSizeBase: 45
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -996,147 +1051,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxTrialDuration: 10
+  startTrialDelay: 0.5
   endTrialDelay: 0.5
   pressesPerEffortLevel: 010000000200000003000000
   sceneTransitionTimeout: 5
---- !u!1001 &423611898279710557
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 1833278028662612437, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: gridManager
-      value: 
-      objectReference: {fileID: 1143267186}
-    - target: {fileID: 1833278028662612437, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: playerPrefab
-      value: 
-      objectReference: {fileID: 197052547065130213, guid: ab9f9bb94afc64c7e89ec2641835a2f1,
-        type: 3}
-    - target: {fileID: 1833278028662612437, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: scoreManager
-      value: 
-      objectReference: {fileID: 4872053700752718782}
-    - target: {fileID: 1833278028662612437, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: playerSpawner
-      value: 
-      objectReference: {fileID: 1772104562}
-    - target: {fileID: 1833278028662612437, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: rewardSpawner
-      value: 
-      objectReference: {fileID: 559933965}
-    - target: {fileID: 1833278028662612437, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: countdownTimer
-      value: 
-      objectReference: {fileID: 1577038607}
-    - target: {fileID: 1833278028662612437, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: playerController
-      value: 
-      objectReference: {fileID: 896695778}
-    - target: {fileID: 6106750284618463364, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: m_Name
-      value: GridWorldManager
-      objectReference: {fileID: 0}
-    - target: {fileID: 7248009633563827252, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7248009633563827252, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7248009633563827252, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7248009633563827252, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7248009633563827252, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7248009633563827252, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7248009633563827252, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7248009633563827252, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7248009633563827252, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7248009633563827252, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: -8690266444773239620, guid: 96d776e8ee130440d8b6e04107cc91e0, type: 3}
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 6106750284618463364, guid: 96d776e8ee130440d8b6e04107cc91e0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 423611898279710559}
-  m_SourcePrefab: {fileID: 100100000, guid: 96d776e8ee130440d8b6e04107cc91e0, type: 3}
---- !u!1 &423611898279710558 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6106750284618463364, guid: 96d776e8ee130440d8b6e04107cc91e0,
+  experimentManager: {fileID: -9017574497650612139, guid: 562f7dbdd4289463995c7b81d8f19d3f,
     type: 3}
-  m_PrefabInstance: {fileID: 423611898279710557}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &423611898279710559
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 423611898279710558}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f2789b80781e443e9eb684a4fe424fb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gridManager: {fileID: 1143267186}
-  playerSpawner: {fileID: 1772104562}
-  playerController: {fileID: 896695778}
-  rewardSpawner: {fileID: 559933965}
-  playerPrefab: {fileID: 197052547065130213, guid: ab9f9bb94afc64c7e89ec2641835a2f1,
+  gridWorldManager: {fileID: -8690266444773239620, guid: 96d776e8ee130440d8b6e04107cc91e0,
     type: 3}
-  rewardPrefab: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
-    type: 3}
-  defaultTrialDuration: 10
-  scoreManager: {fileID: 4872053700752718782}
-  countdownTimer: {fileID: 1577038607}
 --- !u!1001 &1065090123916010027
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1237,7 +1159,7 @@ PrefabInstance:
         type: 3}
       propertyPath: gridWorldManager
       value: 
-      objectReference: {fileID: 423611898279710559}
+      objectReference: {fileID: 0}
     - target: {fileID: 5749909453108091485, guid: fee829f012b0a4d11b6a3d514bed6687,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -1356,6 +1278,17 @@ PrefabInstance:
       propertyPath: gridManager
       value: 
       objectReference: {fileID: 1143267186}
+    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
+        type: 3}
+      propertyPath: playerSpawner
+      value: 
+      objectReference: {fileID: 1772104562}
+    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
+        type: 3}
+      propertyPath: experimentManager
+      value: 
+      objectReference: {fileID: -9017574497650612139, guid: 562f7dbdd4289463995c7b81d8f19d3f,
+        type: 3}
     - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
         type: 3}
       propertyPath: rewardPrefabs.Array.size
@@ -1887,8 +1820,8 @@ SceneRoots:
   - {fileID: 41562388}
   - {fileID: 776100071}
   - {fileID: 522573420}
-  - {fileID: 423611898279710557}
   - {fileID: 4352186353554437673}
+  - {fileID: 1615654602}
   - {fileID: 1289046233620166421}
   - {fileID: 1065090123916010027}
   - {fileID: 2245109139350071721}

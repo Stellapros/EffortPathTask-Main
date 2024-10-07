@@ -15,7 +15,6 @@ public class CircularProgressBar : MonoBehaviour
     {
         StartCoroutine(FillLoadingBar());
     }
-
     private IEnumerator FillLoadingBar()
     {
         Debug.Log("Starting countdown");

@@ -10,7 +10,9 @@ public class ParticipantInfo : MonoBehaviour
     [SerializeField] private TMP_InputField ageInput;
     [SerializeField] private TMP_Dropdown genderDropdown;
     [SerializeField] private Button submitButton;
-
+    [SerializeField] public AudioClip buttonClickSound;
+    private AudioSource audioSource;
+    
     private void Start()
     {
         SetupGenderDropdown();

@@ -16,7 +16,6 @@ public class CountdownTimer : MonoBehaviour
     // Public property to access remaining time
     public float TimeLeft => timeLeft;
     private Stopwatch stopwatch;
-    private float startTime;
 
     private void Start()
     {
@@ -66,6 +65,7 @@ public class CountdownTimer : MonoBehaviour
         UpdateTimerUI();
         UnityEngine.Debug.Log($"Timer started at {Time.realtimeSinceStartup}. totalTime: {totalTime}, timeLeft: {timeLeft}, isRunning: {isRunning}");
     }
+
 
     // Stops the timer
     public void StopTimer()
