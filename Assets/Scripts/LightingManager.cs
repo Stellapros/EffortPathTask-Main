@@ -14,7 +14,7 @@ public class LightingManager : MonoBehaviour
     [SerializeField] private Light directionalLight;
 
     [Header("Light Settings")]
-    [SerializeField] private float intensity = 1f;
+    [SerializeField] private float intensity = 0.7f;
     [SerializeField] private Color color = Color.white;
 
     private void Awake()
@@ -53,7 +53,7 @@ public class LightingManager : MonoBehaviour
         if (directionalLight == null)
         {
             // Check if a directional light already exists in the scene
-            directionalLight = FindObjectOfType<Light>();
+            directionalLight = FindAnyObjectByType<Light>();
 
             if (directionalLight == null || directionalLight.type != LightType.Directional)
             {

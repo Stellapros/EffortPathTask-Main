@@ -20,7 +20,7 @@ public class PlayerSpawner : MonoBehaviour
     {
         if (gridManager == null)
         {
-            gridManager = FindObjectOfType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
             if (gridManager == null)
             {
                 Debug.LogError("GridManager not found in the scene. Please ensure it exists in the scene.");

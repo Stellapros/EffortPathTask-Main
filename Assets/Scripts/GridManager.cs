@@ -83,6 +83,26 @@ public class GridManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Sets the size of the grid and reinitializes it with the new dimensions.
+    /// </summary>
+    /// <param name="width">The new width of the grid</param>
+    /// <param name="height">The new height of the grid</param>
+    public void SetGridSize(int width, int height)
+    {
+        // Store new dimensions
+        this.gridWidth = Mathf.Max(1, width);
+        this.gridHeight = Mathf.Max(1, height);
+
+        // Clean up existing grid if any
+        HideGrid();
+
+        // Reinitialize with new dimensions
+        InitializeGrid();
+        InitializeObjectPools();
+        ShowGrid();
+    }
+
     private void InitializeObjectPools()
     {
         floorPool = new ObjectPool(floorTilePrefab, 100, transform);

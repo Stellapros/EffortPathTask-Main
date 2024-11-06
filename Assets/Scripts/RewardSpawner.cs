@@ -22,11 +22,11 @@ public class RewardSpawner : MonoBehaviour
     private void ValidateComponents()
     {
         if (gridManager == null)
-            gridManager = FindObjectOfType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
         if (experimentManager == null)
-            experimentManager = FindObjectOfType<ExperimentManager>();
+            experimentManager = FindAnyObjectByType<ExperimentManager>();
         if (playerSpawner == null)
-            playerSpawner = FindObjectOfType<PlayerSpawner>();
+            playerSpawner = FindAnyObjectByType<PlayerSpawner>();
 
         if (gridManager == null || experimentManager == null || playerSpawner == null)
             Debug.LogError("Required components are missing in RewardSpawner.");

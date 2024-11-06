@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 /// <summary>
 /// Controls the player's movement and interactions in the GridWorld game.
@@ -72,7 +73,7 @@ public class PlayerController : MonoBehaviour
             Debug.Log("AudioSource component added to PlayerController.");
         }
 
-        gridManager = gridManager ?? FindObjectOfType<GridManager>();
+        gridManager = gridManager ?? FindAnyObjectByType<GridManager>();
         if (gridManager == null) Debug.LogError("GridManager not found in the scene!");
     }
 
@@ -198,7 +199,7 @@ public class PlayerController : MonoBehaviour
 
         ResetCounters();
         totalButtonPresses = 0;
-        if (playerRigidbody != null) playerRigidbody.velocity = Vector2.zero;
+        if (playerRigidbody != null) playerRigidbody.linearVelocity = Vector2.zero;
         ApplyFacingDirection(); // Apply the last known facing direction
         Debug.Log($"Player position reset to: {position}, Total button presses reset to 0");
     }
@@ -297,7 +298,7 @@ public class PlayerController : MonoBehaviour
         isTrialRunning = false;
         if (playerRigidbody != null)
         {
-            playerRigidbody.velocity = Vector3.zero;
+            playerRigidbody.linearVelocity = Vector3.zero;
             playerRigidbody.constraints = RigidbodyConstraints.FreezeAll;
         }
         // Reset all input counters
@@ -337,5 +338,13 @@ public class PlayerController : MonoBehaviour
 
             Debug.Log("Reward collected!");
         }
+    }
+
+    private IEnumerator SimulateFruitCollection()
+    {
+        yield return new WaitForSeconds(3f);
+        // Simulate fruit collection
+        ScoreManager.Instance.AddScore(10, false);
+        TourManager.Instance.ProcessNextStep();
     }
 }

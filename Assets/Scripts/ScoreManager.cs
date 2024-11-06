@@ -1,4 +1,4 @@
-using UnityEngine;
+ using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 
@@ -8,6 +8,7 @@ public class ScoreManager : MonoBehaviour
 
     [SerializeField] private TextMeshProUGUI scoreText;
     private int totalScore = 0;
+    private int practiceScore = 0;
 
     private void Awake()
     {
@@ -22,12 +23,12 @@ public class ScoreManager : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (scene.name == "GridWorld")
         {
-            // Find the scoreText only in the GridWorld scene
-            scoreText = GameObject.FindObjectOfType<TextMeshProUGUI>();
+            scoreText = GameObject.FindAnyObjectByType<TextMeshProUGUI>();
             if (scoreText == null)
             {
                 Debug.LogWarning("ScoreText not found in the GridWorld scene.");
@@ -40,82 +41,58 @@ public class ScoreManager : MonoBehaviour
         UpdateScoreDisplay();
     }
 
-    // private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    // {
-    //     // Find and assign the scoreText in the new scene
-    //     scoreText = GameObject.FindObjectOfType<TextMeshProUGUI>();
-    //     UpdateScoreDisplay();
-    // }
-
-    // public void AddScore(int points)
-    // {
-    //     totalScore += points;
-    //     UpdateScoreDisplay();
-    //     Debug.Log($"Score added: {points}. Total score: {totalScore}");
-    // }
-
-
-public void AddScore(int points, bool isFormalTrial)
-{
-    if (isFormalTrial)
+    public void AddScore(int points, bool isFormalTrial)
     {
-        totalScore += points;
+        if (!TourManager.Instance.IsTourActive() && !PracticeManager.Instance.IsPracticeTrial())
+        {
+            totalScore += points;
+            Debug.Log($"Formal trial: Score added: {points}. Total score: {totalScore}");
+            UpdateScoreDisplay();
+        }
+        else
+        {
+            Debug.Log($"Tour/Practice: Score would be {points} in a formal trial.");
+        }
+    }
+
+    public void ResetScore(bool resetPracticeScore = false)
+    {
+        if (resetPracticeScore)
+        {
+            practiceScore = 0;
+            Debug.Log("Practice score reset to 0");
+        }
+        else
+        {
+            totalScore = 0;
+            Debug.Log("Total score reset to 0");
+        }
         UpdateScoreDisplay();
-        Debug.Log($"Score added: {points}. Total score: {totalScore}");
+    }
+
+private void UpdateScoreDisplay()
+{
+    if (scoreText != null && SceneManager.GetActiveScene().name == "GridWorld")
+    {
+        bool isPracticeTrial = PracticeManager.Instance.IsPracticeTrial();
+        int scoreToDisplay = isPracticeTrial ? practiceScore : totalScore;
+        string scoreType = isPracticeTrial ? "Practice Score" : "Score";
+        scoreText.text = $"{scoreType}: {scoreToDisplay}";
+        scoreText.gameObject.SetActive(true);
     }
     else
     {
-        Debug.Log($"Practice trial completed. No score added.");
-    }
-}
-
-    public void ResetScore()
-    {
-        totalScore = 0;
-        UpdateScoreDisplay();
-        Debug.Log("Score reset to 0");
-    }
-
-    private void UpdateScoreDisplay()
-    {
-        if (scoreText != null && SceneManager.GetActiveScene().name == "GridWorld")
-        {
-            scoreText.text = $"Score: {totalScore}";
-            scoreText.gameObject.SetActive(true);
-        }
-        else if (scoreText != null)
+        // If scoreText is null or the current scene is not "GridWorld"
+        // Make sure to deactivate the scoreText GameObject to avoid null reference exceptions
+        if (scoreText != null)
         {
             scoreText.gameObject.SetActive(false);
         }
     }
-
-    // private void UpdateScoreDisplay()
-    // {
-    //     if (scoreText != null)
-    //     {
-    //         // bool isGridWorldScene = SceneManager.GetActiveScene().name == "GridWorld";
-    //         scoreText.gameObject.SetActive(isGridWorldScene);
-    //         if (isGridWorldScene)
-    //         {
-    //             scoreText.text = $"Score: {totalScore}";
-    //         }
-    //     }
-    // }
-
-    // private void UpdateScoreDisplay()
-    // {
-    //     if (scoreText != null)
-    //     {
-    //         scoreText.text = $"Total Score: {totalScore}";
-    //         scoreText.gameObject.SetActive(true);
-    //     }
-    //     else
-    //     {
-    //         Debug.LogWarning("ScoreText not found in the current scene.");
-    //     }
-    // }
+}
 
     public int GetTotalScore() => totalScore;
+    public int GetPracticeScore() => practiceScore;
 
     private void OnDestroy()
     {

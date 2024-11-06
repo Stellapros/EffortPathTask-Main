@@ -134,12 +134,13 @@ public class GameController : MonoBehaviour
         // Subscribe to ExperimentManager events
         experimentManager.OnTrialEnded += OnTrialEnd;
 
-        // Find ScoreManager
+        // Find ScoreManager 
+        // Comment out - But make sure it is found in the formal version
         scoreManager = ScoreManager.Instance;
-        if (scoreManager == null)
-        {
-            Debug.LogError("ScoreManager not found! Ensure it's properly initialized.");
-        }
+        // if (scoreManager == null)
+        // {
+        //     Debug.LogError("ScoreManager not found! Ensure it's properly initialized.");
+        // }
     }
 
     /// <summary>
@@ -147,7 +148,7 @@ public class GameController : MonoBehaviour
     /// </summary>
     private void InitializeLogManager()
     {
-        logManager = FindObjectOfType<LogManager>();
+        logManager = FindAnyObjectByType<LogManager>();
         if (logManager == null)
         {
             Debug.LogWarning("LogManager not found in the scene. Creating a new instance.");
@@ -211,11 +212,11 @@ public class GameController : MonoBehaviour
         yield return new WaitForSeconds(0.1f); // Short delay to ensure all components are ready
 
         // Find all necessary components in the GridWorld scene
-        countdownTimer = FindObjectOfType<CountdownTimer>();
-        scoreManager = FindObjectOfType<ScoreManager>();
-        gridManager = FindObjectOfType<GridManager>();
-        playerSpawner = FindObjectOfType<PlayerSpawner>();
-        rewardSpawner = FindObjectOfType<RewardSpawner>();
+        countdownTimer = FindAnyObjectByType<CountdownTimer>();
+        scoreManager = FindAnyObjectByType<ScoreManager>();
+        gridManager = FindAnyObjectByType<GridManager>();
+        playerSpawner = FindAnyObjectByType<PlayerSpawner>();
+        rewardSpawner = FindAnyObjectByType<RewardSpawner>();
 
         // Validate that all components are found
         ValidateGridWorldComponents();
@@ -520,7 +521,7 @@ public class GameController : MonoBehaviour
         if (rewardSpawner == null)
         {
             Debug.LogError("rewardSpawner is null. Attempting to find RewardSpawner in scene.");
-            rewardSpawner = FindObjectOfType<RewardSpawner>();
+            rewardSpawner = FindAnyObjectByType<RewardSpawner>();
             if (rewardSpawner == null)
             {
                 Debug.LogError("RewardSpawner not found in scene. Cannot spawn reward.");
@@ -795,7 +796,7 @@ public class GameController : MonoBehaviour
     {
         if (effortLevel < 0 || effortLevel >= pressesPerEffortLevel.Length)
         {
-            Debug.LogError($"Invalid effort level: {effortLevel}");
+            Debug.Log($"Invalid effort level: {effortLevel}");
             return;
         }
 
@@ -815,7 +816,7 @@ public class GameController : MonoBehaviour
         }
         else
         {
-            Debug.LogError("currentPlayer is null when trying to set presses per step!");
+            Debug.Log("currentPlayer is null when trying to set presses per step!");
         }
     }
 

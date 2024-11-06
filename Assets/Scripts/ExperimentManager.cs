@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.UI;
 
 
 /// <summary>
@@ -16,7 +17,7 @@ public class ExperimentManager : MonoBehaviour
 
     #region Constants
     private const int TOTAL_TRIALS = 3; // Total number of trials in the experiment
-    private const int PRACTICE_TRIALS = 2;
+    private const int PRACTICE_TRIALS = 3;
     private const int TRIALS_PER_BLOCK = 1; // Number of trials in each block
     private const int TOTAL_BLOCKS = 3; // Total number of blocks
     private const float TRIAL_DURATION = 10f; // Duration of each trial in seconds
@@ -34,17 +35,30 @@ public class ExperimentManager : MonoBehaviour
     [SerializeField] private string gridWorldScene = "GridWorld";
     [SerializeField] private string restBreakScene = "RestBreak";
     [SerializeField] private string endExperimentScene = "EndExperiment";
+    #endregion
 
+    #region Scene Flow Configuration
     [System.Serializable]
-    public class SceneTransition
+    public class SceneConfig
     {
-        public string fromScene;
-        public string toScene;
-        public string buttonName;
+        public string sceneName;
+        public float minimumDisplayTime = 0f;
+        public bool requiresButtonPress = false;
+        public string nextScene;
+        public bool isOptional = false;
     }
 
-    [SerializeField]
-    private List<SceneTransition> sceneTransitions = new List<SceneTransition>();
+    [SerializeField] private List<SceneConfig> introductorySceneFlow = new List<SceneConfig>();
+    private Queue<SceneConfig> sceneQueue = new Queue<SceneConfig>();
+    private float currentSceneStartTime;
+    private SceneConfig currentSceneConfig;
+    private bool hasInitializedFlow = false;
+    #endregion
+
+
+    #region Audio Configuration
+    [SerializeField] private bool playBackgroundMusic = true;
+    [SerializeField] private float musicVolume = 1f;
     #endregion
 
     #region Private Fields
@@ -54,6 +68,7 @@ public class ExperimentManager : MonoBehaviour
     private int practiceTrialIndex = 0;
     private int currentBlockNumber = 0;
     private bool experimentStarted = false;
+    private bool isTourCompleted = false;
     private bool isPractice = true;
     private float decisionStartTime;
     private float trialStartTime;
@@ -61,13 +76,15 @@ public class ExperimentManager : MonoBehaviour
     private List<(float collisionTime, float movementDuration)> rewardCollectionTimings = new List<(float, float)>();
     public ScoreManager scoreManager;
     public LogManager logManager;
+    public TourManager tourManager;
     #endregion
 
     #region Events
+    public event System.Action<bool> OnPracticeTrialsComplete;
     public event System.Action<bool> OnTrialEnded;
     #endregion
 
-    #region Unity Lifecycle Methods
+    #region Unity Lifecycle
     private void Awake()
     {
         // Implement the singleton pattern
@@ -76,6 +93,7 @@ public class ExperimentManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
             InitializeComponents();
+            InitializeSceneQueue();
 
         }
         else
@@ -83,28 +101,30 @@ public class ExperimentManager : MonoBehaviour
             Destroy(gameObject);
         }
 
-        logManager = FindObjectOfType<LogManager>();
-        if (logManager == null)
-        {
-            Debug.LogError("LogManager not found in the scene!");
-        }
+        logManager = FindAnyObjectByType<LogManager>();
+
     }
 
     private void Start()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        InitializeBackgroundMusic();
 
-        // Start the background music
+        // Ensure background music persists
         if (BackgroundMusicManager.Instance != null)
         {
+            DontDestroyOnLoad(BackgroundMusicManager.Instance.gameObject);
             BackgroundMusicManager.Instance.PlayMusic();
         }
         else
         {
-            Debug.LogWarning("BackgroundMusicManager not found.");
+            Debug.LogWarning("BackgroundMusicManager instance not found!");
         }
 
-        // Ensure that the total time is accurately calculated and displayed when the experiment ends
+        // Check if tour is already completed
+        isTourCompleted = PlayerPrefs.GetInt("TourCompleted", 0) == 1;
+
+        // Set experiment start time
         PlayerPrefs.SetFloat("ExperimentStartTime", Time.time);
 
         if (logManager == null)
@@ -115,10 +135,15 @@ public class ExperimentManager : MonoBehaviour
         {
             // LogManager.instance.LogEvent("ExperimentStart");
             logManager.LogExperimentStart(true);
-            // LogManager.instance.LogEvent("ExperimentStart", new Dictionary<string, object>());
         }
-
         VerifyPlayerPrefs();
+
+        if (!hasInitializedFlow)
+        {
+            InitializeSceneQueue();
+            StartSceneFlow();
+            hasInitializedFlow = true;
+        }
     }
 
     private void OnDestroy()
@@ -128,6 +153,7 @@ public class ExperimentManager : MonoBehaviour
     #endregion
 
     #region Initialization Methods
+    // Modify InitializeComponents to ensure managers exist
     private void InitializeComponents()
     {
         InitializeTrials();
@@ -136,20 +162,78 @@ public class ExperimentManager : MonoBehaviour
         LogPressesPerEffortLevel();
 
         // Initialize LogManager
-        logManager = FindObjectOfType<LogManager>();
-        if (logManager == null)
-        {
-            Debug.LogError("LogManager not found in the scene! Creating a new instance.");
-            logManager = new GameObject("LogManager").AddComponent<LogManager>();
-        }
-        // Log experiment configuration
-        // logManager.LogExperimentConfiguration(spriteToEffortMap);
+        EnsureLogManagerExists();
 
         // Initialize ScoreManager
-        scoreManager = FindObjectOfType<ScoreManager>();
+        scoreManager = FindAnyObjectByType<ScoreManager>();
         if (scoreManager == null)
         {
-            Debug.LogError("ScoreManager not found in the scene!");
+            GameObject scoreManagerObj = new GameObject("ScoreManager");
+            scoreManager = scoreManagerObj.AddComponent<ScoreManager>();
+        }
+
+        // Modified intro scene flow with explicit configuration
+        introductorySceneFlow = new List<SceneConfig>
+    {
+        new SceneConfig
+        {
+            sceneName = "TitlePage",
+            minimumDisplayTime = 2f,
+            requiresButtonPress = true,
+            nextScene = "BeforeStartingScreen"
+        },
+        new SceneConfig
+        {
+            sceneName = "BeforeStartingScreen",
+            minimumDisplayTime = 1f,
+            requiresButtonPress = true,
+            nextScene = "StartScreen"
+        },
+        new SceneConfig
+        {
+            sceneName = "StartScreen",
+            minimumDisplayTime = 0f,
+            requiresButtonPress = true,
+            nextScene = "CalibrationCounter"
+        },
+        new SceneConfig
+        {
+            sceneName = "CalibrationCounter",
+            minimumDisplayTime = 3f,
+            nextScene = "TourGame"
+        },
+        new SceneConfig
+        {
+            sceneName = "TourGame",
+            minimumDisplayTime = 3f,
+            nextScene = "InstructionsScreen"
+        }
+    };
+    }
+    private void InitializeSceneQueue()
+    {
+        sceneQueue.Clear();
+        foreach (var sceneConfig in introductorySceneFlow)
+        {
+            sceneQueue.Enqueue(sceneConfig);
+        }
+        Debug.Log($"Initialized scene queue with {sceneQueue.Count} scenes");
+    }
+
+    private void InitializeBackgroundMusic()
+    {
+        if (!playBackgroundMusic) return;
+
+        var musicManager = BackgroundMusicManager.Instance;
+        if (musicManager != null)
+        {
+            DontDestroyOnLoad(musicManager.gameObject);
+            musicManager.SetVolume(musicVolume);
+            musicManager.PlayMusic();
+        }
+        else
+        {
+            Debug.LogWarning("BackgroundMusicManager instance not found! Please ensure it exists in the scene.");
         }
     }
 
@@ -183,6 +267,192 @@ public class ExperimentManager : MonoBehaviour
             Debug.Log($"Effort Level {i}: {presses} presses");
         }
     }
+    #endregion
+
+    // private void StartTour()
+    // {
+    //     Debug.Log("Starting tour sequence");
+    //     TourManager.Instance.OnTourCompleted += HandleTourCompleted;
+    //     TourManager.Instance.StartTour();
+    // }
+
+private void StartTour()
+{
+      
+    // Ensure TourManager exists
+    if (TourManager.Instance == null)
+    {
+               return;
+    }
+    
+    // Clear any existing handlers
+    TourManager.Instance.OnTourCompleted -= HandleTourCompleted;
+    TourManager.Instance.OnTourCompleted += HandleTourCompleted;
+    TourManager.Instance.StartTour();
+    
+    // Verify tour started
+    StartCoroutine(VerifyTourStarted());
+}
+
+private IEnumerator VerifyTourStarted()
+{
+    yield return new WaitForSeconds(0.1f);
+    if (!TourManager.Instance.IsTourActive())
+    {
+               TourManager.Instance.StartTour();
+    }
+}
+
+    private void HandleTourCompleted()
+    {
+        Debug.Log("Tour completed, moving to practice sequence");
+        isTourCompleted = true;
+        PlayerPrefs.SetInt("TourCompleted", 1);
+        PlayerPrefs.Save();
+
+        tourManager.OnTourCompleted -= HandleTourCompleted;
+
+        // Move to practice sequence
+        StartPracticeSequence();
+    }
+
+    #region Scene Management Methods
+    private void StartSceneFlow()
+    {
+        if (sceneQueue.Count > 0)
+        {
+            LoadNextScene();
+        }
+        else
+        {
+            // Check if tour is completed
+            if (isTourCompleted)
+            {
+                StartPracticeSequence();
+            }
+            else
+            {
+                StartTour();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Loads a new scene by name.
+    /// </summary>
+    public void LoadScene(string sceneName)
+    {
+        Debug.Log($"Loading scene: {sceneName}");
+        SceneManager.LoadScene(sceneName);
+        CleanupPlayer();
+    }
+
+    private IEnumerator AutoAdvanceScene()
+    {
+        Debug.Log($"Waiting {currentSceneConfig.minimumDisplayTime} seconds before auto-advancing");
+        yield return new WaitForSeconds(currentSceneConfig.minimumDisplayTime);
+        LoadNextScene();
+    }
+
+    // Add this method to help with debugging
+    public void DebugSceneQueue()
+    {
+        Debug.Log($"Current scene queue status:");
+        Debug.Log($"Current scene: {(currentSceneConfig != null ? currentSceneConfig.sceneName : "none")}");
+        Debug.Log($"Remaining scenes in queue: {sceneQueue.Count}");
+        foreach (var scene in sceneQueue)
+        {
+            Debug.Log($"- {scene.sceneName} (Requires button: {scene.requiresButtonPress})");
+        }
+    }
+
+    private void LoadNextScene()
+    {
+        if (sceneQueue.Count > 0)
+        {
+            currentSceneConfig = sceneQueue.Dequeue();
+            currentSceneStartTime = Time.time;
+            Debug.Log($"Loading next scene: {currentSceneConfig.sceneName}");
+            SceneManager.LoadScene(currentSceneConfig.sceneName);
+        }
+        else if (!experimentStarted)
+        {
+            StartExperiment();
+        }
+    }
+
+    private IEnumerator LoadSceneAfterDelay(string sceneName, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        LoadScene(sceneName);
+    }
+    /// <summary>
+    /// Cleans up the player object when transitioning between scenes.
+    /// </summary>
+    private void CleanupPlayer()
+    {
+        if (PlayerController.Instance != null)
+        {
+            Destroy(PlayerController.Instance.gameObject);
+        }
+    }
+
+    /// <summary>
+    /// Called when a new scene is loaded.
+    /// </summary>    
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log($"Scene loaded: {scene.name}");
+
+        if (currentSceneConfig != null && scene.name == currentSceneConfig.sceneName)
+        {
+            SetupSceneButtons();
+
+            if (!currentSceneConfig.requiresButtonPress)
+            {
+                StartCoroutine(AutoAdvanceScene());
+            }
+        }
+    }
+
+    private void SetupSceneButtons()
+    {
+        if (!currentSceneConfig.requiresButtonPress) return;
+
+        var buttons = FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None);
+        foreach (var button in buttons)
+        {
+            button.onClick.RemoveAllListeners(); // Clear existing listeners
+            button.onClick.AddListener(() => HandleButtonClick(button.gameObject.name));
+            Debug.Log($"Setup button: {button.gameObject.name} in scene: {currentSceneConfig.sceneName}");
+        }
+    }
+
+    private void HandleButtonClick(string buttonName)
+    {
+        Debug.Log($"Button clicked: {buttonName} in scene: {currentSceneConfig.sceneName}");
+
+        // Check if minimum display time has elapsed
+        if (Time.time - currentSceneStartTime < currentSceneConfig.minimumDisplayTime)
+        {
+            Debug.Log("Minimum display time not yet elapsed");
+            return;
+        }
+        if (currentSceneConfig.nextScene != null)
+        {
+            LoadNextScene();
+        }
+    }
+
+    private void SetupGridWorldPhase()
+    {
+        Debug.Log("Setting up Grid World Phase");
+        logManager.LogGridWorldPhaseStart(currentTrialIndex);
+    }
+    #endregion
+
+
+    #region Experiment Control Methods
 
     /// <summary>
     /// Block Generation: The GenerateBlockTrials() method is called 
@@ -263,134 +533,12 @@ public class ExperimentManager : MonoBehaviour
         { level3Sprite, 2 }  // Hard
     };
         Debug.Log($"Initialized spriteToEffortMap: Easy={spriteToEffortMap[level1Sprite]}, Medium={spriteToEffortMap[level2Sprite]}, Hard={spriteToEffortMap[level3Sprite]}");
-
-        // Log to a file for persistent record
-        // string logEntry = $"{System.DateTime.Now}: Effort levels initialized - Easy: {spriteToEffortMap[level1Sprite]}, Medium: {spriteToEffortMap[level2Sprite]}, Hard: {spriteToEffortMap[level3Sprite]}";
-        // System.IO.File.AppendAllText("experiment_log.txt", logEntry + System.Environment.NewLine);
         LogPressesPerEffortLevel();
     }
 
-    #endregion
-
-    #region Scene Management Methods
-    /// <summary>
-    /// Loads a new scene by name.
-    /// </summary>
-    public void LoadScene(string sceneName)
-    {
-        Debug.Log($"Loading scene: {sceneName}");
-        SceneManager.LoadScene(sceneName);
-        CleanupPlayer();
-    }
-
-    /// <summary>
-    /// Cleans up the player object when transitioning between scenes.
-    /// </summary>
-    private void CleanupPlayer()
-    {
-        if (PlayerController.Instance != null)
-        {
-            Destroy(PlayerController.Instance.gameObject);
-        }
-    }
-
-    /// <summary>
-    /// Called when a new scene is loaded.
-    /// </summary>    
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        Debug.Log($"Scene loaded: {scene.name}");
-        SetupButtons(scene.name);
-
-        if (scene.name == decisionPhaseScene && experimentStarted)
-        {
-            SetupDecisionPhase();
-        }
-        else if (scene.name == gridWorldScene)
-        {
-            // Ensure ScoreManager is available in GridWorld scene
-            if (scoreManager == null)
-            {
-                scoreManager = FindObjectOfType<ScoreManager>();
-                if (scoreManager == null)
-                {
-                    Debug.LogError("ScoreManager not found in GridWorld scene!");
-                }
-            }
-            SetupGridWorldPhase();
-        }
-    }
-    private void SetupGridWorldPhase()
-    {
-        Debug.Log("Setting up Grid World Phase");
-        logManager.LogGridWorldPhaseStart(currentTrialIndex);
-    }
-
-    /// <summary>
-    /// Sets up button listeners for the current scene.
-    /// </summary>
-    private void SetupButtons(string sceneName)
-    {
-        foreach (var transition in sceneTransitions)
-        {
-            if (transition.fromScene == sceneName)
-            {
-                GameObject buttonObj = GameObject.Find(transition.buttonName);
-                if (buttonObj != null)
-                {
-                    UnityEngine.UI.Button button = buttonObj.GetComponent<UnityEngine.UI.Button>();
-                    if (button != null)
-                    {
-                        button.onClick.RemoveAllListeners();
-
-                        // Special case for starting the formal experiment from GetReadyFormal scene
-                        if (sceneName == "GetReadyFormal")
-                        {
-                            button.onClick.AddListener(StartFormalExperiment);
-                        }
-                        else
-                        {
-                            button.onClick.AddListener(() => LoadScene(transition.toScene));
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"Button component not found on {transition.buttonName} in {sceneName}");
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning($"Button {transition.buttonName} not found in {sceneName}");
-                }
-            }
-        }
-    }
-    #endregion
-
-    #region Experiment Control Methods
     /// <summary>
     /// Starts the experiment by transitioning to the DecisionPhase scene.
     /// </summary>
-    // public void StartExperiment()
-    // {
-    //     if (!experimentStarted)
-    //     {
-    //         Debug.Log("Starting experiment");
-    //         experimentStarted = true;
-    //         currentTrialIndex = 0;
-    //         currentBlockNumber = 0;
-    //         ScoreManager.Instance.ResetScore();
-
-    //         // Log the start of the experiment and the first trial
-    //         logManager.LogExperimentStart();
-    //         LogFirstTrial();
-
-    //         StartNewBlock();
-    //         SetupNewTrial();
-    //         Debug.Log($"Initial trial setup complete. Current trial index: {currentTrialIndex}");
-    //         LoadScene(decisionPhaseScene);
-    //     }
-    // }
     public void StartExperiment()
     {
         if (!experimentStarted)
@@ -401,19 +549,75 @@ public class ExperimentManager : MonoBehaviour
             practiceTrialIndex = 0;
             currentTrialIndex = 0;
             currentBlockNumber = 0;
+
+            // Check if ScoreManager exists, if not create it
+            if (ScoreManager.Instance == null)
+            {
+                Debug.LogWarning("ScoreManager instance not found. Creating new instance.");
+                GameObject scoreManagerObj = new GameObject("ScoreManager");
+                scoreManager = scoreManagerObj.AddComponent<ScoreManager>();
+            }
             ScoreManager.Instance.ResetScore();
 
-            logManager.LogExperimentStart(true); // Pass true for practice trials
+            // Check if LogManager exists, if not create it
+            if (logManager == null)
+            {
+                Debug.LogWarning("LogManager is null in StartExperiment. Attempting to find or create instance.");
+                logManager = FindAnyObjectByType<LogManager>();
+                if (logManager == null)
+                {
+                    GameObject logManagerObj = new GameObject("LogManager");
+                    logManager = logManagerObj.AddComponent<LogManager>();
+                }
+            }
+
+            try
+            {
+                logManager.LogExperimentStart(true); // Pass true for practice trials
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Failed to log experiment start: {e.Message}");
+            }
+
             SetupPracticeTrial();
             LoadScene(decisionPhaseScene);
         }
     }
+
+    // Add this method to ensure LogManager exists
+    private void EnsureLogManagerExists()
+    {
+        if (logManager == null)
+        {
+            logManager = FindAnyObjectByType<LogManager>();
+            if (logManager == null)
+            {
+                GameObject logManagerObj = new GameObject("LogManager");
+                logManager = logManagerObj.AddComponent<LogManager>();
+            }
+        }
+    }
+
     private void SetupPracticeTrial()
     {
         Debug.Log($"Setting up practice trial {practiceTrialIndex + 1}");
+        // Randomize effort level for practice trials
         int effortLevel = Random.Range(1, 4);
         int pressesRequired = PlayerPrefs.GetInt($"PressesPerEffortLevel_{effortLevel}", 10);
+
+        // Log practice trial start
         logManager.LogTrialStart(practiceTrialIndex, 0, 3f, effortLevel, pressesRequired, true);
+    }
+
+    private void StartPracticeSequence()
+    {
+        Debug.Log("Starting practice sequence");
+        isPractice = true;
+        practiceTrialIndex = 0;
+
+        // Load GetReadyPractise scene
+        LoadScene("GetReadyPractise");
     }
 
     private void LogFirstTrial()
@@ -460,7 +664,7 @@ public class ExperimentManager : MonoBehaviour
         if (logManager == null)
         {
             Debug.LogError("LogManager is null in HandleDecision method!");
-            logManager = FindObjectOfType<LogManager>();
+            logManager = FindAnyObjectByType<LogManager>();
             if (logManager == null)
             {
                 Debug.LogError("Failed to find LogManager in the scene!");
@@ -482,13 +686,6 @@ public class ExperimentManager : MonoBehaviour
             Debug.Log($"Player decided to skip trial {currentTrialIndex + 1}. Moving to next trial after delay.");
             StartCoroutine(ShowNextTrialAfterDelay());
         }
-    }
-
-
-    private IEnumerator LoadSceneAfterDelay(string sceneName, float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        LoadScene(sceneName);
     }
 
     /// <summary>
@@ -522,83 +719,23 @@ public class ExperimentManager : MonoBehaviour
         else
         {
             isPractice = false;
-            LoadScene("GetReadyFormal"); // Load the GetReady scene before starting the formal experiment
+            LoadScene("GetReadyFormal"); // Load a transition scene before starting formal experiment
         }
     }
 
-    /// <summary>
-    /// Moves to the next trial or ends the experiment if all trials are completed.
-    /// </summary>
-    // public void MoveToNextTrial()
-    // {
-    //     if (currentTrialIndex < TOTAL_TRIALS)
-    //     {
-    //         Debug.Log($"Moving to trial {currentTrialIndex + 1}");
-    //         LoadScene(decisionPhaseScene);
-    //     }
-    //     else
-    //     {
-    //         Debug.Log("All trials completed. Ending experiment.");
-    //         EndExperiment();
-    //     }
-    // }
-    //     public void MoveToNextTrial()
-    // {
-    //     currentTrialIndex++;
-    //     if (currentTrialIndex % TRIALS_PER_BLOCK == 0)
-    //     {
-    //         EndCurrentBlock();
-    //         currentBlockNumber++;
-    //         if (currentBlockNumber < TOTAL_BLOCKS)
-    //         {
-    //             StartNewBlock();
-    //             LoadScene(restBreakScene);
-    //         }
-    //         else
-    //         {
-    //             EndExperiment();
-    //             return;
-    //         }
-    //     }
-    //     SetupNewTrial();
-    //     LoadScene(decisionPhaseScene);
-    // }
-
-    // public void MoveToNextTrial()
-    // {
-    //     currentTrialIndex++;
-    //     if (currentTrialIndex >= TOTAL_TRIALS)
-    //     {
-    //         EndExperiment();
-    //     }
-    //     else
-    //     {
-    //         EndCurrentBlock();
-    //         currentBlockNumber++;
-    //         if (currentBlockNumber < TOTAL_BLOCKS)
-    //         {
-    //             StartNewBlock();
-    //             LoadScene(restBreakScene);
-    //         }
-    //         else
-    //         {
-    //             EndExperiment();
-    //         }
-    //     }
-    // }
     public void StartFormalExperiment()
     {
+        Debug.Log("Starting formal experiment");
         isPractice = false;
         currentTrialIndex = 0;
         currentBlockNumber = 0;
         ScoreManager.Instance.ResetScore();
 
-        logManager.LogExperimentStart(false); // Pass false for formal experiment
+        logManager.LogExperimentStart(false);
         LogFirstTrial();
 
         StartNewBlock();
         SetupNewTrial();
-        Debug.Log("Starting formal experiment");
         LoadScene(decisionPhaseScene);
     }
 
@@ -644,19 +781,13 @@ public class ExperimentManager : MonoBehaviour
         LoadScene(decisionPhaseScene);
     }
 
-    // private void SetupTrialForCurrentBlock()
-    // {
-    //     float blockDistance = GetCurrentBlockDistance();
-    //     logManager.LogTrialStart(currentTrialIndex, currentBlockNumber + 1, blockDistance);
-    // }
-
     /// <summary>
     /// Sets up the DecisionPhase scene.
     /// </summary>
     public void SetupDecisionPhase()
     {
         Debug.Log("Setting up Decision Phase");
-        DecisionManager decisionManager = FindObjectOfType<DecisionManager>();
+        DecisionManager decisionManager = FindAnyObjectByType<DecisionManager>();
         if (decisionManager != null)
         {
             decisionManager.SetupDecisionPhase();
@@ -681,7 +812,6 @@ public class ExperimentManager : MonoBehaviour
             int pressesRequired = GetCurrentTrialEV();
             logManager.LogTrialStart(currentTrialIndex, currentBlockNumber, currentBlockDistance, effortLevel, pressesRequired, isPractice);
             // logManager.DumpTrialData(); // Add this line
-
         }
         else
         {
@@ -704,28 +834,27 @@ public class ExperimentManager : MonoBehaviour
             EndFormalTrial(rewardCollected);
         }
     }
-
     private void EndPracticeTrial(bool rewardCollected)
     {
         logManager.LogTrialEnd(practiceTrialIndex, rewardCollected ? "Collected" : "NotCollected");
-        logManager.LogTrialEnd(practiceTrialIndex, rewardCollected ? "Collected" : "NotCollected");
+
         if (rewardCollected)
         {
             ScoreManager.Instance.AddScore(REWARD_VALUE, false); // Practice trial
         }
+        MoveToPracticeOrFormalExperiment();
+        // practiceTrialIndex++;
 
-        practiceTrialIndex++;
-
-        if (practiceTrialIndex < PRACTICE_TRIALS)
-        {
-            SetupPracticeTrial();
-            LoadScene(decisionPhaseScene);
-        }
-        else
-        {
-            isPractice = false;
-            LoadScene("GetReadyFormal");
-        }
+        // if (practiceTrialIndex < PRACTICE_TRIALS)
+        // {
+        //     SetupPracticeTrial();
+        //     LoadScene(decisionPhaseScene);
+        // }
+        // else
+        // {
+        //     isPractice = false;
+        //     LoadScene("GetReadyFormal");
+        // }
     }
     public void EndFormalTrial(bool rewardCollected)
     {
@@ -943,29 +1072,6 @@ public class ExperimentManager : MonoBehaviour
         return pressesRequired;
     }
 
-
-    // public int GetCurrentTrialEV()
-    // {
-    //     if (trials == null || currentTrialIndex >= trials.Count)
-    //     {
-    //         Debug.LogWarning($"Trials not initialized or currentTrialIndex ({currentTrialIndex}) out of range.");
-    //         return 0;
-    //     }
-
-    //     Sprite currentSprite = trials[currentTrialIndex].EffortSprite;
-    //     if (spriteToEffortMap == null || !spriteToEffortMap.ContainsKey(currentSprite))
-    //     {
-    //         Debug.LogWarning($"spriteToEffortMap not initialized or doesn't contain the current sprite.");
-    //         return 0;
-    //     }
-
-    //     int effortLevel = spriteToEffortMap[currentSprite];
-    //     int pressesRequired = PlayerPrefs.GetInt($"PressesPerEffortLevel_{effortLevel + 1}", 0);
-
-    //     Debug.Log($"Current trial (index: {currentTrialIndex}) EV: {pressesRequired}, Sprite: {currentSprite.name}, Effort Level: {effortLevel + 1}");
-
-    //     return pressesRequired;
-    // }
     public float GetCurrentBlockDistance()
     {
         if (currentBlockNumber < 0 || currentBlockNumber >= blockDistances.Length)
@@ -975,8 +1081,6 @@ public class ExperimentManager : MonoBehaviour
         }
         return blockDistances[currentBlockNumber];
     }
-
-
 
     // Getter methods for various experiment parameters
     // public float GetCurrentBlockDistance() => blockDistances[currentBlockNumber];
@@ -1014,11 +1118,31 @@ public class ExperimentManager : MonoBehaviour
             this.BlockOrder = blockOrder;
         }
     }
-
     public class BlockConfig
     {
         public float playerRewardDistance;
         public int numberOfTrials;
         // Add other block-specific parameters here
     }
+    #region Public Methods
+    public void SkipToScene(string sceneName)
+    {
+        // Clear the queue and load the specified scene
+        sceneQueue.Clear();
+        SceneManager.LoadScene(sceneName);
+    }
+
+    public void RestartIntroFlow()
+    {
+        InitializeSceneQueue();
+        StartSceneFlow();
+    }
+
+    public bool IsIntroScene(string sceneName)
+    {
+        return introductorySceneFlow.Any(config => config.sceneName == sceneName);
+    }
+    #endregion
 }
+
+

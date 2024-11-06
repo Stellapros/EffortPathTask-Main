@@ -1,0 +1,48 @@
+<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer glow effect -->
+  <defs>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.2   0 0 0 0 0.6   0 0 0 0 0.6  0 0 0 0.6 0"/>
+    </filter>
+  </defs>
+  
+  <!-- Tech-style arrow body -->
+  <path 
+    d="M60 140 
+       L100 80 
+       L80 80 
+       L80 30 
+       L75 25
+       L75 20
+       L65 20
+       L65 25
+       L60 30
+       L55 25
+       L55 20
+       L45 20
+       L45 25
+       L40 30
+       L40 80
+       L20 80 Z" 
+    fill="#2D4F4F"
+    stroke="#47858C"
+    stroke-width="1.5"
+  />
+  
+  <!-- Accent lines -->
+  <path 
+    d="M60 125 L70 105 M60 125 L50 105" 
+    stroke="#47858C" 
+    stroke-width="1" 
+    fill="none"
+  />
+  
+  <!-- Tech detail elements -->
+  <rect x="55" y="40" width="10" height="2" fill="#47858C" />
+  <rect x="55" y="50" width="10" height="2" fill="#47858C" />
+  <rect x="55" y="60" width="10" height="2" fill="#47858C" />
+  
+  <!-- Apply glow effect -->
+  <use href="#arrow" filter="url(#glow)" />
+</svg>

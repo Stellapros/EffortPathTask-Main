@@ -13,10 +13,10 @@ public class DetectCollisions : MonoBehaviour
     {
         // Find necessary components if not assigned
         if (gameController == null)
-            gameController = FindObjectOfType<GameController>();
+            gameController = FindAnyObjectByType<GameController>();
 
         if (gridWorldManager == null)
-            gridWorldManager = FindObjectOfType<GridWorldManager>();
+            gridWorldManager = FindAnyObjectByType<GridWorldManager>();
 
         playerController = GetComponent<PlayerController>();
         if (playerController == null)

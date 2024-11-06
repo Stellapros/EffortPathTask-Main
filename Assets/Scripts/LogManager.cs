@@ -128,7 +128,25 @@ public class LogManager : MonoBehaviour
     //     }
     //     Debug.Log($"Trial {trialNumber + 1} in Block {blockNumber + 1} started. Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
     // }
+    public void LogCheckQuestionResponse(int trialNumber, int checkQuestionNumber, string leftFruitName, string rightFruitName, string choice, bool isCorrect)
+    {
+        // Append check question response data to the CSV file
+        var rowData = new string[]
+        {
+            participantID,
+            participantAge.ToString(),
+            participantGender,
+            "CheckQuestion",
+            trialNumber.ToString(),
+            checkQuestionNumber.ToString(),
+            leftFruitName,
+            rightFruitName,
+            choice,
+            isCorrect.ToString()
+        };
 
+        WriteCSVLine(rowData);
+    }
 
     public void LogDecisionPhaseStart(int trialNumber)
     {

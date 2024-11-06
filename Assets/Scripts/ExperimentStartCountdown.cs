@@ -28,7 +28,7 @@ public class CircularProgressBar : MonoBehaviour
 
             int remainingSeconds = Mathf.CeilToInt(duration - elapsedTime);
             countdownText.text = remainingSeconds.ToString();
-            Debug.Log($"Countdown: {remainingSeconds}");
+            // Debug.Log($"Countdown: {remainingSeconds}");
 
             yield return null;
         }

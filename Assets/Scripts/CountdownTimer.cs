@@ -87,6 +87,32 @@ public class CountdownTimer : MonoBehaviour
         UnityEngine.Debug.Log($"Timer reset at {Time.time}");
     }
 
+    /// <summary>
+    /// Sets the total duration for the timer.
+    /// If the timer is running, it will be reset with the new duration.
+    /// </summary>
+    /// <param name="duration">The new duration in seconds</param>
+    public void SetDuration(float duration)
+    {
+        UnityEngine.Debug.Log($"SetDuration called with duration: {duration}");
+        totalTime = Mathf.Max(0, duration); // Ensure duration is not negative
+        
+        // If timer is running, restart it with new duration
+        if (isRunning)
+        {
+            StopTimer();
+            StartTimer(totalTime);
+        }
+        else
+        {
+            // If timer is not running, just update the time left
+            timeLeft = totalTime;
+            UpdateTimerUI();
+        }
+        
+        UnityEngine.Debug.Log($"Timer duration set to {totalTime}s. Current state - timeLeft: {timeLeft}, isRunning: {isRunning}");
+    }
+    
     // Updates the UI text with the current time left
     private void UpdateTimerUI()
     {

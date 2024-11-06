@@ -1,24 +1,51 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.SceneManagement;
+using System.Collections;
+using System.Linq;
+using Unity.Collections;
 
 public class ArrowKeyCounter : MonoBehaviour
 {
-    public TextMeshProUGUI counterText; // Reference to the TextMeshProUGUI component for the counter
-    public TextMeshProUGUI timerText; // Reference to the TextMeshProUGUI component for the timer
+    public TextMeshProUGUI counterText;
+    public TextMeshProUGUI timerText;
+    public TextMeshProUGUI instructionText;
     private int counter = 0;
     private float elapsedTime = 0f;
     private float calibrationTime = 5f;
+    private float breakTime = 5f; // Duration of the break between phases
     private bool calibrationInProgress = false;
+    private bool isInBreak = false;
+    private int currentPhase = 0;
+    private int totalPhases = 3;
+    private int[] phaseResults;
+    private bool phaseStarted = false;
+    private string nextSceneName = "TourGame";
+
+
+    private string[] instructions = new string[]
+    {
+        "Press the direction buttons (↑ or ↓ or ← or →) as quickly as you can within 5 seconds.   Keep this up - think of it as a warm-up exercise!",
+        "Great! Now TRY AND BEAT YOUR SCORE! Start pressing when you are ready.",
+        "LAST CHANCE to beat your score!"
+    };
 
     private void Start()
     {
+        phaseResults = new int[totalPhases];
         UpdateCounterText();
         UpdateTimerText();
+        ShowCurrentInstruction();
     }
 
     private void Update()
     {
+        if (isInBreak)
+        {
+            // Do nothing during break, wait for coroutine to finish
+            return;
+        }
+
         if (!calibrationInProgress)
         {
             if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.DownArrow) ||
@@ -29,18 +56,31 @@ public class ArrowKeyCounter : MonoBehaviour
         }
         else
         {
-            elapsedTime += Time.deltaTime;
-            UpdateTimerText();
-
-            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.DownArrow) ||
-                Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow))
+            if (!phaseStarted)
             {
-                IncrementCounter();
+                if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.DownArrow) ||
+                    Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow))
+                {
+                    phaseStarted = true;
+                    elapsedTime = 0f;
+                    IncrementCounter();
+                }
             }
-
-            if (elapsedTime >= calibrationTime)
+            else
             {
-                EndCalibration();
+                elapsedTime += Time.deltaTime;
+                UpdateTimerText();
+
+                if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.DownArrow) ||
+                    Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow))
+                {
+                    IncrementCounter();
+                }
+
+                if (elapsedTime >= calibrationTime)
+                {
+                    EndCalibration();
+                }
             }
         }
     }
@@ -48,17 +88,18 @@ public class ArrowKeyCounter : MonoBehaviour
     private void StartCalibration()
     {
         calibrationInProgress = true;
-        elapsedTime = 0f;
+        phaseStarted = false;
         counter = 0;
+        elapsedTime = 0f;
         UpdateCounterText();
-        Debug.Log("Calibration started");
+        UpdateTimerText();
+        Debug.Log($"Calibration phase {currentPhase + 1} ready to start");
     }
 
     private void IncrementCounter()
     {
         counter++;
         UpdateCounterText();
-        Debug.Log("Counter value is: " + counter);
     }
 
     private void UpdateCounterText()
@@ -72,29 +113,68 @@ public class ArrowKeyCounter : MonoBehaviour
         timerText.text = "Time: " + timeLeft.ToString("F1") + "s";
     }
 
+    private void ShowCurrentInstruction()
+    {
+        instructionText.text = instructions[currentPhase];
+    }
+
     private void EndCalibration()
     {
         calibrationInProgress = false;
-        PlayerPrefs.SetInt("totalKeyPresses", counter);
-        Debug.Log("Calibration ended. Total key presses: " + counter);
+        phaseStarted = false;
+        phaseResults[currentPhase] = counter;
+        Debug.Log($"Calibration phase {currentPhase + 1} ended. Key presses: {counter}");
 
-        // Calculate presses per effort level
-        CalculateAndSetPressesPerEffortLevel();
-
-        // Load the next scene or start the experiment
-        SceneManager.LoadScene("InstructionsScreen");
+        currentPhase++;
+        if (currentPhase < totalPhases)
+        {
+            StartCoroutine(BreakBetweenPhases());
+        }
+        else
+        {
+            CalculateFinalResultsAndProceed();
+        }
     }
 
-    private void CalculateAndSetPressesPerEffortLevel()
+    private IEnumerator BreakBetweenPhases()
     {
-        float pressRate = (float)counter / calibrationTime;
+        isInBreak = true;
+        float breakTimeLeft = breakTime;
+
+        while (breakTimeLeft > 0)
+        {
+            instructionText.text = $"Great job! Next phase starts in {breakTimeLeft:F0} seconds...";
+            yield return new WaitForSeconds(0.1f);
+            breakTimeLeft -= 0.1f;
+        }
+
+        isInBreak = false;
+        StartCalibration();
+        ShowCurrentInstruction();
+    }
+
+    private void CalculateFinalResultsAndProceed()
+    {
+        int averageKeyPresses = Mathf.RoundToInt((float)phaseResults.Average());
+        PlayerPrefs.SetInt("totalKeyPresses", averageKeyPresses);
+        Debug.Log($"All calibration phases completed. Average key presses: {averageKeyPresses}");
+
+        // Calculate presses per effort level
+        CalculateAndSetPressesPerEffortLevel(averageKeyPresses);
+
+        // Load the next scene or start the experiment
+        SceneManager.LoadScene(nextSceneName);
+    }
+
+    private void CalculateAndSetPressesPerEffortLevel(int averageKeyPresses)
+    {
+        float pressRate = (float)averageKeyPresses / calibrationTime;
         int[] pressesPerEffortLevel = new int[3];
 
         pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressRate * 0.5f));  // Easy
-        pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressRate));         // Medium
-        pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressRate * 1.5f));  // Hard
+        pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressRate * 0.7f));  // Medium
+        pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressRate * 0.9f));  // Hard
 
-        // Ensure minimum difference between levels
         for (int i = 1; i < pressesPerEffortLevel.Length; i++)
         {
             if (pressesPerEffortLevel[i] - pressesPerEffortLevel[i - 1] < 2)
@@ -103,19 +183,17 @@ public class ArrowKeyCounter : MonoBehaviour
             }
         }
 
-        // Save the calculated values
         for (int i = 0; i < pressesPerEffortLevel.Length; i++)
         {
             PlayerPrefs.SetInt($"PressesPerEffortLevel_{i}", pressesPerEffortLevel[i]);
             Debug.Log($"Saved PressesPerEffortLevel_{i}: {pressesPerEffortLevel[i]}");
         }
-        PlayerPrefs.Save(); // Ensure the values are immediately saved to disk
+        PlayerPrefs.Save();
 
         string effortLevelsString = string.Join(", ", pressesPerEffortLevel);
-        Debug.Log($"Calibration completed. Press rate: {pressRate}, Final presses per effort level: {effortLevelsString}");
+        Debug.Log($"Calibration completed. Average press rate: {pressRate}, Final presses per effort level: {effortLevelsString}");
 
-        // Log to a file for persistent record
-        string logEntry = $"{System.DateTime.Now}: Calibration - Press rate: {pressRate}, Effort levels: {effortLevelsString}";
+        string logEntry = $"{System.DateTime.Now}: Calibration - Average press rate: {pressRate}, Effort levels: {effortLevelsString}";
         System.IO.File.AppendAllText("calibration_log.txt", logEntry + System.Environment.NewLine);
     }
 }
