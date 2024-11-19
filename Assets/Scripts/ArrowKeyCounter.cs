@@ -23,12 +23,19 @@ public class ArrowKeyCounter : MonoBehaviour
     private string nextSceneName = "TourGame";
 
 
+    // private string[] instructions = new string[]
+    // {
+    //     "Before you embark on your adventure, we need to calibrate your explorer's energy levels. Press the direction buttons (↑ or ↓ or ← or →) as quickly as you can within 5 seconds. Keep this up - think of it as a warm-up exercise! This calibration ensures the game is perfectly tuned to your personal button-pressing speed and stamina.",
+    //     "Great! Now TRY AND BEAT YOUR SCORE! Start pressing when you are ready.",
+    //     "LAST CHANCE to beat your score!"
+    // };
     private string[] instructions = new string[]
     {
-        "Press the direction buttons (↑ or ↓ or ← or →) as quickly as you can within 5 seconds.   Keep this up - think of it as a warm-up exercise!",
-        "Great! Now TRY AND BEAT YOUR SCORE! Start pressing when you are ready.",
-        "LAST CHANCE to beat your score!"
+        "Before you embark on your adventure, let's calibrate your explorer's energy levels! For the next 5 seconds, press the direction buttons (↑, ↓, ←, or →) as quickly as you can. Think of it as your warm-up exercise! This calibration helps us fine-tune the game to match your personal speed and stamina.",
+        "Great job! Now, TRY TO BEAT YOUR SCORE! Get ready and start pressing when you’re prepared.",
+        "This is your LAST CHANCE to beat your score! Give it your all, explorer!"
     };
+
 
     private void Start()
     {
@@ -143,7 +150,7 @@ public class ArrowKeyCounter : MonoBehaviour
 
         while (breakTimeLeft > 0)
         {
-            instructionText.text = $"Great job! Next phase starts in {breakTimeLeft:F0} seconds...";
+            instructionText.text = $"Great job! Next opportunity to beat your score starts in {breakTimeLeft:F0} seconds...";
             yield return new WaitForSeconds(0.1f);
             breakTimeLeft -= 0.1f;
         }

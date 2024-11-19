@@ -32,7 +32,7 @@ public class LightingManager : MonoBehaviour
         }
     }
 
-        private void OnEnable()
+    private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
@@ -95,5 +95,26 @@ public class LightingManager : MonoBehaviour
     {
         color = newColor;
         UpdateLightSettings();
+    }
+
+    public void SetupSceneSpecificLighting(string sceneName)
+    {
+        // Adjust lighting settings based on the current scene
+        if (sceneName == "TourGridWorld")
+        {
+            SetIntensity(1.2f);
+            SetColor(new Color(0.8f, 0.8f, 0.8f));
+        }
+        else if (sceneName == "TourDecisionPhase")
+        {
+            SetIntensity(0.5f);
+            SetColor(new Color(0.6f, 0.6f, 0.6f));
+        }
+        else
+        {
+            // Reset to default settings
+            SetIntensity(0.7f);
+            SetColor(Color.white);
+        }
     }
 }

@@ -1,10 +1,13 @@
+using System.Diagnostics;
 using UnityEngine;
 using TMPro;
-using System.Diagnostics;
+using Debug = UnityEngine.Debug;
 
 
 public class CountdownTimer : MonoBehaviour
 {
+    public bool IsInitialized { get; private set; }
+
     [SerializeField] private TextMeshProUGUI timerText; // Reference to the UI text component
     [SerializeField] private float totalTime = 10.0f; // Default time set to 10 seconds
     private float timeLeft;
@@ -21,6 +24,34 @@ public class CountdownTimer : MonoBehaviour
     {
         // ResetTimer();
         stopwatch = new Stopwatch();
+    }
+
+    public void Initialize()
+    {
+
+        // Initialize any necessary timer components here
+        IsInitialized = true;
+
+        // Ensure all necessary components are set up
+        if (timerText == null)
+        {
+            timerText = GetComponentInChildren<TMPro.TextMeshProUGUI>();
+            if (timerText == null)
+            {
+                Debug.LogWarning("Timer text component not found. Creating new one...");
+                GameObject textObj = new GameObject("TimerText");
+                textObj.transform.SetParent(transform);
+                timerText = textObj.AddComponent<TMPro.TextMeshProUGUI>();
+            }
+        }
+
+        // Reset timer state
+        isRunning = false;
+        timeLeft = 0f;
+        // startTime = 0f;
+
+        // Update display
+        UpdateTimerUI();
     }
 
     private void Update()
@@ -96,7 +127,7 @@ public class CountdownTimer : MonoBehaviour
     {
         UnityEngine.Debug.Log($"SetDuration called with duration: {duration}");
         totalTime = Mathf.Max(0, duration); // Ensure duration is not negative
-        
+
         // If timer is running, restart it with new duration
         if (isRunning)
         {
@@ -109,16 +140,16 @@ public class CountdownTimer : MonoBehaviour
             timeLeft = totalTime;
             UpdateTimerUI();
         }
-        
+
         UnityEngine.Debug.Log($"Timer duration set to {totalTime}s. Current state - timeLeft: {timeLeft}, isRunning: {isRunning}");
     }
-    
+
     // Updates the UI text with the current time left
     private void UpdateTimerUI()
     {
         if (timerText != null)
         {
-            timerText.text = $"Time: {timeLeft:F1}s";
+            timerText.text = $"Time: {timeLeft:F1}";
         }
     }
 

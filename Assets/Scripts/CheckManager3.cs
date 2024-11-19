@@ -77,6 +77,12 @@ public class CheckManager3 : MonoBehaviour
         // Display first question and attempt count
         DisplayCurrentQuestion();
         UpdateAttemptText();
+
+        // Add in SetupButtons() method
+ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+navigationController.AddButton(buttonA);
+navigationController.AddButton(buttonB);
+navigationController.AddButton(buttonC);
     }
 
     void UpdateAttemptText()

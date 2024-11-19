@@ -91,5 +91,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 303e41e36e9b444db9b574fb1590711a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameController: {fileID: 0}
-  gridWorldManager: {fileID: 0}
+  gameController: {fileID: 4376569847124673037, guid: 70904f10d211b473590c2ecdbfba4c18,
+    type: 3}
+  gridWorldManager: {fileID: -8690266444773239620, guid: 96d776e8ee130440d8b6e04107cc91e0,
+    type: 3}

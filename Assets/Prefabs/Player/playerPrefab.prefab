@@ -53,6 +53,9 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -150,7 +153,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gameController: {fileID: 4376569847124673037, guid: 70904f10d211b473590c2ecdbfba4c18,
     type: 3}
-  gridWorldManager: {fileID: 0}
+  gridWorldManager: {fileID: -8690266444773239620, guid: 96d776e8ee130440d8b6e04107cc91e0,
+    type: 3}
 --- !u!114 &-6209513476219688336
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -168,4 +172,5 @@ MonoBehaviour:
   errorSound: {fileID: 8300000, guid: 1617e0d71b004419da18e026c82adefe, type: 3}
   rewardSound: {fileID: 8300000, guid: 5151f6de3fc24bc43a3c6daf0eb5ae1a, type: 3}
   stepSound: {fileID: 8300000, guid: 701f4fd2ed05a6e47a664dbe700d74b8, type: 3}
-  gridManager: {fileID: 0}
+  gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
+    type: 3}

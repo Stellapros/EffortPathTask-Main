@@ -47,7 +47,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerPrefab: {fileID: 197052547065130213, guid: ab9f9bb94afc64c7e89ec2641835a2f1,
     type: 3}
-  gridManager: {fileID: 284088274852642234, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
+  gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
     type: 3}
 --- !u!1001 &5763526467369232538
 PrefabInstance:

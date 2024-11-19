@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 1521438220794613237}
   m_Layer: 0
   m_Name: playerPrefab2
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -53,6 +53,9 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -168,5 +171,6 @@ MonoBehaviour:
   pressesPerStep: 1
   errorSound: {fileID: 8300000, guid: 1617e0d71b004419da18e026c82adefe, type: 3}
   rewardSound: {fileID: 8300000, guid: 5151f6de3fc24bc43a3c6daf0eb5ae1a, type: 3}
+  stepSound: {fileID: 0}
   gridManager: {fileID: 284088274852642234, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
     type: 3}

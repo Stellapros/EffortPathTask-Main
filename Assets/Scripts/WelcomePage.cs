@@ -18,6 +18,9 @@ public class ContinueScreen : MonoBehaviour
         {
             Debug.LogError("Continue button not assigned in WelcomePage!");
         }
+
+        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+navigationController.AddButton(continueButton);
     }
 
     private void ContinueToNextScreen()

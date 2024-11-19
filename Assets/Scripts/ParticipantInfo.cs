@@ -17,12 +17,16 @@ public class ParticipantInfo : MonoBehaviour
     {
         SetupGenderDropdown();
         submitButton.onClick.AddListener(SaveParticipantInfo);
+
+        // Add in Start() method
+ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+navigationController.AddButton(submitButton);
     }
 
     private void SetupGenderDropdown()
     {
         genderDropdown.ClearOptions();
-        List<string> options = new List<string> { "Male", "Female", "Other", "Prefer not to say" };
+        List<string> options = new List<string> { "Prefer not to say", "Male", "Female", "Other"};
         genderDropdown.AddOptions(options);
     }
 

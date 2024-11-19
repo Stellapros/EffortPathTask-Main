@@ -16,30 +16,33 @@ EditorBuildSettings:
     guid: c79d4701e0cb64aa18d235a2dc160cd5
   - enabled: 1
     path: Assets/Scenes/StartScreen.unity
-    guid: cf04f9ca06f654f24bbc0a19c2bf38f2
+    guid: 087f2955275b9420ea699e0c2bf7cd11
   - enabled: 1
     path: Assets/Scenes/CalibrationCounter.unity
     guid: 9304e3675861c4ad5adce6ae4747f5a9
   - enabled: 1
     path: Assets/Scenes/TourGame.unity
-    guid: fb5f7a014442649f0a175ae4eea3763f
+    guid: 180aa9ebc8f4442dfa0871b28a25d6ad
+  - enabled: 1
+    path: Assets/Scenes/TourGridWorld.unity
+    guid: a1865d5da89ff46eb8f58695d3981be6
   - enabled: 1
     path: Assets/Scenes/TourDecisionPhase.unity
     guid: 4f630ad7669b649c2aabbed2ccbba969
   - enabled: 1
-    path: Assets/Scenes/TourGridWorld.unity
-    guid: e02c965b31f18423c9c9279b7b1ff3d1
-  - enabled: 1
     path: Assets/Scenes/InstructionsScreen.unity
     guid: a16e6968b753c402db62d92eeeb6d91d
-  - enabled: 0
+  - enabled: 1
     path: Assets/Scenes/Check1_Preference.unity
     guid: 423d28289887e44659c67efe3037ac33
-  - enabled: 0
+  - enabled: 1
     path: Assets/Scenes/Check2_Recognition.unity
     guid: ebaf3849afee44cec8d694c98d3414ee
   - enabled: 1
-    path: Assets/Scenes/GetReadyPractise.unity
+    path: Assets/Scenes/Check3_ComprehensionQuiz.unity
+    guid: e2c8b06cc870b4799b1dacb00d1cc850
+  - enabled: 1
+    path: Assets/Scenes/GetReadyPractice.unity
     guid: 3b21cad07faf74dec88c66a631234e24
   - enabled: 1
     path: Assets/Scenes/GetReadyFormal.unity
@@ -47,6 +50,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/DecisionPhase.unity
     guid: 273b0feac00794dadbb805eaa16a639c
+  - enabled: 1
+    path: Assets/Scenes/GetReadyEveryTrial.unity
+    guid: 186eba7f196af43d4b41d7056a37f512
+  - enabled: 1
+    path: Assets/Scenes/TimePenalty.unity
+    guid: c8fad51bfeec64d5689c52bccc7239d2
   - enabled: 1
     path: Assets/Scenes/GridWorld.unity
     guid: e0d495b684b404cdabe7ad0008a36b0a

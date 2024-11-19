@@ -29,6 +29,7 @@ public class BackgroundMusicManager : MonoBehaviour
         audioSource.loop = true;
         audioSource.playOnAwake = false;
         audioSource.volume = 0.3f; // Adjust as needed
+        audioSource.pitch = 1.0f; // Reset the pitch to the original tempo
     }
 
     public void PlayMusic()

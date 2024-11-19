@@ -78,9 +78,6 @@ public class PracticeManager : MonoBehaviour
 
     private void SetupEventListeners()
     {
-        if (TourManager.Instance != null)
-            TourManager.Instance.OnTourCompleted += OnTourCompleted;
-        
         if (gridWorldManager != null)
             gridWorldManager.OnTrialEnded += HandlePracticeTrialCompletion;
 
@@ -94,12 +91,6 @@ public class PracticeManager : MonoBehaviour
             ShowPracticeUI();
             UpdateUIElements();
         }
-    }
-
-    private void OnTourCompleted()
-    {
-        PlayButtonSound();
-        SceneManager.LoadScene(practiceSceneName);
     }
 
     public void StartPracticeMode()
@@ -232,9 +223,6 @@ public class PracticeManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (TourManager.Instance != null)
-            TourManager.Instance.OnTourCompleted -= OnTourCompleted;
-        
         if (gridWorldManager != null)
             gridWorldManager.OnTrialEnded -= HandlePracticeTrialCompletion;
         

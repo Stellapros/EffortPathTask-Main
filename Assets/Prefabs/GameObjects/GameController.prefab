@@ -45,15 +45,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c2a55679c876416cb60c5851778b8b6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerController: {fileID: 0}
-  playerSpawner: {fileID: 0}
-  rewardSpawner: {fileID: 0}
-  gridManager: {fileID: 0}
   maxTrialDuration: 10
-  restDuration: 3
-  pressesPerStep: 030000000200000001000000
-  totalTrials: 90
-  effortSpriteUI: {fileID: 0}
+  startTrialDelay: 0.5
+  endTrialDelay: 0.5
+  pressesPerEffortLevel: 010000000200000003000000
+  sceneTransitionTimeout: 5
+  experimentManager: {fileID: 3507179296321619295, guid: 082b8600c17df4d43939728b5144dd10,
+    type: 3}
+  gridWorldManager: {fileID: -8690266444773239620, guid: 96d776e8ee130440d8b6e04107cc91e0,
+    type: 3}
 --- !u!82 &1861192676613669968
 AudioSource:
   m_ObjectHideFlags: 0
@@ -65,6 +65,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: fdc942ce57590486b88be551882df8e1, type: 3}
+  m_Resource: {fileID: 8300000, guid: fdc942ce57590486b88be551882df8e1, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1

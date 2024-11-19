@@ -51,6 +51,10 @@ public class EndExperiment : MonoBehaviour
         {
             submitButton.onClick.AddListener(SubmitFeedbackAndData);
         }
+
+        // Add in Start() method
+ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+navigationController.AddButton(submitButton);
     }
 
     private void DisplayTotalTime()

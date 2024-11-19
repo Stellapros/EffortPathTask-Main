@@ -76,7 +76,6 @@ public class ExperimentManager : MonoBehaviour
     private List<(float collisionTime, float movementDuration)> rewardCollectionTimings = new List<(float, float)>();
     public ScoreManager scoreManager;
     public LogManager logManager;
-    public TourManager tourManager;
     #endregion
 
     #region Events
@@ -220,22 +219,38 @@ public class ExperimentManager : MonoBehaviour
         Debug.Log($"Initialized scene queue with {sceneQueue.Count} scenes");
     }
 
-    private void InitializeBackgroundMusic()
-    {
-        if (!playBackgroundMusic) return;
+    // private void InitializeBackgroundMusic()
+    // {
+    //     if (!playBackgroundMusic) return;
 
-        var musicManager = BackgroundMusicManager.Instance;
-        if (musicManager != null)
-        {
-            DontDestroyOnLoad(musicManager.gameObject);
-            musicManager.SetVolume(musicVolume);
-            musicManager.PlayMusic();
-        }
-        else
-        {
-            Debug.LogWarning("BackgroundMusicManager instance not found! Please ensure it exists in the scene.");
-        }
+    //     var musicManager = BackgroundMusicManager.Instance;
+    //     if (musicManager != null)
+    //     {
+    //         DontDestroyOnLoad(musicManager.gameObject);
+    //         musicManager.SetVolume(musicVolume);
+    //         musicManager.PlayMusic();
+    //     }
+    //     else
+    //     {
+    //         Debug.LogWarning("BackgroundMusicManager instance not found! Please ensure it exists in the scene.");
+    //     }
+    // }
+
+    private void InitializeBackgroundMusic()
+{
+    if (!playBackgroundMusic) return;
+
+    if (BackgroundMusicManager.Instance != null)
+    {
+        BackgroundMusicManager.Instance.SetVolume(musicVolume);
+        BackgroundMusicManager.Instance.PlayMusic();
     }
+    else
+    {
+        Debug.LogWarning("BackgroundMusicManager instance not found! Please ensure it exists in the scene.");
+    }
+}
+
 
     /// <summary>
     /// Initializes all trials for the experiment & Block Randomization
@@ -276,45 +291,6 @@ public class ExperimentManager : MonoBehaviour
     //     TourManager.Instance.StartTour();
     // }
 
-private void StartTour()
-{
-      
-    // Ensure TourManager exists
-    if (TourManager.Instance == null)
-    {
-               return;
-    }
-    
-    // Clear any existing handlers
-    TourManager.Instance.OnTourCompleted -= HandleTourCompleted;
-    TourManager.Instance.OnTourCompleted += HandleTourCompleted;
-    TourManager.Instance.StartTour();
-    
-    // Verify tour started
-    StartCoroutine(VerifyTourStarted());
-}
-
-private IEnumerator VerifyTourStarted()
-{
-    yield return new WaitForSeconds(0.1f);
-    if (!TourManager.Instance.IsTourActive())
-    {
-               TourManager.Instance.StartTour();
-    }
-}
-
-    private void HandleTourCompleted()
-    {
-        Debug.Log("Tour completed, moving to practice sequence");
-        isTourCompleted = true;
-        PlayerPrefs.SetInt("TourCompleted", 1);
-        PlayerPrefs.Save();
-
-        tourManager.OnTourCompleted -= HandleTourCompleted;
-
-        // Move to practice sequence
-        StartPracticeSequence();
-    }
 
     #region Scene Management Methods
     private void StartSceneFlow()
@@ -329,10 +305,6 @@ private IEnumerator VerifyTourStarted()
             if (isTourCompleted)
             {
                 StartPracticeSequence();
-            }
-            else
-            {
-                StartTour();
             }
         }
     }
@@ -802,6 +774,7 @@ private IEnumerator VerifyTourStarted()
         Debug.Log($"Decision phase started for trial {currentTrialIndex + 1}");
         logManager.LogDecisionPhaseStart(currentTrialIndex);
     }
+    
     private void SetupNewTrial()
     {
         if (currentTrialIndex < TOTAL_TRIALS)
@@ -1091,7 +1064,19 @@ private IEnumerator VerifyTourStarted()
     public Vector2 GetCurrentTrialPlayerPosition() => trials[currentTrialIndex].PlayerPosition;
     public Vector2 GetCurrentTrialRewardPosition() => trials[currentTrialIndex].RewardPosition;
     public int GetCurrentTrialRewardValue() => REWARD_VALUE;
-    public Sprite GetCurrentTrialSprite() => trials[currentTrialIndex].EffortSprite;
+    // public Sprite GetCurrentTrialSprite() => trials[currentTrialIndex].EffortSprite;
+        public Sprite GetCurrentTrialSprite()
+    {
+        if (currentTrialIndex >= 0 && currentTrialIndex < TOTAL_TRIALS)
+        {
+            return trials[currentTrialIndex].EffortSprite;
+        }
+        else
+        {
+            Debug.LogError($"Invalid currentTrialIndex: {currentTrialIndex}");
+            return null;
+        }
+    }
     public float GetTrialDuration() => TRIAL_DURATION;
     public List<Vector2> GetRewardPositions() => rewardPositions;
     public List<(float collisionTime, float movementDuration)> GetRewardCollectionTimings() => rewardCollectionTimings;
@@ -1143,6 +1128,5 @@ private IEnumerator VerifyTourStarted()
         return introductorySceneFlow.Any(config => config.sceneName == sceneName);
     }
     #endregion
+
 }
-
-

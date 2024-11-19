@@ -27,7 +27,7 @@ public class Reward : MonoBehaviour
     }
 
     // Getter methods
-    // public int GetScoreValue() => scoreValue;
+    public int GetScoreValue() => scoreValue;
     // public int GetPressesRequired() => pressesRequired;
-    // public (int, int) GetBlockAndTrialIndex() => (blockIndex, trialIndex);
+    public (int, int) GetBlockAndTrialIndex() => (blockIndex, trialIndex);
 }

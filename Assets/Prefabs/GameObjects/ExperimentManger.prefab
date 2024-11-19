@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &6026948105672770342
+--- !u!1 &5380569643357316555
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,22 +8,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1524598909980724063}
-  - component: {fileID: -9017574497650612139}
+  - component: {fileID: 9101176704653419651}
+  - component: {fileID: 3507179296321619295}
   m_Layer: 0
-  m_Name: ExperimentManagerPrefab
+  m_Name: ExperimentManger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1524598909980724063
+--- !u!4 &9101176704653419651
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6026948105672770342}
+  m_GameObject: {fileID: 5380569643357316555}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -32,23 +32,33 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &-9017574497650612139
+--- !u!114 &3507179296321619295
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6026948105672770342}
+  m_GameObject: {fileID: 5380569643357316555}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c50b06d2d146945deaaedd43f152efe0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  squareSprite: {fileID: 21300000, guid: 384daf03cbc23432199d6270d7a42420, type: 3}
-  circleSprite: {fileID: 21300000, guid: 72d21cfaf1e6e4442904d8f00ae6097a, type: 3}
-  triangleSprite: {fileID: 21300000, guid: ab78d5ee03e624226af5a3c191588251, type: 3}
-  welcomePageScene: TitlePage
+  level1Sprite: {fileID: 21300016, guid: c2ce07b4cfe39e340b8238f75e7a21d2, type: 3}
+  level2Sprite: {fileID: 21300008, guid: c2ce07b4cfe39e340b8238f75e7a21d2, type: 3}
+  level3Sprite: {fileID: 21300020, guid: c2ce07b4cfe39e340b8238f75e7a21d2, type: 3}
+  blockDistances:
+  - 3
+  - 5
+  - 7
   decisionPhaseScene: DecisionPhase
   gridWorldScene: GridWorld
+  restBreakScene: RestBreak
   endExperimentScene: EndExperiment
-  sceneTransitions: []
+  introductorySceneFlow: []
+  playBackgroundMusic: 1
+  musicVolume: 1
+  scoreManager: {fileID: 3873532563441086277, guid: 1b0d0181d4b3545ab8d481ffd920c346,
+    type: 3}
+  logManager: {fileID: 3404956456498695464, guid: 54dd36bf67cfa4080a440bbc6615ec0a,
+    type: 3}

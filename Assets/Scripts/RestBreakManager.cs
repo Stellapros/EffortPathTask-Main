@@ -28,6 +28,10 @@ public class RestBreakManager : MonoBehaviour
 
         UpdateBlockInfo();
         UpdateScoreDisplay();
+
+        // Add in Start() method
+ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+navigationController.AddButton(continueButton);
     }
 
     private void UpdateBlockInfo()

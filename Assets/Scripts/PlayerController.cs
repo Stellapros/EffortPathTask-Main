@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Collections;
 
 /// <summary>
 /// Controls the player's movement and interactions in the GridWorld game.
@@ -338,13 +337,5 @@ public class PlayerController : MonoBehaviour
 
             Debug.Log("Reward collected!");
         }
-    }
-
-    private IEnumerator SimulateFruitCollection()
-    {
-        yield return new WaitForSeconds(3f);
-        // Simulate fruit collection
-        ScoreManager.Instance.AddScore(10, false);
-        TourManager.Instance.ProcessNextStep();
     }
 }

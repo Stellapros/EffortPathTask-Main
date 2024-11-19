@@ -11,9 +11,11 @@ public class LogManager : MonoBehaviour
 {
     public static LogManager Instance { get; private set; }
 
-    private string filePath;
+     public static LogManager instance = null; //Static instance of LogManager which allows it to be accessed by any other script.
+
+private string filePath;
     private List<string> dataColumns;
-   private Dictionary<int, TrialData> trialDataDict = new Dictionary<int, TrialData>();
+    private Dictionary<int, TrialData> trialDataDict = new Dictionary<int, TrialData>();
     [SerializeField] private bool m_ShowDebugLogManager;
 
     // Participant info
@@ -23,8 +25,8 @@ public class LogManager : MonoBehaviour
 
     private class TrialData
     {
-        public int TrialNumber;
         public int BlockNumber;
+        public int TrialNumber;
         public float BlockDistance;
         public DateTime TrialStart;
         public DateTime DecisionPhaseStart;
@@ -84,6 +86,7 @@ public class LogManager : MonoBehaviour
         WriteCSVLine(dataColumns);
         if (m_ShowDebugLogManager) Debug.Log($"CSV file initialized at: {filePath}");
     }
+
     public void LogTrialStart(int trialNumber, int blockNumber, float blockDistance, int effortLevel, int pressesRequired, bool isPractice)
     {
         var trialData = new TrialData
@@ -148,6 +151,35 @@ public class LogManager : MonoBehaviour
         WriteCSVLine(rowData);
     }
 
+    public void LogScoreUpdate(int trialNumber, bool isPractice, int points, string outcome)
+    {
+        if (isPractice)
+        {
+            LogDecisionMade(trialNumber, $"Practice Score +{points}");
+            LogTrialEnd(trialNumber, outcome);
+        }
+        else
+        {
+            LogDecisionMade(trialNumber, $"Score +{points}");
+            LogTrialEnd(trialNumber, outcome);
+        }
+    }
+
+    public void LogScoreReset(int trialNumber, bool isPractice, int oldScore, int newScore, string decision)
+    {
+        if (isPractice)
+        {
+            LogDecisionMade(trialNumber, decision);
+            LogTrialEnd(trialNumber, $"Practice Score Reset from {oldScore} to {newScore}");
+        }
+        else
+        {
+            LogDecisionMade(trialNumber, decision);
+            LogTrialEnd(trialNumber, $"Total Score Reset from {oldScore} to {newScore}");
+        }
+    }
+
+
     public void LogDecisionPhaseStart(int trialNumber)
     {
         if (trialDataDict.TryGetValue(trialNumber, out var trial))
@@ -195,6 +227,23 @@ public class LogManager : MonoBehaviour
     //         Debug.LogWarning($"Trial {trialNumber} data is incomplete and will not be logged.");
     //     }
     // }
+
+    public void LogInfoMessage(string title, string message)
+    {
+        LogManager.Instance.LogScoreUpdate(0, false, 0, $"{title}: {message}");
+    }
+
+    public void LogMessage(string title, string message)
+    {
+        // Implement the logic to log the message, e.g., write to a file or the console
+        Debug.Log($"{title}: {message}");
+    }
+
+    public void LogWarning(string title, string message)
+    {
+        // Implement the logic to log the warning, e.g., write to the console or a log file
+        Debug.LogWarning($"{title}: {message}");
+    }
 
     public void LogTrialEnd(int trialNumber, string outcome)
     {
@@ -297,7 +346,6 @@ public class LogManager : MonoBehaviour
     {
         Debug.Log($"Block {blockNumber} ended at {DateTime.Now}");
     }
-
 
     public void LogExperimentStart(bool isPractice)
     {

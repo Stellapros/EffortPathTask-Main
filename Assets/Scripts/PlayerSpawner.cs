@@ -38,45 +38,77 @@ public class PlayerSpawner : MonoBehaviour
     /// </summary>
     /// <param name="playerPosition">The position to spawn the player.</param>
     /// <returns>The spawned player GameObject, or null if spawning failed.</returns>
-    public GameObject SpawnPlayer(Vector2 playerPosition)
-    {
-        if (PlayerController.Instance != null)
-        {
-            // If the player instance already exists, just move it to the new position
-            PlayerController.Instance.transform.position = new Vector3(playerPosition.x, playerPosition.y, 0f);
-            PlayerController.Instance.ResetPosition(playerPosition);
-            PlayerController.Instance.EnableMovement();
-            Debug.Log($"Existing player moved to position: {playerPosition}");
-            return PlayerController.Instance.gameObject;
-        }
+    // public GameObject SpawnPlayer(Vector2 playerPosition)
+    // {
+    //     if (PlayerController.Instance != null)
+    //     {
+    //         // If the player instance already exists, just move it to the new position
+    //         PlayerController.Instance.transform.position = new Vector3(playerPosition.x, playerPosition.y, 0f);
+    //         PlayerController.Instance.ResetPosition(playerPosition);
+    //         PlayerController.Instance.EnableMovement();
+    //         Debug.Log($"Existing player moved to position: {playerPosition}");
+    //         return PlayerController.Instance.gameObject;
+    //     }
 
+    //     if (playerPrefab == null)
+    //     {
+    //         Debug.LogError("Cannot spawn player: Player prefab is not assigned.");
+    //         return null;
+    //     }
+
+    //     // Convert Vector2 to Vector3 for instantiation
+    //     Vector3 spawnPosition = new Vector3(playerPosition.x, playerPosition.y, 0f);
+    //     GameObject spawnedPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+
+    //     if (spawnedPlayer != null && gridManager != null)
+    //     {
+    //         gridManager.OccupyPosition(playerPosition);
+    //     }
+    //     // if (spawnedPlayer == null)
+    //     // {
+    //     //     Debug.LogError("Failed to instantiate player prefab.");
+    //     //     return null;
+    //     // }
+
+    //     Debug.Log($"New player spawned at position: {spawnPosition}");
+
+    //     PlayerController controller = spawnedPlayer.GetComponent<PlayerController>();
+    //     if (controller != null)
+    //     {
+    //         controller.EnableMovement();
+    //         Debug.Log("PlayerController found and movement enabled.");
+    //     }
+    //     else
+    //     {
+    //         Debug.LogError("PlayerController component not found on spawned player!");
+    //     }
+
+    //     return spawnedPlayer;
+    // }
+
+    public GameObject SpawnPlayer()
+    {
         if (playerPrefab == null)
         {
             Debug.LogError("Cannot spawn player: Player prefab is not assigned.");
             return null;
         }
 
-        // Convert Vector2 to Vector3 for instantiation
-        Vector3 spawnPosition = new Vector3(playerPosition.x, playerPosition.y, 0f);
-        GameObject spawnedPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+        Vector2 spawnPosition = GetRandomSpawnPosition();
+        Vector3 spawnPosition3D = new Vector3(spawnPosition.x, spawnPosition.y, 0f);
+        GameObject spawnedPlayer = Instantiate(playerPrefab, spawnPosition3D, Quaternion.identity);
 
-        if (spawnedPlayer == null)
+        if (spawnedPlayer != null)
         {
-            Debug.LogError("Failed to instantiate player prefab.");
-            return null;
-        }
-
-        Debug.Log($"New player spawned at position: {spawnPosition}");
-
-        PlayerController controller = spawnedPlayer.GetComponent<PlayerController>();
-        if (controller != null)
-        {
-            controller.EnableMovement();
-            Debug.Log("PlayerController found and movement enabled.");
-        }
-        else
-        {
-            Debug.LogError("PlayerController component not found on spawned player!");
+            PlayerController controller = spawnedPlayer.GetComponent<PlayerController>();
+            if (controller != null)
+            {
+                controller.EnableMovement();
+            }
+            else
+            {
+                Debug.LogError("PlayerController component not found on spawned player!");
+            }
         }
 
         return spawnedPlayer;
@@ -117,7 +149,6 @@ public class PlayerSpawner : MonoBehaviour
             Debug.LogWarning("GridManager is null. Unable to release grid position.");
         }
 
-        // Instead of destroying, we'll disable the player
         player.SetActive(false);
         Debug.Log("Player despawned and disabled.");
     }

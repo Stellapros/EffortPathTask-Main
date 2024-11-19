@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f2789b80781e443e9eb684a4fe424fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridManager: {fileID: 284088274852642234, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
+  gameController: {fileID: 4376569847124673037, guid: 70904f10d211b473590c2ecdbfba4c18,
     type: 3}
   playerSpawner: {fileID: 9081304544560268536, guid: d85bd69af54564d66b9c7eca3ac10784,
     type: 3}
@@ -52,12 +52,22 @@ MonoBehaviour:
     type: 3}
   rewardSpawner: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
     type: 3}
-  playerPrefab: {fileID: 197052547065130213, guid: ab9f9bb94afc64c7e89ec2641835a2f1,
+  gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
     type: 3}
-  rewardPrefab: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
-    type: 3}
-  defaultTrialDuration: 10
   scoreManager: {fileID: 3873532563441086277, guid: 1b0d0181d4b3545ab8d481ffd920c346,
     type: 3}
   countdownTimer: {fileID: 2022789192128805892, guid: 9f4b9aa786842499cb36a077ac3dcc47,
     type: 3}
+  logManager: {fileID: 3404956456498695464, guid: 54dd36bf67cfa4080a440bbc6615ec0a,
+    type: 3}
+  experimentManager: {fileID: 3507179296321619295, guid: 082b8600c17df4d43939728b5144dd10,
+    type: 3}
+  playerPrefab: {fileID: 197052547065130213, guid: ab9f9bb94afc64c7e89ec2641835a2f1,
+    type: 3}
+  rewardPrefab: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
+    type: 3}
+  practiceTrialDuration: 15
+  practiceGridSize: 7
+  practiceDurationMultiplier: 1.5
+  defaultTrialDuration: 10
+  defaultGridSize: 7

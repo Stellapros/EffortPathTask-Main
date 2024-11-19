@@ -6,6 +6,8 @@ using UnityEngine.SceneManagement;
 /// Manages the overall state and flow of the GridWorld game.
 /// This script should be attached to a persistent GameObject that exists across all scenes.
 /// </summary>
+
+
 public class GridWorldManager : MonoBehaviour
 {
     // Singleton instance
@@ -16,27 +18,23 @@ public class GridWorldManager : MonoBehaviour
     public event System.Action<int> OnRewardCollected;
 
     [Header("Core Components")]
-    [SerializeField] private GridManager gridManager;
+    [SerializeField] private GameController gameController;
     [SerializeField] private PlayerSpawner playerSpawner;
     [SerializeField] private PlayerController playerController;
     [SerializeField] private RewardSpawner rewardSpawner;
+    [SerializeField] private GridManager gridManager;
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private CountdownTimer countdownTimer;
+    [SerializeField] private LogManager logManager;
+    [SerializeField] private ExperimentManager experimentManager;
 
     [Header("Prefabs")]
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject rewardPrefab;
 
-    [Header("Tour Settings")]
-    [SerializeField] private float tourTrialDuration = 30f;
-    [SerializeField] private Vector2Int tourPlayerStartPos = new Vector2Int(1, 1);
-    [SerializeField] private Vector2Int tourRewardPos = new Vector2Int(3, 3);
-    [SerializeField] private int tourGridSize = 5;
-    [SerializeField] private int tourRewardPoints = 10;
-
     [Header("Practice Settings")]
     [SerializeField] private float practiceTrialDuration = 15f;
-    [SerializeField] private int practiceGridSize = 6;
+    [SerializeField] private int practiceGridSize = 7;
     [SerializeField] private float practiceDurationMultiplier = 1.5f;
 
     [Header("Experiment Settings")]
@@ -44,21 +42,21 @@ public class GridWorldManager : MonoBehaviour
     [SerializeField] private int defaultGridSize = 7;
 
     private bool isTrialActive = false;
-    private GameController gameController;
-    private TourManager tourManager;
-    private PracticeManager practiceManager;
+    private bool componentsInitialized = false;
 
     private void Awake()
     {
         SetupSingleton();
-        FindAndValidateComponents();
+        InitializeComponents();
     }
 
     private void Start()
     {
-        tourManager = TourManager.Instance;
-        practiceManager = PracticeManager.Instance;
-        SetupBasedOnGameMode();
+        // Double-check components on Start in case they weren't available in Awake
+        if (!componentsInitialized)
+        {
+            InitializeComponents();
+        }
     }
 
     private void SetupSingleton()
@@ -74,173 +72,98 @@ public class GridWorldManager : MonoBehaviour
         }
     }
 
-    private void FindAndValidateComponents()
+    private void InitializeComponents()
     {
-        // Find components if not assigned
-        gridManager = gridManager ?? FindAnyObjectByType<GridManager>();
-        playerSpawner = playerSpawner ?? FindAnyObjectByType<PlayerSpawner>();
-        playerController = playerController ?? FindAnyObjectByType<PlayerController>();
-        rewardSpawner = rewardSpawner ?? FindAnyObjectByType<RewardSpawner>();
-        scoreManager = scoreManager ?? FindAnyObjectByType<ScoreManager>();
-        countdownTimer = countdownTimer ?? FindAnyObjectByType<CountdownTimer>();
-        gameController = GameController.Instance;
-
-        // Validate critical components
-        ValidateComponent(gridManager, "GridManager");
-        ValidateComponent(playerSpawner, "PlayerSpawner");
-        ValidateComponent(playerController, "PlayerController");
-        ValidateComponent(rewardSpawner, "RewardSpawner");
-        ValidateComponent(scoreManager, "ScoreManager");
-    }
-
-    private void ValidateComponent<T>(T component, string componentName) where T : UnityEngine.Object
-    {
-        if (component == null)
+        // Try to find components in the scene first
+        if (gameController == null)
         {
-            Debug.LogError($"{componentName} is missing! Please assign it in the inspector or ensure it exists in the scene.");
+            gameController = GameController.Instance;
+            if (gameController == null)
+            {
+                Debug.LogError("Could not find GameController instance!");
+                enabled = false;
+                return;
+            }
         }
+        // Try to find components in the scene first
+        if (gridManager == null) gridManager = FindAnyObjectByType<GridManager>();
+        if (playerSpawner == null) playerSpawner = FindAnyObjectByType<PlayerSpawner>();
+        if (rewardSpawner == null) rewardSpawner = FindAnyObjectByType<RewardSpawner>();
+        if (gameController == null) gameController = FindAnyObjectByType<GameController>();
+
+        // Try to find other optional components
+        if (playerController == null) playerController = FindAnyObjectByType<PlayerController>();
+        if (scoreManager == null) scoreManager = FindAnyObjectByType<ScoreManager>();
+        if (countdownTimer == null) countdownTimer = FindAnyObjectByType<CountdownTimer>();
+        if (logManager == null) logManager = FindAnyObjectByType<LogManager>();
+        if (experimentManager == null) experimentManager = FindAnyObjectByType<ExperimentManager>();
+
+        // If critical components are still missing, try to create them
+        if (gridManager == null)
+        {
+            GameObject gridObj = new GameObject("GridManager");
+            gridManager = gridObj.AddComponent<GridManager>();
+            Debug.LogWarning("GridManager was missing - created new instance.");
+        }
+
+        if (playerSpawner == null && playerPrefab != null)
+        {
+            GameObject spawnerObj = new GameObject("PlayerSpawner");
+            playerSpawner = spawnerObj.AddComponent<PlayerSpawner>();
+            Debug.LogWarning("PlayerSpawner was missing - created new instance.");
+        }
+
+        if (rewardSpawner == null && rewardPrefab != null)
+        {
+            GameObject spawnerObj = new GameObject("RewardSpawner");
+            rewardSpawner = spawnerObj.AddComponent<RewardSpawner>();
+            Debug.LogWarning("RewardSpawner was missing - created new instance.");
+        }
+
+        if (gameController == null)
+        {
+            GameObject controllerObj = new GameObject("GameController");
+            gameController = controllerObj.AddComponent<GameController>();
+            Debug.LogWarning("GameController was missing - created new instance.");
+        }
+
+        ValidateRequiredComponents();
     }
 
-    private void SetupBasedOnGameMode()
+    private void ValidateRequiredComponents()
     {
-        if (tourManager == null)
+        bool hasRequired = true;
+        string missingComponents = "";
+
+        if (gridManager == null) { missingComponents += "GridManager, "; hasRequired = false; }
+        if (playerSpawner == null) { missingComponents += "PlayerSpawner, "; hasRequired = false; }
+        if (rewardSpawner == null) { missingComponents += "RewardSpawner, "; hasRequired = false; }
+        if (gameController == null) { missingComponents += "GameController, "; hasRequired = false; }
+
+        if (!hasRequired)
         {
-            Debug.Log("TourManager instance not found!");
+            missingComponents = missingComponents.TrimEnd(',', ' ');
+            Debug.LogError($"Critical components still missing after initialization attempt: {missingComponents}");
+            enabled = false; // Disable this component if critical dependencies are missing
             return;
         }
 
-        if (tourManager.IsTourActive())
-        {
-            SetupForTour();
-        }
-        else if (practiceManager != null && practiceManager.IsPracticeTrial())
-        {
-            SetupForPractice();
-        }
-        else
-        {
-            SetupForFormalExperiment();
-        }
+        componentsInitialized = true;
+        Debug.Log("All required components initialized successfully.");
     }
 
-    private void SetupForTour()
-    {
-        Debug.Log("Setting up tour mode...");
 
-        // Configure timer
-        if (countdownTimer != null)
-        {
-            countdownTimer.SetDuration(tourTrialDuration);
-            countdownTimer.gameObject.SetActive(false); // Hide timer during tour
-        }
-
-        // Spawn player at predetermined position
-        GameObject player = playerSpawner.SpawnPlayer(tourPlayerStartPos);
-        if (player != null)
-        {
-            playerController.EnableMovement();
-            Debug.Log($"Tour player spawned at {tourPlayerStartPos}");
-        }
-
-        // Spawn reward at fixed position for tour
-        SpawnTourReward();
-
-        // Reset score for tour
-        if (scoreManager != null)
-        {
-            scoreManager.ResetScore();
-        }
-
-        isTrialActive = true;
-    }
-
-    private void SpawnTourReward()
-    {
-        // Get the exact spawn position in world coordinates
-        Vector2 spawnPosition = gridManager.GetCellCenterWorldPosition(tourRewardPos);
-        
-        GameObject reward = rewardSpawner.SpawnReward(
-            blockIndex: 0,
-            trialIndex: tourManager.GetCurrentStepIndex(),
-            pressesRequired: 1,
-            scoreValue: tourRewardPoints
-        );
-
-        if (reward != null)
-        {
-            reward.transform.position = spawnPosition;
-            Debug.Log($"Tour reward spawned at {spawnPosition}");
-
-            // Add collector component for tour
-            var collector = reward.AddComponent<RewardCollector>();
-            collector.OnCollected += HandleTourRewardCollection;
-        }
-    }
-
-private void HandleTourRewardCollection()
-{
-    if (!tourManager.IsTourActive()) return;
-
-    // Add points
-    scoreManager.AddScore(tourRewardPoints, false);
-
-    // Show collection effect
-    StartCoroutine(ShowRewardCollectionEffectAndProgress());
-}
-
-private IEnumerator ShowRewardCollectionEffectAndProgress()
-{
-    // Add visual feedback
-    GameObject effectObj = new GameObject("CollectionEffect");
-    // Add your particle system or animation here
-    
-    yield return new WaitForSeconds(1f);
-    
-    if (effectObj != null)
-    {
-        Destroy(effectObj);
-    }
-
-    // Ensure we're in the correct tour step before progressing
-    if (tourManager.GetCurrentStepIndex() == 2 || tourManager.GetCurrentStepIndex() == 5)
-    {
-        tourManager.ProcessNextStep();
-    }
-}
-
-    private void SetupForPractice()
-    {
-        Debug.Log("Setting up practice mode...");
-        
-        // Configure grid for practice
-        gridManager.SetGridSize(practiceGridSize, practiceGridSize);
-
-        // Set longer duration for practice trials
-        float practiceDuration = defaultTrialDuration * practiceDurationMultiplier;
-        if (countdownTimer != null)
-        {
-            countdownTimer.SetDuration(practiceDuration);
-            countdownTimer.gameObject.SetActive(true);
-        }
-
-        // Initialize with practice settings
-        InitializeGridWorld(practiceDuration);
-    }
-
-    private void SetupForFormalExperiment()
-    {
-        Debug.Log("Setting up formal experiment...");
-        
-        // Configure grid for experiment
-        gridManager.SetGridSize(defaultGridSize, defaultGridSize);
-
-        // Initialize with default settings
-        InitializeGridWorld(defaultTrialDuration);
-    }
-
+    // Instead of:
+    // InitializeGridWorld(duration, effortLevel, pressesRequired, sprite);
+    // Use:
+    // StartCoroutine(InitializeGridWorld(duration, effortLevel, pressesRequired, sprite));
     public void InitializeGridWorld(float trialDuration = -1f)
     {
-        if (!ValidateComponents()) return;
+        if (gridManager == null || playerSpawner == null || rewardSpawner == null || gameController == null)
+        {
+            Debug.LogError("Essential components are missing. Cannot initialize GridWorld.");
+            return;
+        }
 
         if (trialDuration < 0)
         {
@@ -250,61 +173,136 @@ private IEnumerator ShowRewardCollectionEffectAndProgress()
         // Reset the game state
         EndTrial(false);
 
-        // Setup timer
+        // Start a new trial
+        gameController.StartTrial();
+
+        // Start the countdown timer
         if (countdownTimer != null)
         {
-            countdownTimer.OnTimerExpired -= EndTrialOnTimeUp;
-            countdownTimer.OnTimerExpired += EndTrialOnTimeUp;
             countdownTimer.StartTimer(trialDuration);
+            countdownTimer.OnTimerExpired += EndTrialOnTimeUp; // Add this line
+        }
+        else
+        {
+            Debug.LogWarning("CountdownTimer is not set. Timer will not start.");
         }
 
-        // Reset score
+        // Reset the score
         if (scoreManager != null)
         {
             scoreManager.ResetScore();
         }
+        else
+        {
+            Debug.LogWarning("ScoreManager is not set. Score will not be tracked.");
+        }
 
-        // Start new trial
         isTrialActive = true;
-        gameController?.StartTrial();
     }
 
-    private bool ValidateComponents()
-    {
-        if (gridManager == null || playerSpawner == null || 
-            rewardSpawner == null || gameController == null)
-        {
-            Debug.LogError("Essential components are missing. Cannot initialize GridWorld.");
-            return false;
-        }
-        return true;
-    }
+// public IEnumerator InitializeGridWorld(float trialDuration = -1f, int effortLevel = 0, int pressesRequired = 0, Sprite rewardSprite = null)
+// {
+//     Debug.Log("Starting GridWorld initialization...");
+    
+//     // First, ensure scene is loaded
+//     AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("GridWorld");
+//     while (!asyncLoad.isDone)
+//     {
+//         yield return null;
+//     }
 
-    public void EndTrial(bool rewardCollected)
-    {
-        if (!isTrialActive) return;
+//     // Wait one frame for all components to initialize
+//     yield return new WaitForEndOfFrame();
 
-        isTrialActive = false;
+//     // Force component initialization
+//     InitializeComponents();
+    
+//     if (!ValidateComponents())
+//     {
+//         Debug.LogError("Critical components missing - cannot initialize GridWorld");
+//         yield break;
+//     }
 
-        // Stop timer
-        if (countdownTimer != null)
-        {
-            countdownTimer.StopTimer();
-            countdownTimer.OnTimerExpired -= EndTrialOnTimeUp;
-        }
+//     // Initialize grid first
+//     gridManager.EnsureInitialization();
 
-        // Disable player movement
-        if (playerController != null)
-        {
-            playerController.DisableMovement();
-        }
+//     // Spawn player with explicit movement enable
+//     Vector2 spawnPos = playerSpawner.GetRandomSpawnPosition();
+//     GameObject player = playerSpawner.SpawnPlayer(spawnPos);
+//     if (player != null)
+//     {
+//         PlayerController playerCtrl = player.GetComponent<PlayerController>();
+//         if (playerCtrl != null)
+//         {
+//             playerCtrl.EnableMovement();
+//             Debug.Log("Player movement enabled");
+//         }
+//     }
 
-        // Notify listeners
-        OnTrialEnded?.Invoke(rewardCollected);
+//     // Initialize reward spawner with trial properties
+//     if (rewardSpawner != null)
+//     {
+//         rewardSpawner.EnsureInitialization();
+//         rewardSpawner.SetRewardProperties(effortLevel, pressesRequired);
+//         if (rewardSprite != null)
+//         {
+//             rewardSpawner.SetRewardSprite(rewardSprite);
+//         }
+        
+//         // Spawn reward with explicit trial data
+//         GameObject reward = rewardSpawner.SpawnRewardInternal(
+//             experimentManager.GetCurrentBlockNumber(),
+//             experimentManager.GetCurrentTrialIndex(),
+//             pressesRequired,
+//             experimentManager.GetCurrentTrialRewardValue()
+//         );
 
-        // Handle trial end in game controller
-        gameController?.EndTrial(rewardCollected);
-    }
+//         if (reward == null)
+//         {
+//             Debug.LogError("Failed to spawn reward");
+//         }
+//         else
+//         {
+//             Debug.Log("Reward spawned successfully");
+//         }
+//     }
+
+//     // Setup timer with explicit duration
+//     if (countdownTimer != null)
+//     {
+//         countdownTimer.OnTimerExpired -= EndTrialOnTimeUp;
+//         countdownTimer.OnTimerExpired += EndTrialOnTimeUp;
+//         float duration = trialDuration > 0 ? trialDuration : defaultTrialDuration;
+//         countdownTimer.StartTimer(duration);
+//         Debug.Log($"Timer started with duration: {duration}");
+//     }
+
+//     // Start the trial
+//     isTrialActive = true;
+//     gameController?.StartTrial();
+// }
+
+//     private bool ValidateComponents()
+//     {
+//         if (gridManager == null || rewardSpawner == null || experimentManager == null)
+//         {
+//             Debug.LogError("One or more required components are missing in GridWorldManager.");
+//             return false;
+//         }
+//         return true;
+//     }
+
+    // public void SetRewardSpriteFromDecisionPhase()
+    // {
+    //     if (rewardSpawner == null || experimentManager == null)
+    //     {
+    //         Debug.LogError("RewardSpawner or ExperimentManager is null. Cannot set reward sprite.");
+    //         return;
+    //     }
+
+    //     Sprite effortSprite = experimentManager.GetCurrentTrialSprite();
+    //     rewardSpawner.SetRewardSprite(effortSprite);
+    // }
 
     private void EndTrialOnTimeUp()
     {
@@ -314,24 +312,33 @@ private IEnumerator ShowRewardCollectionEffectAndProgress()
         }
     }
 
+    public void EndTrial(bool rewardCollected)
+    {
+        if (!isTrialActive) return;
+
+        isTrialActive = false;
+
+        // Stop the countdown timer
+        if (countdownTimer != null)
+        {
+            countdownTimer.StopTimer();
+            countdownTimer.OnTimerExpired -= EndTrialOnTimeUp; // Remove the event subscription
+        }
+
+        // Notify any listeners that the trial has ended
+        OnTrialEnded?.Invoke(rewardCollected);
+
+        // Let GameController handle the trial end
+        gameController.EndTrial(rewardCollected);
+        playerController.DisableMovement();
+
+        // Add this line to move to the next trial
+        ExperimentManager.Instance.MoveToNextTrial();
+    }
+
     // Utility method for getting random positions
     public Vector2 GetRandomEmptyPosition()
     {
         return gridManager.GetRandomAvailablePosition();
-    }
-
-    // Helper class for handling reward collection
-    private class RewardCollector : MonoBehaviour
-    {
-        public event System.Action OnCollected;
-        
-        private void OnTriggerEnter2D(Collider2D other)
-        {
-            if (other.CompareTag("Player"))
-            {
-                OnCollected?.Invoke();
-                Destroy(gameObject);
-            }
-        }
     }
 }
