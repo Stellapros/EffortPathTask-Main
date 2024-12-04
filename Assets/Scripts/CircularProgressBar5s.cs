@@ -4,31 +4,35 @@ using System.Collections;
 using UnityEngine.SceneManagement;
 using TMPro;
 
-public class CircularProgressBar : MonoBehaviour
+public class CircularProgressBar5s : MonoBehaviour
 {
     public Image loadingBar;
     public TextMeshProUGUI countdownText;
-    public float duration = 5f;
+    
+    private const float DURATION = 5f;
     public string nextSceneName = "DecisionPhase";
 
     private void Start()
     {
+        // Ensure the progress bar starts at 0
+        loadingBar.fillAmount = 0f;
         StartCoroutine(FillLoadingBar());
     }
+
     private IEnumerator FillLoadingBar()
     {
-        Debug.Log("Starting countdown");
+        Debug.Log("Starting 5-second countdown");
         float elapsedTime = 0f;
-        loadingBar.fillAmount = 0f;
 
-        while (elapsedTime < duration)
+        while (elapsedTime < DURATION)
         {
             elapsedTime += Time.deltaTime;
-            loadingBar.fillAmount = elapsedTime / duration;
+            loadingBar.fillAmount = elapsedTime / DURATION;
 
-            int remainingSeconds = Mathf.CeilToInt(duration - elapsedTime);
-            countdownText.text = remainingSeconds.ToString();
-            // Debug.Log($"Countdown: {remainingSeconds}");
+            int remainingSeconds = Mathf.CeilToInt(DURATION - elapsedTime);
+            
+            // added Mathf.Max(0, remainingSeconds) to prevent negative numbers
+            countdownText.text = Mathf.Max(0, remainingSeconds).ToString();
 
             yield return null;
         }

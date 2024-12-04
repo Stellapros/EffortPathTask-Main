@@ -80,9 +80,9 @@ public class CheckManager3 : MonoBehaviour
 
         // Add in SetupButtons() method
 ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-navigationController.AddButton(buttonA);
-navigationController.AddButton(buttonB);
-navigationController.AddButton(buttonC);
+navigationController.AddElement(buttonA);
+navigationController.AddElement(buttonB);
+navigationController.AddElement(buttonC);
     }
 
     void UpdateAttemptText()

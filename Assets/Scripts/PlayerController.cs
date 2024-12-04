@@ -95,17 +95,22 @@ public class PlayerController : MonoBehaviour
     {
         if (!isTrialRunning) return;
 
-        if (!isMoving)
-        {
-            isMoving = true;
-            moveStartTime = Time.time;
-        }
+        // if (!isMoving)
+        // {
+        //     isMoving = true;
+        //     moveStartTime = Time.time;
+        // }
+
+        // Remove the isMoving check here as it's not necessary and could cause issues
         HandleInput();
         // HandleMovement(); // Add this line to handle movement and facing direction
     }
 
     private void HandleInput()
     {
+        // Only process input if we're not currently moving
+        if (isMoving) return;
+
         if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
             IncrementCounter(0, Vector2.up);
         else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
@@ -118,6 +123,8 @@ public class PlayerController : MonoBehaviour
 
     private void IncrementCounter(int index, Vector2 direction)
     {
+        if (!isTrialRunning) return;  // Additional safety check
+        
         directionCounters[index]++;
         totalButtonPresses++;
 
@@ -125,8 +132,10 @@ public class PlayerController : MonoBehaviour
 
         if (directionCounters[index] >= pressesPerStep)
         {
+            isMoving = true;  // Set moving state before attempting move
             AttemptMove(direction);
             ResetCounters();
+            isMoving = false;  // Reset moving state after move is complete
         }
     }
 
@@ -202,6 +211,7 @@ public class PlayerController : MonoBehaviour
         ApplyFacingDirection(); // Apply the last known facing direction
         Debug.Log($"Player position reset to: {position}, Total button presses reset to 0");
     }
+
     private void UpdateFacingDirection(Vector2 direction)
     {
         // Only update for horizontal movement
@@ -231,22 +241,21 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void UpdateSpriteDirection(Vector2 direction)
-    {
-        // This method can be used to update sprite animations or states based on direction
-        // For example:
-        // if (direction.y > 0) SetAnimationState("FacingUp");
-        // else if (direction.y < 0) SetAnimationState("FacingDown");
-        // else if (direction.x != 0) SetAnimationState("FacingSide");
+    // private void UpdateSpriteDirection(Vector2 direction)
+    // {
+    //     // This method can be used to update sprite animations or states based on direction
+    //     // For example:
+    //     // if (direction.y > 0) SetAnimationState("FacingUp");
+    //     // else if (direction.y < 0) SetAnimationState("FacingDown");
+    //     // else if (direction.x != 0) SetAnimationState("FacingSide");
 
-        // If you're using a sprite renderer, you might flip the sprite here
-        SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
-        if (spriteRenderer != null)
-        {
-            spriteRenderer.flipX = direction.x < 0;
-        }
-    }
-
+    //     // If you're using a sprite renderer, you might flip the sprite here
+    //     SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
+    //     if (spriteRenderer != null)
+    //     {
+    //         spriteRenderer.flipX = direction.x < 0;
+    //     }
+    // }
 
     public Vector2 GetInitialPosition()
     {
@@ -283,8 +292,12 @@ public class PlayerController : MonoBehaviour
     {
         UpdatePressesPerStep(); // Add this line
         isTrialRunning = true;
-        isMoving = false;
-        moveStartTime = 0f;
+        isMoving = false; // Ensure we start in a non-moving state
+        // moveStartTime = 0f;
+        moveStartTime = Time.time;  // Initialize moveStartTime when movement is enabled
+        ResetCounters();  // Reset counters when enabling movement
+        totalButtonPresses = 0;
+
         if (playerRigidbody != null)
         {
             playerRigidbody.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionZ;
@@ -295,6 +308,8 @@ public class PlayerController : MonoBehaviour
     public void DisableMovement()
     {
         isTrialRunning = false;
+        isMoving = false;  // Reset moving state
+        
         if (playerRigidbody != null)
         {
             playerRigidbody.linearVelocity = Vector3.zero;
@@ -307,35 +322,39 @@ public class PlayerController : MonoBehaviour
     }
 
     public int GetButtonPressCount() => totalButtonPresses;
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Reward") && isTrialRunning)
-        {
-            float collisionTime = Time.time;
-            Debug.Log($"Player collided with reward at time: {Time.time}");
-            float movementDuration = isMoving ? collisionTime - moveStartTime : 0f;
 
-            GameController gameController = GameController.Instance;
-            if (gameController != null)
-            {
-                gameController.LogRewardCollectionTiming(collisionTime, movementDuration);
-                gameController.RewardCollected(true);
-            }
-            else
-            {
-                Debug.LogError("GameController not found in the scene!");
-            }
+    // private void OnTriggerEnter(Collider other)
+    // {
+    //     if (other.CompareTag("Reward") && isTrialRunning)
+    //     {
+    //         float collisionTime = Time.time;
+    //         Debug.Log($"Player collided with reward at time: {Time.time}");
+    //         float movementDuration = isMoving ? collisionTime - moveStartTime : 0f;
 
-            // Play reward sound
-            PlaySound(rewardSound);
+    //         GameController gameController = GameController.Instance;
+    //         if (gameController != null)
+    //         {
+    //             gameController.LogRewardCollectionTiming(collisionTime, movementDuration);
+    //             gameController.RewardCollected(true);
+    //         }
+    //         else
+    //         {
+    //             Debug.LogError("GameController not found in the scene!");
+    //         }
 
-            // Disable player movement
-            DisableMovement();
+    //         // Play reward sound
+    //         PlaySound(rewardSound);
 
-            // Invoke the reward collected event
-            OnRewardCollected?.Invoke();
+    //         // Disable the reward object
+    //         other.gameObject.SetActive(false);
 
-            Debug.Log("Reward collected!");
-        }
-    }
-}
+    //         // Disable player movement
+    //         DisableMovement();
+
+    //         // Invoke the reward collected event
+    //         OnRewardCollected?.Invoke();
+
+    //         Debug.Log("Reward collected!");
+    //     }
+    // }
+} 

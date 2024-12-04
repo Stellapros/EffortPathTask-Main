@@ -56,7 +56,9 @@ MonoBehaviour:
     type: 3}
   scoreManager: {fileID: 3873532563441086277, guid: 1b0d0181d4b3545ab8d481ffd920c346,
     type: 3}
-  countdownTimer: {fileID: 2022789192128805892, guid: 9f4b9aa786842499cb36a077ac3dcc47,
+  decisionManager: {fileID: 5015606522049160688, guid: 269e5bfde267843afab5c7d3b477bb86,
+    type: 3}
+  countdownTimer: {fileID: 6147619588066064679, guid: 9f4b9aa786842499cb36a077ac3dcc47,
     type: 3}
   logManager: {fileID: 3404956456498695464, guid: 54dd36bf67cfa4080a440bbc6615ec0a,
     type: 3}
@@ -66,8 +68,8 @@ MonoBehaviour:
     type: 3}
   rewardPrefab: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
     type: 3}
-  practiceTrialDuration: 15
+  practiceTrialDuration: 10
   practiceGridSize: 7
   practiceDurationMultiplier: 1.5
-  defaultTrialDuration: 10
+  defaultTrialDuration: 5
   defaultGridSize: 7

@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 
 public class PracticeManager : MonoBehaviour
@@ -10,39 +11,52 @@ public class PracticeManager : MonoBehaviour
     public static PracticeManager Instance { get; private set; }
 
     [Header("Practice Configuration")]
-    [SerializeField] private int numberOfPracticeTrials = 3;
-    [SerializeField] private float practiceTrialDuration = 15f;
-    [SerializeField] private string practiceSceneName = "GetReadyPractice";
-    [SerializeField] private string experimentSceneName = "DecisionPhase";
+    [SerializeField] private float practiceTrialDuration = 10f;
+    [SerializeField] private string getReadyPracticeScene = "GetReadyPractice";
+    [SerializeField] private string decisionPhaseScene = "DecisionPhase";
+    [SerializeField] private string getReadyCheckScene = "GetReadyCheck";
 
     [Header("UI Elements")]
-    [SerializeField] private GameObject practiceUI;
-    [SerializeField] private TextMeshProUGUI instructionText;
-    [SerializeField] private TextMeshProUGUI progressText;
-    [SerializeField] private GameObject feedbackPanel;
-    [SerializeField] private TextMeshProUGUI feedbackText;
     [SerializeField] private Button startPracticeButton;
-    [SerializeField] private Button continueButton;
+    [SerializeField] private Button skipButton;
+    private RewardSpawner rewardSpawner;
 
-    [Header("Audio")]
-    [SerializeField] private AudioClip buttonClickSound;
-    private AudioSource audioSource;
+    [Header("Practice Configuration")]
+    private const int TOTAL_PRACTICE_TRIALS = 6; // Updated to 6 trials
+
+    [SerializeField]
+    private List<PracticeTrial> practiceTrials = new List<PracticeTrial>
+{
+    // Add 6 different practice trials with varying configurations
+    new PracticeTrial { effortLevel = 2, rewardValue = 10f, rewardSpriteIndex = 0 },
+    new PracticeTrial { effortLevel = 4, rewardValue = 10f, rewardSpriteIndex = 1 },
+    new PracticeTrial { effortLevel = 6, rewardValue = 10f, rewardSpriteIndex = 2 },
+    new PracticeTrial { effortLevel = 2, rewardValue = 10f, rewardSpriteIndex = 0 },
+    new PracticeTrial { effortLevel = 4, rewardValue = 10f, rewardSpriteIndex = 1 },
+    new PracticeTrial { effortLevel = 6, rewardValue = 10f, rewardSpriteIndex = 2 }
+};
 
     private int currentPracticeTrialIndex = -1;
     private bool isPracticeMode = false;
-    private ExperimentManager experimentManager;
-    private GridWorldManager gridWorldManager;
     private DecisionManager decisionManager;
-
     public event Action OnPracticeCompleted;
 
     private void Awake()
+    {
+        SetupSingleton();
+
+        // Add in Start() method
+        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+        navigationController.AddElement(startPracticeButton);
+        navigationController.AddElement(skipButton);
+    }
+
+    private void SetupSingleton()
     {
         if (Instance == null)
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            InitializeAudio();
         }
         else
         {
@@ -50,182 +64,179 @@ public class PracticeManager : MonoBehaviour
         }
     }
 
-    private void InitializeAudio()
-    {
-        audioSource = gameObject.AddComponent<AudioSource>();
-        audioSource.playOnAwake = false;
-        audioSource.clip = buttonClickSound;
-    }
-
     private void Start()
     {
         InitializeComponents();
-        SetupEventListeners();
+        // SetupEventListeners();
     }
 
     private void InitializeComponents()
     {
-        experimentManager = ExperimentManager.Instance;
-        gridWorldManager = GridWorldManager.Instance;
         decisionManager = FindAnyObjectByType<DecisionManager>();
+        rewardSpawner = FindAnyObjectByType<RewardSpawner>();
 
         if (startPracticeButton != null)
             startPracticeButton.onClick.AddListener(StartPracticeMode);
-        
-        if (continueButton != null)
-            continueButton.onClick.AddListener(ContinueToNextScreen);
+
+        if (skipButton != null)
+            skipButton.onClick.AddListener(GoToGetReadyCheck);
     }
 
-    private void SetupEventListeners()
-    {
-        if (gridWorldManager != null)
-            gridWorldManager.OnTrialEnded += HandlePracticeTrialCompletion;
+    public bool IsPracticeTrial() => currentPracticeTrialIndex >= 0 && currentPracticeTrialIndex < TOTAL_PRACTICE_TRIALS;
 
-        SceneManager.sceneLoaded += OnSceneLoaded;
-    }
-
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        if (scene.name == practiceSceneName)
-        {
-            ShowPracticeUI();
-            UpdateUIElements();
-        }
-    }
 
     public void StartPracticeMode()
     {
-        PlayButtonSound();
         isPracticeMode = true;
         currentPracticeTrialIndex = 0;
-        SetupPracticeTrial();
+
+        // Set a global flag for practice mode
+        PlayerPrefs.SetInt("IsPracticeTrial", 1);
+
+        SceneManager.LoadScene(decisionPhaseScene);
     }
 
-    private void SetupPracticeTrial()
+    public Sprite GetCurrentPracticeTrialSprite()
     {
-        if (currentPracticeTrialIndex >= numberOfPracticeTrials)
+        var currentTrial = GetCurrentPracticeTrial();
+
+        Debug.Log($"Current Practice Trial Index: {currentPracticeTrialIndex}");
+
+        if (currentTrial == null)
         {
-            EndPracticeMode();
-            return;
+            Debug.LogError("No current practice trial found!");
+            return null;
         }
 
-        UpdateUIElements();
-        InitializeGridWorld();
-    }
+        // Log details about the current trial
+        Debug.Log($"Current Trial Details: " +
+                  $"Effort Level: {currentTrial.effortLevel}, " +
+                  $"Reward Sprite Index: {currentTrial.rewardSpriteIndex}, " +
+                  $"Direct Reward Sprite: {currentTrial.rewardSprite != null}");
 
-    private void UpdateUIElements()
-    {
-        UpdateProgressUI();
-        UpdateInstructions();
-    }
-
-    private void UpdateProgressUI()
-    {
-        if (progressText != null)
+        // Prioritize direct sprite assignment
+        if (currentTrial.rewardSprite != null)
         {
-            progressText.text = $"Practice Trial {currentPracticeTrialIndex + 1} of {numberOfPracticeTrials}";
+            Debug.Log("Returning sprite directly from trial configuration");
+            return currentTrial.rewardSprite;
         }
-    }
 
-    private void UpdateInstructions()
-    {
-        string[] instructions = {
-            "Move with arrow keys or W-A-S-D keys to collect the fruit. Take your time in practice mode.",
-            "Now try deciding between Work and Skip. Think about effort versus reward.",
-            "Final practice! Apply what you've learned about navigation and decision-making."
-        };
-
-        if (instructionText != null && currentPracticeTrialIndex < instructions.Length)
+        // Fallback to sprite from prefabs
+        if (rewardSpawner != null)
         {
-            instructionText.text = instructions[currentPracticeTrialIndex];
-        }
-    }
+            var practiceRewardPrefabs = rewardSpawner.GetPracticeRewardPrefabs();
 
-    private void InitializeGridWorld()
-    {
-        if (gridWorldManager != null)
-        {
-            gridWorldManager.InitializeGridWorld(practiceTrialDuration);
+            Debug.Log($"Practice Reward Prefabs Count: {practiceRewardPrefabs?.Count ?? 0}");
+
+            if (practiceRewardPrefabs != null && currentTrial.rewardSpriteIndex < practiceRewardPrefabs.Count)
+            {
+                var selectedPrefab = practiceRewardPrefabs[currentTrial.rewardSpriteIndex];
+                var spriteRenderer = selectedPrefab.GetComponent<SpriteRenderer>();
+
+                if (spriteRenderer != null && spriteRenderer.sprite != null)
+                {
+                    Debug.Log($"Returning sprite from prefab: {spriteRenderer.sprite.name}");
+                    return spriteRenderer.sprite;
+                }
+            }
         }
+
+        Debug.LogError($"Could not find sprite for practice trial {currentTrial.rewardSpriteIndex}");
+        return null;
     }
 
     public void HandlePracticeTrialCompletion(bool success)
     {
-        string feedback = success ? 
-            "Excellent work! You've successfully collected the fruit!" : 
-            "Keep practicing! Remember to plan your route and reach the fruit before time runs out.";
-        
-        StartCoroutine(ShowFeedbackAndContinue(feedback));
-    }
+        Debug.Log($"HandlePracticeTrialCompletion called - Success: {success}");
 
-    private IEnumerator ShowFeedbackAndContinue(string feedback)
-    {
-        if (feedbackPanel != null && feedbackText != null)
-        {
-            feedbackPanel.SetActive(true);
-            feedbackText.text = feedback;
-            yield return new WaitForSeconds(3f);
-            feedbackPanel.SetActive(false);
-        }
+        // Reset the practice trial flag
+        PlayerPrefs.SetInt("IsPracticeTrial", 0);
 
         currentPracticeTrialIndex++;
-        SetupPracticeTrial();
+
+        if (currentPracticeTrialIndex >= TOTAL_PRACTICE_TRIALS)
+        {
+            Debug.Log("Practice trials completed. Moving to GetReadyCheck scene.");
+            EndPracticeMode();
+        }
+        else
+        {
+            Debug.Log("Moving to next practice trial in Decision Phase.");
+            SceneManager.LoadScene("PracticeDecisionPhase");
+        }
     }
 
-    public void ContinueToNextScreen()
+    public void CompleteGridWorldPracticeTrial(bool success)
     {
-        PlayButtonSound();
-        SceneManager.LoadScene(practiceSceneName);
+        // Reset the practice trial flag after the trial is complete
+        PlayerPrefs.SetInt("IsPracticeTrial", 0);
+
+        // Call the existing method to handle trial progression
+        HandlePracticeTrialCompletion(success);
     }
 
-    private void EndPracticeMode()
+    public void AdvancePracticeTrial()
+    {
+        currentPracticeTrialIndex++;
+        if (currentPracticeTrialIndex >= TOTAL_PRACTICE_TRIALS)
+        {
+            // Move to GetReadyCheck scene after 6 practice trials
+            SceneManager.LoadScene("GetReadyCheck");
+        }
+    }
+    public void GoToGetReadyCheck()
+    {
+        SceneManager.LoadScene(getReadyCheckScene);
+    }
+
+    // Modify existing EndPracticeMode to ensure clean transition
+    public void EndPracticeMode()
     {
         isPracticeMode = false;
-        HidePracticeUI();
+        currentPracticeTrialIndex = -1;
         OnPracticeCompleted?.Invoke();
-        
-        if (experimentManager != null)
-        {
-            PlayButtonSound();
-            SceneManager.LoadScene(experimentSceneName);
-            experimentManager.StartFormalExperiment();
-        }
+        SceneManager.LoadScene(getReadyCheckScene);
     }
 
-    private void PlayButtonSound()
-    {
-        if (audioSource != null && buttonClickSound != null)
-        {
-            audioSource.PlayOneShot(buttonClickSound);
-        }
-    }
-
-    private void ShowPracticeUI()
-    {
-        if (practiceUI != null)
-        {
-            practiceUI.SetActive(true);
-        }
-    }
-
-    private void HidePracticeUI()
-    {
-        if (practiceUI != null)
-        {
-            practiceUI.SetActive(false);
-        }
-    }
-
-    // Public utility methods
-    public bool IsPracticeTrial() => isPracticeMode;
     public int GetCurrentPracticeTrialIndex() => currentPracticeTrialIndex;
-    public int GetTotalPracticeTrials() => numberOfPracticeTrials;
+    public int GetTotalPracticeTrials() => TOTAL_PRACTICE_TRIALS;
+    public int GetCurrentTrialEffortLevel() => GetCurrentPracticeTrial()?.effortLevel ?? 0;
+    public float GetCurrentTrialRewardValue() => GetCurrentPracticeTrial()?.rewardValue ?? 0f;
 
-    private void OnDestroy()
+    // Add this method to help identify practice trials across scenes
+    public bool IsCurrentScenePracticeTrial()
     {
-        if (gridWorldManager != null)
-            gridWorldManager.OnTrialEnded -= HandlePracticeTrialCompletion;
-        
-        SceneManager.sceneLoaded -= OnSceneLoaded;
+        // This can be used by other scripts to check if the current scene is part of a practice trial
+        return PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1;
+    }
+
+    // Add a method to reset the practice trial flag after each trial
+    public void ResetPracticeTrialFlag()
+    {
+        PlayerPrefs.SetInt("IsPracticeTrial", 0);
+    }
+
+    public PracticeTrial GetCurrentPracticeTrial()
+    {
+        return (currentPracticeTrialIndex >= 0 && currentPracticeTrialIndex < practiceTrials.Count)
+            ? practiceTrials[currentPracticeTrialIndex]
+            : null;
+    }
+
+
+    [Serializable]
+    public class PracticeTrial
+    {
+        [Header("Trial Configuration")]
+        public int effortLevel;
+        public float rewardValue;
+
+        [Header("Reward Sprite Configuration")]
+        public Sprite rewardSprite;
+        public int rewardSpriteIndex;
+
+        [Header("Optional Practice-Specific Elements")]
+        public bool useCustomPrefab;
+        public GameObject customRewardPrefab;
     }
 }

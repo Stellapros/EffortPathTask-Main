@@ -51,7 +51,8 @@ MonoBehaviour:
   errorSound: {fileID: 8300000, guid: 1617e0d71b004419da18e026c82adefe, type: 3}
   rewardSound: {fileID: 8300000, guid: 5151f6de3fc24bc43a3c6daf0eb5ae1a, type: 3}
   stepSound: {fileID: 8300000, guid: c055490238b09493b9863464c08cd5ef, type: 3}
-  gridManager: {fileID: 0}
+  gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
+    type: 3}
 --- !u!54 &6731956547182048973
 Rigidbody:
   m_ObjectHideFlags: 0

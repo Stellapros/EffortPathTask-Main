@@ -16,6 +16,11 @@ public class DecisionManager : MonoBehaviour
     [SerializeField] private AudioClip skipButtonSound;
     private ExperimentManager experimentManager;
     private PracticeManager practiceManager;
+    private RewardSpawner rewardSpawner;
+
+    // Practice trial specific variables
+    private const int TOTAL_PRACTICE_TRIALS = 3;
+    private bool isPracticeTrial = false;
 
     // Added for keyboard navigation
     private bool isWorkButtonSelected = true;
@@ -28,29 +33,47 @@ public class DecisionManager : MonoBehaviour
     private float currentTimer;
     private bool isTimerRunning;
 
-
     // Skip delay constant
     private const float SKIP_DELAY = 3f;
     private bool isSkipDelayActive = false;
     private float skipDelayTimer;
-
-
 
     private void Awake()
     {
         ValidateComponents();
         SetupAudioSource();
 
-        // Initialize managers
-        experimentManager = ExperimentManager.Instance;
-        practiceManager = PracticeManager.Instance;
-
-        if (experimentManager == null)
+        // Explicitly find PracticeManager if not set via Instance
+        if (practiceManager == null)
         {
-            Debug.LogError("ExperimentManager not found!");
+            practiceManager = FindAnyObjectByType<PracticeManager>();
+
+            if (practiceManager == null)
+            {
+                Debug.LogError("PracticeManager could not be found in the scene! This will cause issues with trial management.");
+
+                // Create a temporary PracticeManager if absolutely necessary
+                GameObject practiceManagerObject = new GameObject("PracticeManager");
+                practiceManager = practiceManagerObject.AddComponent<PracticeManager>();
+            }
         }
 
-        // Verify UI setup
+        // Similarly, find ExperimentManager if not set
+        if (experimentManager == null)
+        {
+            experimentManager = FindAnyObjectByType<ExperimentManager>();
+
+            if (experimentManager == null)
+            {
+                Debug.LogError("ExperimentManager could not be found in the scene! This will cause issues with experiment management.");
+
+                // Create a temporary ExperimentManager if absolutely necessary
+                GameObject experimentManagerObject = new GameObject("ExperimentManager");
+                experimentManager = experimentManagerObject.AddComponent<ExperimentManager>();
+            }
+        }
+
+        // Additional validation checks
         if (effortSpriteImage == null)
         {
             Debug.LogError("Effort Image component not assigned in DecisionManager!");
@@ -59,6 +82,7 @@ public class DecisionManager : MonoBehaviour
         SetupButtonListeners();
         SetupKeyboardNavigation();
     }
+
 
     // New method for keyboard navigation setup
     private void SetupKeyboardNavigation()
@@ -123,7 +147,7 @@ public class DecisionManager : MonoBehaviour
 
         if (timerText != null)
         {
-            timerText.text = $"Waiting: {skipDelayTimer:F1}s";
+            timerText.text = $"Waiting: {skipDelayTimer:F0}";
         }
 
         if (skipDelayTimer <= 0)
@@ -135,7 +159,9 @@ public class DecisionManager : MonoBehaviour
     private void CompleteSkipDelay()
     {
         isSkipDelayActive = false;
-        SetupDecisionPhase(); // Reset for next decision
+
+        // Reset for the next decision
+        SetupDecisionPhase();
     }
 
     private void UpdateTimer()
@@ -144,7 +170,7 @@ public class DecisionManager : MonoBehaviour
 
         if (timerText != null)
         {
-            timerText.text = $"Time: {currentTimer:F1}s";
+            timerText.text = $"Time: {currentTimer:F0}";
         }
 
         if (currentTimer <= 0)
@@ -165,7 +191,6 @@ public class DecisionManager : MonoBehaviour
         // Move to penalty scene
         SceneManager.LoadScene("TimePenalty");
     }
-
 
     // New method to update button visual state
     private void UpdateButtonSelection()
@@ -251,25 +276,6 @@ public class DecisionManager : MonoBehaviour
         }
     }
 
-    // private void SetupForPractice()
-    // {
-    //     // Show practice-specific UI elements
-    //     if (pressesRequiredText != null)
-    //     {
-    //         var practiceManager = PracticeManager.Instance;
-    //         if (practiceManager != null)
-    //         {
-    //             pressesRequiredText.text = $"Practice Trial {practiceManager.GetCurrentPracticeTrialIndex() + 1} of {practiceManager.GetTotalPracticeTrials()}";
-    //         }
-    //     }
-    //     EnableButtons();
-    // }
-
-    // private void SetupForFormalExperiment()
-    // {
-    //     // Setup for the real experiment
-    // }
-
     public void SetupDecisionPhase()
     {
         Debug.Log("DecisionManager: Setting up decision phase");
@@ -291,11 +297,11 @@ public class DecisionManager : MonoBehaviour
         isTimerRunning = true;
         if (timerText != null)
         {
-            timerText.text = $"Time: {currentTimer:F1}s";
+            timerText.text = $"Time: {currentTimer:F0}";
         }
     }
 
-    private void UpdateEffortSprite()
+    public void UpdateEffortSprite()
     {
         Debug.Log("Starting UpdateEffortSprite method");
 
@@ -306,15 +312,62 @@ public class DecisionManager : MonoBehaviour
             return;
         }
 
-        // Check if ExperimentManager exists
-        if (experimentManager == null)
+        // Add null checks at the beginning
+        if (practiceManager == null)
         {
-            Debug.LogError("ExperimentManager is null!");
+            Debug.LogError("PracticeManager is null in UpdateEffortSprite!");
             return;
         }
 
-        // Get and verify sprite
-        Sprite effortSprite = experimentManager.GetCurrentTrialSprite();
+        if (experimentManager == null)
+        {
+            Debug.LogError("ExperimentManager is null in UpdateEffortSprite!");
+            return;
+        }
+
+        // Ensure sprite sources are available
+        if (practiceManager.IsPracticeTrial())
+        {
+            if (practiceManager.GetCurrentPracticeTrialSprite() == null)
+            {
+                Debug.LogError("Practice trial sprite is null!");
+                return;
+            }
+        }
+        else
+        {
+            if (experimentManager.GetCurrentTrialSprite() == null)
+            {
+                Debug.LogError("Experiment trial sprite is null!");
+                return;
+            }
+        }
+        // Check if image component exists
+        if (effortSpriteImage == null)
+        {
+            Debug.LogError("Effort Image reference is null!");
+            return;
+        }
+
+        Sprite effortSprite = null;
+        int effortLevel = 0;
+        int pressesRequired = 0;
+
+        // Determine sprite source based on trial type
+        if (practiceManager.IsPracticeTrial())
+        {
+            // Get sprite from PracticeManager for practice trials
+            effortSprite = practiceManager.GetCurrentPracticeTrialSprite();
+            effortLevel = practiceManager.GetCurrentTrialEffortLevel();
+            pressesRequired = practiceManager.GetCurrentTrialEffortLevel() * 10; // Example calculation
+        }
+        else
+        {
+            // Use ExperimentManager for formal trials
+            effortSprite = experimentManager.GetCurrentTrialSprite();
+            effortLevel = experimentManager.GetCurrentTrialEffortLevel();
+            pressesRequired = experimentManager.GetCurrentTrialEV();
+        }
 
         if (effortSprite == null)
         {
@@ -322,12 +375,12 @@ public class DecisionManager : MonoBehaviour
             return;
         }
 
-        // Get trial information
-        int effortLevel = experimentManager.GetCurrentTrialEffortLevel();
-        int pressesRequired = experimentManager.GetCurrentTrialEV();
+        // Store the sprite for cross-scene access
+        if (!practiceManager.IsPracticeTrial())
+        {
+            experimentManager.StoreCurrentTrialSprite(effortSprite);
 
-        Debug.Log($"Sprite info - Width: {effortSprite.rect.width}, Height: {effortSprite.rect.height}");
-        Debug.Log($"Image component - Enabled: {effortSpriteImage.enabled}, Color: {effortSpriteImage.color}");
+        }
 
         // Assign sprite and verify
         effortSpriteImage.sprite = effortSprite;
@@ -335,7 +388,7 @@ public class DecisionManager : MonoBehaviour
         // Configure image settings
         effortSpriteImage.enabled = true;
         effortSpriteImage.preserveAspect = true;
-        effortSpriteImage.color = Color.white; // Ensure full opacity
+        effortSpriteImage.color = Color.white;
 
         // Update UI texts
         if (effortLevelText != null)
@@ -346,20 +399,15 @@ public class DecisionManager : MonoBehaviour
         if (pressesRequiredText != null)
         {
             pressesRequiredText.text = $"Presses Required: {pressesRequired}";
-        }
 
-        // Verify RectTransform properties
-        RectTransform rectTransform = effortSpriteImage.rectTransform;
-        Debug.Log($"RectTransform - Position: {rectTransform.position}, Size: {rectTransform.rect.size}");
-        Debug.Log($"RectTransform - Scale: {rectTransform.localScale}");
-        Debug.Log("Finished UpdateEffortSprite method");
+            // Add practice trial information for practice trials
+            if (practiceManager.IsPracticeTrial())
+            {
+                pressesRequiredText.text += $" (Practice Trial {practiceManager.GetCurrentPracticeTrialIndex() + 1})";
+            }
+        }
     }
 
-    // private void EnableButtons()
-    // {
-    //     if (workButton != null) workButton.interactable = true;
-    //     if (skipButton != null) skipButton.interactable = true;
-    // }
     private void EnableButtons()
     {
         if (workButton != null)
@@ -371,15 +419,16 @@ public class DecisionManager : MonoBehaviour
         }
         if (skipButton != null) skipButton.interactable = true;
     }
+
     private void DisableButtons()
     {
         if (workButton != null) workButton.interactable = false;
         if (skipButton != null) skipButton.interactable = false;
     }
-
+    
     private void OnDecisionMade(bool workDecision)
     {
-        if (!isTimerRunning) return; // Prevent multiple decisions
+        if (!isTimerRunning) return;
 
         isTimerRunning = false;
         Debug.Log($"Decision made: {(workDecision ? "Work" : "Skip")}");
@@ -394,42 +443,78 @@ public class DecisionManager : MonoBehaviour
             }
         }
 
+        Sprite currentSprite = effortSpriteImage.sprite;
+        if (currentSprite == null)
+        {
+            Debug.LogError("No sprite selected for the trial!");
+            return;
+        }
+
+        // Sprite name storage for cross-scene transfer
+        PlayerPrefs.SetString("CurrentRewardSpriteName", currentSprite.name);
+
+        // Explicitly set practice trial flag
+        bool isPracticeTrial = practiceManager.IsPracticeTrial();
+        PlayerPrefs.SetInt("IsPracticeTrial", isPracticeTrial ? 1 : 0);
+
+        if (isPracticeTrial)
+        {
+            HandlePracticeTrial(workDecision, currentSprite);
+        }
+        else
+        {
+            HandleFormalExperimentTrial(workDecision);
+        }
+    }
+
+    private void HandlePracticeTrial(bool workDecision, Sprite currentSprite)
+    {
+        Debug.Log($"HandlePracticeTrial called - Work Decision: {workDecision}");
+
+        if (workDecision)
+        {
+            // Store the current sprite for cross-scene transfer
+            PlayerPrefs.SetString("CurrentRewardSpriteName", currentSprite.name);
+
+            // Ensure practice trial flag is set
+            PlayerPrefs.SetInt("IsPracticeTrial", 1);
+
+            SceneManager.LoadScene("GetReadyEveryTrial");
+        }
+        else
+        {
+            // Activate skip delay for practice trials
+            ActivateSkipDelay();
+
+            // Advance to next practice trial if skipped
+            practiceManager.AdvancePracticeTrial();
+        }
+    }
+
+    private void HandleFormalExperimentTrial(bool workDecision)
+    {
         if (experimentManager != null)
         {
-            int effortLevel = experimentManager.GetCurrentTrialEffortLevel();
-            int pressesRequired = experimentManager.GetCurrentTrialEV();
-            float trialDuration = experimentManager.GetTrialDuration();
-            Sprite currentSprite = effortSpriteImage.sprite;
-
-            if (currentSprite == null)
-            {
-                Debug.LogError("Current sprite in effortSpriteImage is null!");
-                return;
-            }
-
-            // // Start GridWorld initialization as a coroutine
-            // StartCoroutine(GridWorldManager.Instance.InitializeGridWorld(
-            //     trialDuration
-            //     // effortLevel,
-            //     // pressesRequired,
-            //     // currentSprite,
-            // ));
-
             experimentManager.HandleDecision(workDecision);
             DisableButtons();
             LogDecision(workDecision);
+        }
+    }
 
-            // Different logic for work and skip
-            if (workDecision)
+    // New method to handle sprite transfer between scenes
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name == "GetReadyEveryTrial")
+        {
+            // Find the RewardSpawner and set its sprite
+            RewardSpawner rewardSpawner = FindAnyObjectByType<RewardSpawner>();
+            if (rewardSpawner != null)
             {
-                // Move to GetReadyEveryTrial scene for work
-                SceneManager.LoadScene("GetReadyEveryTrial");
+                rewardSpawner.SetRewardSprite(effortSpriteImage.sprite);
             }
-            else
-            {
-                // Activate skip delay in current scene
-                ActivateSkipDelay();
-            }
+
+            // Remove the event listener to prevent multiple calls
+            SceneManager.sceneLoaded -= OnSceneLoaded;
         }
     }
 
@@ -440,13 +525,22 @@ public class DecisionManager : MonoBehaviour
 
         if (timerText != null)
         {
-            timerText.text = $"Waiting: {skipDelayTimer:F1}s";
+            timerText.text = $"Waiting: {skipDelayTimer:F0}";
         }
+
+        // Ensure the scene stays the same during skip delay
+        Invoke("CompleteSkipDelay", SKIP_DELAY);
     }
 
+    // Modify LogDecision to include more detailed practice trial logging
     private void LogDecision(bool workDecision)
     {
-        string logEntry = $"{System.DateTime.Now}: Player decided to {(workDecision ? "Work" : "Skip")}";
+        string trialType = practiceManager.IsPracticeTrial() ? "Practice" : "Formal";
+        int currentTrialIndex = practiceManager.IsPracticeTrial()
+            ? practiceManager.GetCurrentPracticeTrialIndex()
+            : -1;
+
+        string logEntry = $"{System.DateTime.Now}: {trialType} Trial {currentTrialIndex} - Player decided to {(workDecision ? "Work" : "Skip")}";
         System.IO.File.AppendAllText("decision_log.txt", logEntry + System.Environment.NewLine);
         Debug.Log(logEntry);
     }

@@ -45,9 +45,9 @@ public class CheckManager2 : MonoBehaviour
         // Add in SetupUI() method
 // Add in SetupButtons() method
 ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-navigationController.AddButton(choice50Button);
-navigationController.AddButton(choice70Button);
-navigationController.AddButton(choice90Button);
+navigationController.AddElement(choice50Button);
+navigationController.AddElement(choice70Button);
+navigationController.AddElement(choice90Button);
     }
 
 private void SpawnRandomFruit()
@@ -83,7 +83,7 @@ private void SpawnRandomFruit()
     // Start the new trial
     if (LogManager.Instance != null)
     {
-        LogManager.Instance.LogTrialStart(currentTrialIndex + 1, 1, 0, 0, 0, false); // Adjust the block number and other parameters as needed
+        LogManager.Instance.LogTrialStart(currentTrialIndex + 1, 1, 0, 0, false); // Adjust the block number and other parameters as needed
     }
 }
     private void RecordChoice(int threshold)

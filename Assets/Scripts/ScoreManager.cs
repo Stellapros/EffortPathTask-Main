@@ -10,48 +10,48 @@ public class ScoreManager : MonoBehaviour
     private int totalScore = 0;
     private int practiceScore = 0;
 
-private void Awake()
-{
-    if (Instance == null)
+    private void Awake()
     {
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
-        SceneManager.sceneLoaded += OnSceneLoaded;
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+            SceneManager.sceneLoaded += OnSceneLoaded;
 
-        // Check if LogManager is available before logging
-        if (LogManager.Instance != null)
-        {
-            LogManager.Instance.LogInfoMessage("Score System Initialized", $"Initial Total Score: {totalScore}, Initial Practice Score: {practiceScore}");
-        }
-        else
-        {
-            Debug.LogWarning("LogManager not available, unable to log score initialization.");
-        }
+            // Check if LogManager is available before logging
+            if (LogManager.Instance != null)
+            {
+                LogManager.Instance.LogInfoMessage("Score System Initialized", $"Initial Total Score: {totalScore}, Initial Practice Score: {practiceScore}");
+            }
+            else
+            {
+                Debug.LogWarning("LogManager not available, unable to log score initialization.");
+            }
 
-        // Find the scoreText in the current scene
-        if (scoreText == null)
-        {
-            scoreText = GameObject.FindAnyObjectByType<TextMeshProUGUI>();
+            // Find the scoreText in the current scene
             if (scoreText == null)
             {
-                // Check if LogManager is available before logging
-                if (LogManager.Instance != null)
+                scoreText = GameObject.FindAnyObjectByType<TextMeshProUGUI>();
+                if (scoreText == null)
                 {
-                    LogManager.Instance.LogWarning("UI Element Missing", "ScoreText component not found in the current scene");
-                }
-                else
-                {
-                    Debug.LogWarning("LogManager not available, unable to log UI element missing.");
+                    // Check if LogManager is available before logging
+                    if (LogManager.Instance != null)
+                    {
+                        LogManager.Instance.LogWarning("UI Element Missing", "ScoreText component not found in the current scene");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("LogManager not available, unable to log UI element missing.");
+                    }
                 }
             }
+            // UpdateScoreDisplay();
         }
-        // UpdateScoreDisplay();
+        else if (Instance != this)
+        {
+            Destroy(gameObject);
+        }
     }
-    else if (Instance != this)
-    {
-        Destroy(gameObject);
-    }
-}
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
@@ -71,25 +71,25 @@ private void Awake()
         UpdateScoreDisplay();
     }
 
-//    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-//     {
-//         if (scoreText != null)
-//         {
-//             UpdateScoreDisplay();
-//         }
-//         else
-//         {
-//             scoreText = GameObject.FindAnyObjectByType<TextMeshProUGUI>();
-//             if (scoreText != null)
-//             {
-//                 UpdateScoreDisplay();
-//             }
-//             else
-//             {
-//                 LogManager.Instance.LogWarning("UI Element Missing", "ScoreText component not found in the current scene");
-//             }
-//         }
-//     }
+    //    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    //     {
+    //         if (scoreText != null)
+    //         {
+    //             UpdateScoreDisplay();
+    //         }
+    //         else
+    //         {
+    //             scoreText = GameObject.FindAnyObjectByType<TextMeshProUGUI>();
+    //             if (scoreText != null)
+    //             {
+    //                 UpdateScoreDisplay();
+    //             }
+    //             else
+    //             {
+    //                 LogManager.Instance.LogWarning("UI Element Missing", "ScoreText component not found in the current scene");
+    //             }
+    //         }
+    //     }
 
     public void AddScore(int points, bool isFormalTrial)
     {
@@ -139,40 +139,39 @@ private void Awake()
             scoreText.gameObject.SetActive(false);
         }
     }
-    
-// private void UpdateScoreDisplay()
-// {
-//     if (scoreText != null)
-//     {
-//         bool isPracticeTrial = PracticeManager.Instance.IsPracticeTrial();
-//         int scoreToDisplay = isPracticeTrial ? practiceScore : totalScore;
-//         string scoreType = isPracticeTrial ? "Practice Score" : "Score";
-//         scoreText.text = $"{scoreType}: {scoreToDisplay}";
-//         scoreText.gameObject.SetActive(true);
 
-//         LogManager.Instance.LogMessage("Score Display Updated",
-//             $"Display Type: {scoreType}, Value: {scoreToDisplay}");
-//     }
-//     else
-//     {
-//         // Try to find the scoreText in the current scene
-//         scoreText = GameObject.FindAnyObjectByType<TextMeshProUGUI>();
-//         if (scoreText == null)
-//         {
-//             LogManager.Instance.LogWarning("UI Element Missing",
-//                 "ScoreText component not found in the current scene");
-//         }
-//         else
-//         {
-//             UpdateScoreDisplay();
-//         }
-//     }
-// }
+    // private void UpdateScoreDisplay()
+    // {
+    //     if (scoreText != null)
+    //     {
+    //         bool isPracticeTrial = PracticeManager.Instance.IsPracticeTrial();
+    //         int scoreToDisplay = isPracticeTrial ? practiceScore : totalScore;
+    //         string scoreType = isPracticeTrial ? "Practice Score" : "Score";
+    //         scoreText.text = $"{scoreType}: {scoreToDisplay}";
+    //         scoreText.gameObject.SetActive(true);
+
+    //         LogManager.Instance.LogMessage("Score Display Updated",
+    //             $"Display Type: {scoreType}, Value: {scoreToDisplay}");
+    //     }
+    //     else
+    //     {
+    //         // Try to find the scoreText in the current scene
+    //         scoreText = GameObject.FindAnyObjectByType<TextMeshProUGUI>();
+    //         if (scoreText == null)
+    //         {
+    //             LogManager.Instance.LogWarning("UI Element Missing",
+    //                 "ScoreText component not found in the current scene");
+    //         }
+    //         else
+    //         {
+    //             UpdateScoreDisplay();
+    //         }
+    //     }
+    // }
 
     public int GetTotalScore() => totalScore;
     public int GetPracticeScore() => practiceScore;
-
-
+    
     private void OnDestroy()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;

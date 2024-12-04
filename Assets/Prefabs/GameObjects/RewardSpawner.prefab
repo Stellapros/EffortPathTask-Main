@@ -44,8 +44,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 47e3fc8bfa0014be3a14afed7885f579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rewardPrefabs: []
+  formalRewardPrefabs: []
+  practiceRewardPrefabs: []
   gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
     type: 3}
   experimentManager: {fileID: 3507179296321619295, guid: 082b8600c17df4d43939728b5144dd10,
+    type: 3}
+  practiceManager: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+    type: 3}
+  playerSpawner: {fileID: 9081304544560268536, guid: d85bd69af54564d66b9c7eca3ac10784,
     type: 3}

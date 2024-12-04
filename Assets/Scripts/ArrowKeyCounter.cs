@@ -10,6 +10,7 @@ public class ArrowKeyCounter : MonoBehaviour
     public TextMeshProUGUI counterText;
     public TextMeshProUGUI timerText;
     public TextMeshProUGUI instructionText;
+    public GameObject previousButton; // New reference to the previous button
     private int counter = 0;
     private float elapsedTime = 0f;
     private float calibrationTime = 5f;
@@ -21,6 +22,7 @@ public class ArrowKeyCounter : MonoBehaviour
     private int[] phaseResults;
     private bool phaseStarted = false;
     private string nextSceneName = "TourGame";
+    private string previousSceneName = "StartScreen"; // New variable for previous scene
 
 
     // private string[] instructions = new string[]
@@ -32,10 +34,9 @@ public class ArrowKeyCounter : MonoBehaviour
     private string[] instructions = new string[]
     {
         "Before you embark on your adventure, let's calibrate your explorer's energy levels! For the next 5 seconds, press the direction buttons (↑, ↓, ←, or →) as quickly as you can. Think of it as your warm-up exercise! This calibration helps us fine-tune the game to match your personal speed and stamina.",
-        "Great job! Now, TRY TO BEAT YOUR SCORE! Get ready and start pressing when you’re prepared.",
+        "Now, TRY TO BEAT YOUR SCORE! Get ready and start pressing when you’re prepared.",
         "This is your LAST CHANCE to beat your score! Give it your all, explorer!"
     };
-
 
     private void Start()
     {
@@ -43,6 +44,12 @@ public class ArrowKeyCounter : MonoBehaviour
         UpdateCounterText();
         UpdateTimerText();
         ShowCurrentInstruction();
+
+        // Set up the previous button listener
+        if (previousButton != null)
+        {
+            previousButton.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(GoToPreviousScene);
+        }
     }
 
     private void Update()
@@ -90,6 +97,12 @@ public class ArrowKeyCounter : MonoBehaviour
                 }
             }
         }
+    }
+
+    // New method to handle going back to the previous scene
+    private void GoToPreviousScene()
+    {
+        SceneManager.LoadScene(previousSceneName);
     }
 
     private void StartCalibration()
@@ -150,7 +163,7 @@ public class ArrowKeyCounter : MonoBehaviour
 
         while (breakTimeLeft > 0)
         {
-            instructionText.text = $"Great job! Next opportunity to beat your score starts in {breakTimeLeft:F0} seconds...";
+            instructionText.text = $"Great job! Next chance to beat your score starts in {breakTimeLeft:F0} seconds...";
             yield return new WaitForSeconds(0.1f);
             breakTimeLeft -= 0.1f;
         }

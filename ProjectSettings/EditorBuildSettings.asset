@@ -7,7 +7,7 @@ EditorBuildSettings:
   m_Scenes:
   - enabled: 1
     path: Assets/Scenes/Persistent.unity
-    guid: 6db8c70f24fb74c55b8cd662d8441753
+    guid: f94e5bf12e406464b9f842aa53d099cf
   - enabled: 1
     path: Assets/Scenes/TitlePage.unity
     guid: 123a5c498bfb940ada22ceee1a3ad1e4
@@ -33,6 +33,24 @@ EditorBuildSettings:
     path: Assets/Scenes/InstructionsScreen.unity
     guid: a16e6968b753c402db62d92eeeb6d91d
   - enabled: 1
+    path: Assets/Scenes/GetReadyPractice.unity
+    guid: 3b21cad07faf74dec88c66a631234e24
+  - enabled: 1
+    path: Assets/Scenes/PracticePhase.unity
+    guid: 23aa71a20e8134580a19f02cbcc1bddd
+  - enabled: 1
+    path: Assets/Scenes/GetReadyEveryTrialManagerPractice.unity
+    guid: c9db5c9da888647788e36b0a60435985
+  - enabled: 1
+    path: Assets/Scenes/PracticeDecisionPhase.unity
+    guid: 7a9d6174ac9ff4b98935910e86c3a93a
+  - enabled: 1
+    path: Assets/Scenes/PracticeGridWorld.unity
+    guid: 7b46a30fcd934473c891f806226186d2
+  - enabled: 1
+    path: Assets/Scenes/GetReadyCheck.unity
+    guid: 138a44cf488bc4add9b5c265c4cbea58
+  - enabled: 1
     path: Assets/Scenes/Check1_Preference.unity
     guid: 423d28289887e44659c67efe3037ac33
   - enabled: 1
@@ -41,9 +59,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Check3_ComprehensionQuiz.unity
     guid: e2c8b06cc870b4799b1dacb00d1cc850
-  - enabled: 1
-    path: Assets/Scenes/GetReadyPractice.unity
-    guid: 3b21cad07faf74dec88c66a631234e24
   - enabled: 1
     path: Assets/Scenes/GetReadyFormal.unity
     guid: 4548849bdb80a468286516d993c41fd4

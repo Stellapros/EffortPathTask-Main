@@ -20,7 +20,7 @@ public class ContinueScreen : MonoBehaviour
         }
 
         ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-navigationController.AddButton(continueButton);
+        navigationController.AddElement(continueButton);
     }
 
     private void ContinueToNextScreen()
@@ -30,16 +30,4 @@ navigationController.AddButton(continueButton);
         // ExperimentManager.Instance.StartExperiment();
     }
 
-    // public void ContinueToNextScreen()
-    // {
-    //     ExperimentManager experimentManager = ExperimentManager.Instance;
-    //     if (experimentManager != null)
-    //     {
-    //         experimentManager.StartExperiment();
-    //     }
-    //     else
-    //     {
-    //         Debug.LogError("ExperimentManager not found in ContinueToNextScreen!");
-    //     }
-    // }
 }

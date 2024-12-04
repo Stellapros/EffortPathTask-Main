@@ -8,15 +8,21 @@ public class DetectCollisions : MonoBehaviour
     [SerializeField] private GameController gameController;
     [SerializeField] private GridWorldManager gridWorldManager;
     private PlayerController playerController;
+    private RewardSpawner rewardSpawner; // Add reference to RewardSpawner
+    private bool hasCollectedReward = false;
 
     private void Start()
-    {
+    { 
         // Find necessary components if not assigned
         if (gameController == null)
             gameController = FindAnyObjectByType<GameController>();
 
         if (gridWorldManager == null)
             gridWorldManager = FindAnyObjectByType<GridWorldManager>();
+
+        rewardSpawner = FindAnyObjectByType<RewardSpawner>(); // Find RewardSpawner
+        if (rewardSpawner == null)
+            Debug.LogWarning("RewardSpawner not found in the scene!");
 
         playerController = GetComponent<PlayerController>();
         if (playerController == null)
@@ -29,9 +35,16 @@ public class DetectCollisions : MonoBehaviour
             Debug.LogWarning("GridWorldManager not found in the scene!");
     }
 
-    private void OnTriggerEnter(Collider other)
+    // private void OnTriggerEnter(Collider other)
+    // {
+    //     if (other.CompareTag("Reward") && other.TryGetComponent<Reward>(out var reward))
+    //     {
+    //         HandleRewardCollision(reward, other.gameObject);
+    //     }
+    // }
+        private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Reward") && other.TryGetComponent<Reward>(out var reward))
+        if (!hasCollectedReward && other.CompareTag("Reward") && other.TryGetComponent<Reward>(out var reward))
         {
             HandleRewardCollision(reward, other.gameObject);
         }
@@ -44,11 +57,25 @@ public class DetectCollisions : MonoBehaviour
     /// <param name="rewardObject">The GameObject of the reward.</param>
     private void HandleRewardCollision(Reward reward, GameObject rewardObject)
     {
-        // int buttonPresses = playerController.GetButtonPressCount();
+        hasCollectedReward = true;
         gameController.RewardCollected(true);
-        // int pressesRequired = reward.GetPressesRequired();
+        
+        // Use RewardSpawner to clear the reward properly
+        if (rewardSpawner != null)
+        {
+            rewardSpawner.ClearReward();
+        }
+        else
+        {
+            Debug.LogWarning("RewardSpawner not found, destroying reward directly");
+            Destroy(rewardObject);
+        }
     }
 
+        public void ResetCollisionState()
+    {
+        hasCollectedReward = false;
+    }
 
     /// <summary>
     /// Ends the current trial and updates the game state.

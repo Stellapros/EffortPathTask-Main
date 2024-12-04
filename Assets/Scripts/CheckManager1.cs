@@ -50,8 +50,8 @@ public class CheckManager1 : MonoBehaviour
 
         // Add in SetupUI() method
 ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-navigationController.AddButton(leftChoiceButton);
-navigationController.AddButton(rightChoiceButton);
+navigationController.AddElement(leftChoiceButton);
+navigationController.AddElement(rightChoiceButton);
     }
 
     void GenerateFruitPairs()

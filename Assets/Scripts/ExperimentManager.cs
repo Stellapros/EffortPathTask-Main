@@ -16,21 +16,24 @@ public class ExperimentManager : MonoBehaviour
     #endregion
 
     #region Constants
-    private const int TOTAL_TRIALS = 3; // Total number of trials in the experiment
-    private const int PRACTICE_TRIALS = 3;
+    private const int TOTAL_TRIALS = 6; // Total number of trials in the experiment
+    private const int PRACTICE_TRIALS = 6;
     private const int TRIALS_PER_BLOCK = 1; // Number of trials in each block
-    private const int TOTAL_BLOCKS = 3; // Total number of blocks
-    private const float TRIAL_DURATION = 10f; // Duration of each trial in seconds
+    private const int TOTAL_BLOCKS = 4; // Total number of blocks
+    private const float TRIAL_DURATION = 5f; // Duration of each trial in seconds
     private const int REWARD_VALUE = 10; // Value of the reward for each trial
     private const float SKIP_DELAY = 3f; // Delay before showing the next trial after skipping
+    // private const float GRID_CELL_SIZE = 1f; // Size of each grid cell
     #endregion
 
     #region Serialized Fields
     [SerializeField] private Sprite level1Sprite;
     [SerializeField] private Sprite level2Sprite;
     [SerializeField] private Sprite level3Sprite;
+    [SerializeField] private Sprite currentTrialSprite;
+    // [SerializeField] public Sprite[] levelSprites = new Sprite[3];
     [SerializeField] private List<BlockConfig> blockConfigs;
-    [SerializeField] private float[] blockDistances = new float[3] { 3f, 5f, 7f };
+    // [SerializeField] private float[] blockDistances = new float[3] { 3f, 5f, 7f };
     [SerializeField] private string decisionPhaseScene = "DecisionPhase";
     [SerializeField] private string gridWorldScene = "GridWorld";
     [SerializeField] private string restBreakScene = "RestBreak";
@@ -55,7 +58,6 @@ public class ExperimentManager : MonoBehaviour
     private bool hasInitializedFlow = false;
     #endregion
 
-
     #region Audio Configuration
     [SerializeField] private bool playBackgroundMusic = true;
     [SerializeField] private float musicVolume = 1f;
@@ -74,6 +76,8 @@ public class ExperimentManager : MonoBehaviour
     private float trialStartTime;
     private List<Vector2> rewardPositions = new List<Vector2>();
     private List<(float collisionTime, float movementDuration)> rewardCollectionTimings = new List<(float, float)>();
+    public RewardSpawner rewardSpawner;
+    public GridManager gridManager;
     public ScoreManager scoreManager;
     public LogManager logManager;
     #endregion
@@ -219,38 +223,21 @@ public class ExperimentManager : MonoBehaviour
         Debug.Log($"Initialized scene queue with {sceneQueue.Count} scenes");
     }
 
-    // private void InitializeBackgroundMusic()
-    // {
-    //     if (!playBackgroundMusic) return;
-
-    //     var musicManager = BackgroundMusicManager.Instance;
-    //     if (musicManager != null)
-    //     {
-    //         DontDestroyOnLoad(musicManager.gameObject);
-    //         musicManager.SetVolume(musicVolume);
-    //         musicManager.PlayMusic();
-    //     }
-    //     else
-    //     {
-    //         Debug.LogWarning("BackgroundMusicManager instance not found! Please ensure it exists in the scene.");
-    //     }
-    // }
 
     private void InitializeBackgroundMusic()
-{
-    if (!playBackgroundMusic) return;
-
-    if (BackgroundMusicManager.Instance != null)
     {
-        BackgroundMusicManager.Instance.SetVolume(musicVolume);
-        BackgroundMusicManager.Instance.PlayMusic();
-    }
-    else
-    {
-        Debug.LogWarning("BackgroundMusicManager instance not found! Please ensure it exists in the scene.");
-    }
-}
+        if (!playBackgroundMusic) return;
 
+        if (BackgroundMusicManager.Instance != null)
+        {
+            BackgroundMusicManager.Instance.SetVolume(musicVolume);
+            BackgroundMusicManager.Instance.PlayMusic();
+        }
+        else
+        {
+            Debug.LogWarning("BackgroundMusicManager instance not found! Please ensure it exists in the scene.");
+        }
+    }
 
     /// <summary>
     /// Initializes all trials for the experiment & Block Randomization
@@ -267,10 +254,11 @@ public class ExperimentManager : MonoBehaviour
             List<Trial> blockTrials = GenerateBlockTrials(blockIndex, i);
             trials.AddRange(blockTrials);
 
-            Debug.Log($"Generated Block {i + 1} (Original Index: {blockIndex}): {blockTrials.Count} trials, Distance: {blockDistances[blockIndex]}");
-        }
+            // Debug.Log($"Generated Block {i + 1} (Original Index: {blockIndex}): {blockTrials.Count} trials, Distance: {blockDistances[blockIndex]}");
+            Debug.Log($"Generated Block {i + 1} (Original Index: {blockIndex}): {blockTrials.Count} trials");
 
-        Debug.Log($"Total trials generated: {trials.Count}");
+            Debug.Log($"Total trials generated: {trials.Count}");
+        }
     }
 
     private void VerifyPlayerPrefs()
@@ -283,13 +271,6 @@ public class ExperimentManager : MonoBehaviour
         }
     }
     #endregion
-
-    // private void StartTour()
-    // {
-    //     Debug.Log("Starting tour sequence");
-    //     TourManager.Instance.OnTourCompleted += HandleTourCompleted;
-    //     TourManager.Instance.StartTour();
-    // }
 
 
     #region Scene Management Methods
@@ -353,11 +334,15 @@ public class ExperimentManager : MonoBehaviour
         }
     }
 
+    // Add new field to prevent multiple transitions
+    private bool isTransitioning = false;
     private IEnumerator LoadSceneAfterDelay(string sceneName, float delay)
     {
         yield return new WaitForSeconds(delay);
         LoadScene(sceneName);
+        isTransitioning = false;
     }
+
     /// <summary>
     /// Cleans up the player object when transitioning between scenes.
     /// </summary>
@@ -415,7 +400,6 @@ public class ExperimentManager : MonoBehaviour
             LoadNextScene();
         }
     }
-
     private void SetupGridWorldPhase()
     {
         Debug.Log("Setting up Grid World Phase");
@@ -425,7 +409,6 @@ public class ExperimentManager : MonoBehaviour
 
 
     #region Experiment Control Methods
-
     /// <summary>
     /// Block Generation: The GenerateBlockTrials() method is called 
     /// with both the original block index and its randomized order:
@@ -433,27 +416,103 @@ public class ExperimentManager : MonoBehaviour
     /// <param name="blockIndex"></param>
     /// <param name="blockOrder"></param>
     /// <returns></returns>
-    private List<Trial> GenerateBlockTrials(int blockIndex, int blockOrder)
-    {
-        List<Trial> blockTrials = new List<Trial>();
-        List<int> effortLevels = GetEffortLevelsForBlock(blockIndex);
+    // private List<Trial> GenerateBlockTrials(int blockIndex, int blockOrder)
+    // {
+    //     List<Trial> blockTrials = new List<Trial>();
+    //     List<int> effortLevels = GetEffortLevelsForBlock(blockIndex);
 
-        for (int i = 0; i < TRIALS_PER_BLOCK; i++)
+    //     for (int i = 0; i < TRIALS_PER_BLOCK; i++)
+    //     {
+    //         Vector2 playerSpawnPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
+    //         Vector2 rewardPosition = new Vector2(Random.Range(-6f, 6f), Random.Range(-6f, 6f));
+
+    //         // Generate random player position within grid boundaries
+    //         // Vector2 playerSpawnPosition = new Vector2(
+    //         //     Random.Range(-4f, 4f), // Leave space for reward
+    //         //     Random.Range(-4f, 4f)
+    //         // );
+
+    //         // Generate reward position exactly 5 cells away
+    //         // Vector2 rewardPosition = gridManager.GetPositionAtDistance(playerSpawnPosition, 5f);
+
+    //         int effortLevel = effortLevels[i];
+    //         Sprite effortSprite = GetSpriteForEffortLevel(effortLevel);
+
+    //         // Create a trial with additional block information
+    //         // Trial Creation: When creating each trial, 
+    //         // both the original block index and its order in the experiment are recorded:
+    //         Trial trial = new Trial(effortSprite, playerSpawnPosition, rewardPosition, blockIndex, blockOrder);
+    //         blockTrials.Add(trial);
+    //     }
+
+    //     return blockTrials.OrderBy(x => Random.value).ToList(); // Shuffle trials within the block
+    // }
+
+// private List<Trial> GenerateBlockTrials(int blockIndex, int blockOrder)
+// {
+//     List<Trial> blockTrials = new List<Trial>();
+//     List<int> effortLevels = GetEffortLevelsForBlock(blockIndex);
+
+//     for (int i = 0; i < TRIALS_PER_BLOCK; i++)
+//     {
+//         // Spawn player at random position using GridManager
+//         Vector2 playerSpawnPosition = gridManager.GetRandomAvailablePosition();
+
+//         // Get reward position exactly 5 cells away
+//         Vector2 rewardPosition = gridManager.GetPositionAtDistance(playerSpawnPosition, 5f);
+
+//         int effortLevel = effortLevels[i];
+//         Sprite effortSprite = GetSpriteForEffortLevel(effortLevel);
+
+//         Trial trial = new Trial(effortSprite, playerSpawnPosition, rewardPosition, blockIndex, blockOrder);
+//         blockTrials.Add(trial);
+//     }
+
+//     return blockTrials.OrderBy(x => Random.value).ToList(); // Shuffle trials within the block
+// }
+
+private List<Trial> GenerateBlockTrials(int blockIndex, int blockOrder)
+{
+    List<Trial> blockTrials = new List<Trial>();
+    List<int> effortLevels = GetEffortLevelsForBlock(blockIndex);
+    
+
+    if (gridManager == null)
+    {
+        Debug.LogError("GridManager is null in GenerateBlockTrials!");
+        return blockTrials;
+    }
+
+    for (int i = 0; i < TRIALS_PER_BLOCK; i++)
+    {
+        try 
         {
-            Vector2 playerSpawnPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
-            Vector2 rewardPosition = new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));
+            // Ensure grid is initialized
+            gridManager.EnsureInitialization();
+
+            // Spawn player at random position using GridManager
+            Vector2 playerSpawnPosition = gridManager.GetRandomAvailablePosition();
+            Debug.Log($"Player spawn position: {playerSpawnPosition}");
+
+            // Get reward position exactly 5 cells away
+            Vector2 rewardPosition = gridManager.GetPositionAtDistance(playerSpawnPosition, 5);
+            Debug.Log($"Reward position: {rewardPosition}");
+            rewardPositions.Add(rewardPosition);
+
             int effortLevel = effortLevels[i];
             Sprite effortSprite = GetSpriteForEffortLevel(effortLevel);
 
-            // Create a trial with additional block information
-            // Trial Creation: When creating each trial, 
-            // both the original block index and its order in the experiment are recorded:
             Trial trial = new Trial(effortSprite, playerSpawnPosition, rewardPosition, blockIndex, blockOrder);
             blockTrials.Add(trial);
         }
-
-        return blockTrials.OrderBy(x => Random.value).ToList(); // Shuffle trials within the block
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error generating trial {i}: {e.Message}");
+        }
     }
+
+    return blockTrials.OrderBy(x => Random.value).ToList();
+}
 
     /// <summary>
     /// Returns a list of effort levels for a specific block.
@@ -500,7 +559,7 @@ public class ExperimentManager : MonoBehaviour
     {
         spriteToEffortMap = new Dictionary<Sprite, int>
     {
-        { level1Sprite, 0 }, // Easy
+        { level1Sprite, 0 }, // Easy 
         { level2Sprite, 1 }, // Medium
         { level3Sprite, 2 }  // Hard
     };
@@ -517,8 +576,8 @@ public class ExperimentManager : MonoBehaviour
         {
             Debug.Log("Starting experiment with practice trials");
             experimentStarted = true;
-            isPractice = true;
-            practiceTrialIndex = 0;
+            // isPractice = true;
+            // practiceTrialIndex = 0;
             currentTrialIndex = 0;
             currentBlockNumber = 0;
 
@@ -546,13 +605,17 @@ public class ExperimentManager : MonoBehaviour
             try
             {
                 logManager.LogExperimentStart(true); // Pass true for practice trials
+
+                // Add explicit logging for first trial setup
+                Debug.Log("Initializing first trial setup");
+                SetupNewTrial(); // Add this line to ensure first trial is properly set up
             }
             catch (System.Exception e)
             {
                 Debug.LogError($"Failed to log experiment start: {e.Message}");
             }
 
-            SetupPracticeTrial();
+            // SetupPracticeTrial();
             LoadScene(decisionPhaseScene);
         }
     }
@@ -571,16 +634,16 @@ public class ExperimentManager : MonoBehaviour
         }
     }
 
-    private void SetupPracticeTrial()
-    {
-        Debug.Log($"Setting up practice trial {practiceTrialIndex + 1}");
-        // Randomize effort level for practice trials
-        int effortLevel = Random.Range(1, 4);
-        int pressesRequired = PlayerPrefs.GetInt($"PressesPerEffortLevel_{effortLevel}", 10);
+    // private void SetupPracticeTrial()
+    // {
+    //     Debug.Log($"Setting up practice trial {practiceTrialIndex + 1}");
+    //     // Randomize effort level for practice trials
+    //     int effortLevel = Random.Range(1, 4);
+    //     int pressesRequired = PlayerPrefs.GetInt($"PressesPerEffortLevel_{effortLevel}", 10);
 
-        // Log practice trial start
-        logManager.LogTrialStart(practiceTrialIndex, 0, 3f, effortLevel, pressesRequired, true);
-    }
+    //     // Log practice trial start
+    //     logManager.LogTrialStart(practiceTrialIndex, 0, 3f, effortLevel, pressesRequired, true);
+    // }
 
     private void StartPracticeSequence()
     {
@@ -594,44 +657,18 @@ public class ExperimentManager : MonoBehaviour
 
     private void LogFirstTrial()
     {
-        float currentBlockDistance = GetCurrentBlockDistance();
+        // float currentBlockDistance = GetCurrentBlockDistance();
+        // float currentBlockDistance = 5f;
         int effortLevel = GetCurrentTrialEffortLevel();
         int pressesRequired = GetCurrentTrialEV();
-        logManager.LogTrialStart(currentTrialIndex, currentBlockNumber, currentBlockDistance, effortLevel, pressesRequired, isPractice);
-
+        // logManager.LogTrialStart(currentTrialIndex, currentBlockNumber, currentBlockDistance, effortLevel, pressesRequired, isPractice);
+        logManager.LogTrialStart(currentTrialIndex, currentBlockNumber, effortLevel, pressesRequired, isPractice);
     }
 
     /// <summary>
     /// Handles the user's decision to work or skip.
     /// </summary>
     public void HandleDecision(bool workDecision)
-    {
-        if (isPractice)
-        {
-            HandlePracticeDecision(workDecision);
-        }
-        else
-        {
-            HandleFormalDecision(workDecision);
-        }
-    }
-
-    private void HandlePracticeDecision(bool workDecision)
-    {
-        int effortLevel = Random.Range(1, 4);
-        int pressesRequired = PlayerPrefs.GetInt($"PressesPerEffortLevel_{effortLevel}", 10);
-        logManager.LogDecisionMade(practiceTrialIndex, workDecision ? "Work" : "Skip");
-
-        if (workDecision)
-        {
-            StartCoroutine(LoadSceneAfterDelay(gridWorldScene, 0.5f));
-        }
-        else
-        {
-            StartCoroutine(ShowNextTrialAfterDelay());
-        }
-    }
-    public void HandleFormalDecision(bool workDecision)
     {
         if (logManager == null)
         {
@@ -643,20 +680,34 @@ public class ExperimentManager : MonoBehaviour
                 return;
             }
         }
+
         Trial currentTrial = trials[currentTrialIndex];
         float decisionReactionTime = Time.time - decisionStartTime;
-        int pressesRequired = GetCurrentTrialEV(); // Get the number of presses required
+        int pressesRequired = GetCurrentTrialEV();
+
+        // Add additional logging
+        Debug.Log($"Handling decision for trial {currentTrialIndex}: Decision={workDecision}, Presses Required={pressesRequired}");
+
         logManager.LogDecisionMade(currentTrialIndex, workDecision ? "Work" : "Skip");
 
         if (workDecision)
         {
             Debug.Log($"Player decided to work on trial {currentTrialIndex + 1}. Loading GridWorld scene after delay.");
-            StartCoroutine(LoadSceneAfterDelay(gridWorldScene, 0.5f));
+            // Prevent multiple scene loads
+            if (!isTransitioning)
+            {
+                isTransitioning = true;
+                StartCoroutine(LoadSceneAfterDelay(gridWorldScene, 0.5f));
+            }
         }
         else
         {
             Debug.Log($"Player decided to skip trial {currentTrialIndex + 1}. Moving to next trial after delay.");
-            StartCoroutine(ShowNextTrialAfterDelay());
+            if (!isTransitioning)
+            {
+                isTransitioning = true;
+                StartCoroutine(ShowNextTrialAfterDelay());
+            }
         }
     }
 
@@ -666,11 +717,12 @@ public class ExperimentManager : MonoBehaviour
     private IEnumerator ShowNextTrialAfterDelay()
     {
         yield return new WaitForSeconds(SKIP_DELAY);
-        if (isPractice)
-        {
-            MoveToPracticeOrFormalExperiment();
-        }
-        else if (currentTrialIndex < TOTAL_TRIALS - 1)
+        // if (isPractice)
+        // {
+        //     MoveToPracticeOrFormalExperiment();
+        // }
+        // else 
+        if (currentTrialIndex < TOTAL_TRIALS - 1)
         {
             MoveToNextTrial();
         }
@@ -678,22 +730,23 @@ public class ExperimentManager : MonoBehaviour
         {
             EndExperiment();
         }
+        isTransitioning = false;
     }
 
-    private void MoveToPracticeOrFormalExperiment()
-    {
-        practiceTrialIndex++;
-        if (practiceTrialIndex < PRACTICE_TRIALS)
-        {
-            SetupPracticeTrial();
-            LoadScene(decisionPhaseScene);
-        }
-        else
-        {
-            isPractice = false;
-            LoadScene("GetReadyFormal"); // Load a transition scene before starting formal experiment
-        }
-    }
+    // private void MoveToPracticeOrFormalExperiment()
+    // {
+    //     practiceTrialIndex++;
+    //     if (practiceTrialIndex < PRACTICE_TRIALS)
+    //     {
+    //         SetupPracticeTrial();
+    //         LoadScene(decisionPhaseScene);
+    //     }
+    //     else
+    //     {
+    //         isPractice = false;
+    //         LoadScene("GetReadyFormal"); // Load a transition scene before starting formal experiment
+    //     }
+    // }
 
     public void StartFormalExperiment()
     {
@@ -774,17 +827,47 @@ public class ExperimentManager : MonoBehaviour
         Debug.Log($"Decision phase started for trial {currentTrialIndex + 1}");
         logManager.LogDecisionPhaseStart(currentTrialIndex);
     }
-    
+
     private void SetupNewTrial()
     {
         if (currentTrialIndex < TOTAL_TRIALS)
         {
             Debug.Log($"Setting up trial {currentTrialIndex} in block {currentBlockNumber}");
-            float currentBlockDistance = GetCurrentBlockDistance();
+            // float currentBlockDistance = GetCurrentBlockDistance();
+
+            // Validate trial data exists
+            if (trials == null || currentTrialIndex >= trials.Count)
+            {
+                Debug.LogError($"Invalid trial setup: trials={trials?.Count ?? 0}, currentTrialIndex={currentTrialIndex}");
+                return;
+            }
+
+            // Add validation for current trial
+            Trial currentTrial = trials[currentTrialIndex];
+            if (currentTrial == null)
+            {
+                Debug.LogError("Current trial is null!");
+                return;
+            }
+
+
+            // float currentBlockDistance = 5f;
             int effortLevel = GetCurrentTrialEffortLevel();
             int pressesRequired = GetCurrentTrialEV();
-            logManager.LogTrialStart(currentTrialIndex, currentBlockNumber, currentBlockDistance, effortLevel, pressesRequired, isPractice);
-            // logManager.DumpTrialData(); // Add this line
+
+            // Add additional logging
+            Debug.Log($"Trial {currentTrialIndex} setup - Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
+
+            // Log trial start with additional validation
+            if (logManager != null)
+            {
+                // logManager.LogTrialStart(currentTrialIndex, currentBlockNumber, currentBlockDistance, effortLevel, pressesRequired, isPractice);
+                logManager.LogTrialStart(currentTrialIndex, currentBlockNumber, effortLevel, pressesRequired, isPractice);
+            }
+            else
+            {
+                Debug.LogError("LogManager is null during trial setup!");
+            }
         }
         else
         {
@@ -798,68 +881,25 @@ public class ExperimentManager : MonoBehaviour
     /// </summary>
     public void EndTrial(bool rewardCollected)
     {
-        if (isPractice)
-        {
-            EndPracticeTrial(rewardCollected);
-        }
-        else
-        {
-            EndFormalTrial(rewardCollected);
-        }
-    }
-    private void EndPracticeTrial(bool rewardCollected)
-    {
-        logManager.LogTrialEnd(practiceTrialIndex, rewardCollected ? "Collected" : "NotCollected");
-
-        if (rewardCollected)
-        {
-            ScoreManager.Instance.AddScore(REWARD_VALUE, false); // Practice trial
-        }
-        MoveToPracticeOrFormalExperiment();
-        // practiceTrialIndex++;
-
-        // if (practiceTrialIndex < PRACTICE_TRIALS)
-        // {
-        //     SetupPracticeTrial();
-        //     LoadScene(decisionPhaseScene);
-        // }
-        // else
-        // {
-        //     isPractice = false;
-        //     LoadScene("GetReadyFormal");
-        // }
-    }
-    public void EndFormalTrial(bool rewardCollected)
-    {
         if (logManager == null)
         {
             Debug.LogError("LogManager is null in EndTrial method!");
             return;
         }
 
-        Debug.Log($"Ending {(isPractice ? "practice " : "")}trial {(isPractice ? practiceTrialIndex : currentTrialIndex)}. Reward collected: {rewardCollected}");
+        // Debug.Log($"Ending {(isPractice ? "practice " : "")}trial {(isPractice ? practiceTrialIndex : currentTrialIndex)}. Reward collected: {rewardCollected}");
+        Debug.Log($"Ending trial {currentTrialIndex}. Reward collected: {rewardCollected}");
+
         float trialDuration = Time.time - trialStartTime;
         float actionReactionTime = GameController.Instance.GetActionReactionTime();
 
-        if (isPractice)
-        {
-            // logManager.LogPracticeTrialEnd(practiceTrialIndex, rewardCollected ? "Collected" : "NotCollected");
-            MoveToPracticeOrFormalExperiment(); // Add this line
-        }
-        else
-        {
-            logManager.LogTrialEnd(currentTrialIndex, rewardCollected ? "Collected" : "NotCollected");
-            MoveToNextTrial();
-        }
-
         if (rewardCollected)
         {
-            ScoreManager.Instance.AddScore(REWARD_VALUE, true); // Formal trial
+            // ScoreManager.Instance.AddScore(REWARD_VALUE, true); // Formal trial // Added in the GameController
         }
 
-        // logManager.DumpTrialData();
-
         OnTrialEnded?.Invoke(rewardCollected);
+        MoveToNextTrial();
     }
 
     /// <summary>
@@ -867,13 +907,14 @@ public class ExperimentManager : MonoBehaviour
     /// </summary>
     private void StartNewBlock()
     {
-        Debug.Log($"Starting Block {currentBlockNumber} with distance {GetCurrentBlockDistance()}");
-        logManager.LogBlockStart(currentBlockNumber);
+        // Debug.Log($"Starting Block {currentBlockNumber} with distance {GetCurrentBlockDistance()}");
+        // logManager.LogBlockStart(currentBlockNumber);
 
         // Here, you might want to set any block-specific parameters
         // For example, setting the current block distance:
-        float currentBlockDistance = GetCurrentBlockDistance();
-        Debug.Log($"Current block distance set to: {currentBlockDistance}");
+        // float currentBlockDistance = GetCurrentBlockDistance();
+        // float currentBlockDistance = 5f;
+        // Debug.Log($"Current block distance set to: {currentBlockDistance}");
     }
 
     /// <summary>
@@ -1045,15 +1086,15 @@ public class ExperimentManager : MonoBehaviour
         return pressesRequired;
     }
 
-    public float GetCurrentBlockDistance()
-    {
-        if (currentBlockNumber < 0 || currentBlockNumber >= blockDistances.Length)
-        {
-            Debug.LogError($"Invalid block number: {currentBlockNumber}. Using default distance of 5f.");
-            return 5f; // Default fallback distance
-        }
-        return blockDistances[currentBlockNumber];
-    }
+    // public float GetCurrentBlockDistance()
+    // {
+    //     if (currentBlockNumber < 0 || currentBlockNumber >= blockDistances.Length)
+    //     {
+    //         Debug.LogError($"Invalid block number: {currentBlockNumber}. Using default distance of 5f.");
+    //         return 5f; // Default fallback distance
+    //     }
+    //     return blockDistances[currentBlockNumber];
+    // }
 
     // Getter methods for various experiment parameters
     // public float GetCurrentBlockDistance() => blockDistances[currentBlockNumber];
@@ -1061,25 +1102,41 @@ public class ExperimentManager : MonoBehaviour
     public int GetCurrentTrialIndex() => currentTrialIndex;
     public int GetCurrentTrialInBlock() => currentTrialIndex % TRIALS_PER_BLOCK + 1;
     public int GetTotalTrialsInBlock() => TRIALS_PER_BLOCK;
+    public Sprite GetCurrentTrialSprite() => trials[currentTrialIndex].EffortSprite;
+    public Sprite GetStoredTrialSprite(Sprite sprite) => currentTrialSprite;
     public Vector2 GetCurrentTrialPlayerPosition() => trials[currentTrialIndex].PlayerPosition;
     public Vector2 GetCurrentTrialRewardPosition() => trials[currentTrialIndex].RewardPosition;
-    public int GetCurrentTrialRewardValue() => REWARD_VALUE;
-    // public Sprite GetCurrentTrialSprite() => trials[currentTrialIndex].EffortSprite;
-        public Sprite GetCurrentTrialSprite()
+        public void StoreCurrentTrialSprite(Sprite sprite)
     {
-        if (currentTrialIndex >= 0 && currentTrialIndex < TOTAL_TRIALS)
-        {
-            return trials[currentTrialIndex].EffortSprite;
-        }
-        else
-        {
-            Debug.LogError($"Invalid currentTrialIndex: {currentTrialIndex}");
-            return null;
-        }
+        currentTrialSprite = sprite;
+        Debug.Log($"Stored trial sprite: {sprite?.name ?? "NULL"}");
     }
+
+
+
+//     public Vector2 GetCurrentTrialRewardPosition(Vector2 playerPosition)
+// {
+//     // Possible directions: Up, Down, Left, Right
+//     Vector2[] directions = new Vector2[] 
+//     { 
+//         Vector2.up, Vector2.down, Vector2.left, Vector2.right 
+//     };
+
+//     // Randomly select a direction
+//     Vector2 selectedDirection = directions[Random.Range(0, directions.Length)];
+
+//     // Calculate reward position 5 cells away in the selected direction
+//     Vector2 rewardPosition = playerPosition + (selectedDirection * 5);
+
+//     return rewardPosition;
+// }
+
+    public int GetCurrentTrialRewardValue() => REWARD_VALUE;
+    // public Sprite GetFormalCurrentTrialSprite() => trials[currentTrialIndex].EffortSprite;
+
     public float GetTrialDuration() => TRIAL_DURATION;
     public List<Vector2> GetRewardPositions() => rewardPositions;
-    public List<(float collisionTime, float movementDuration)> GetRewardCollectionTimings() => rewardCollectionTimings;
+    // public List<(float collisionTime, float movementDuration)> GetRewardCollectionTimings() => rewardCollectionTimings;
     #endregion
 
     /// <summary>
@@ -1097,11 +1154,27 @@ public class ExperimentManager : MonoBehaviour
         public Trial(Sprite effortSprite, Vector2 playerPosition, Vector2 rewardPosition, int blockIndex, int blockOrder)
         {
             this.EffortSprite = effortSprite;
-            this.PlayerPosition = playerPosition;
-            this.RewardPosition = rewardPosition;
+            // Round positions to ensure they align with grid cells
+            this.PlayerPosition = new Vector2(
+                Mathf.Round(playerPosition.x),
+                Mathf.Round(playerPosition.y)
+            );
+            this.RewardPosition = new Vector2(
+                Mathf.Round(rewardPosition.x),
+                Mathf.Round(rewardPosition.y)
+            );
             this.BlockIndex = blockIndex;
             this.BlockOrder = blockOrder;
         }
+
+        // public Trial(Sprite effortSprite, Vector2 playerPosition, Vector2 rewardPosition, int blockIndex, int blockOrder)
+        // {
+        //     this.EffortSprite = effortSprite;
+        //     this.PlayerPosition = playerPosition;
+        //     this.RewardPosition = rewardPosition;
+        //     this.BlockIndex = blockIndex;
+        //     this.BlockOrder = blockOrder;
+        // }
     }
     public class BlockConfig
     {

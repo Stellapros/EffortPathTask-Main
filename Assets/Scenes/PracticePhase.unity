@@ -748,7 +748,7 @@ GameObject:
   - component: {fileID: 870395277}
   - component: {fileID: 870395276}
   m_Layer: 5
-  m_Name: Next
+  m_Name: Start
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -793,7 +793,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Next
+  m_text: Start
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
   m_sharedMaterial: {fileID: 2140032, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
@@ -1458,62 +1458,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1835221436}
   m_CullTransparentMesh: 1
---- !u!1 &1954606385
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1954606387}
-  - component: {fileID: 1954606386}
-  m_Layer: 0
-  m_Name: PracticeManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1954606386
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1954606385}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d7ac9a1e41f9c4b4abc9b5dfd4fbacdb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  numberOfPracticeTrials: 3
-  practiceTrialDuration: 15
-  practiceSceneName: GetReadyPractice
-  experimentSceneName: DecisionPhase
-  practiceUI: {fileID: 0}
-  instructionText: {fileID: 0}
-  progressText: {fileID: 0}
-  feedbackPanel: {fileID: 0}
-  feedbackText: {fileID: 0}
-  startPracticeButton: {fileID: 0}
-  continueButton: {fileID: 0}
-  buttonClickSound: {fileID: 0}
---- !u!4 &1954606387
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1954606385}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1960094766
 GameObject:
   m_ObjectHideFlags: 0
@@ -1527,7 +1471,7 @@ GameObject:
   - component: {fileID: 1960094769}
   - component: {fileID: 1960094768}
   m_Layer: 5
-  m_Name: NextButton
+  m_Name: StartButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1635,6 +1579,202 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1960094766}
   m_CullTransparentMesh: 1
+--- !u!1001 &4525902253318107643
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2947154079151239543, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: m_Name
+      value: PracticeManager
+      objectReference: {fileID: 0}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: skipButton
+      value: 
+      objectReference: {fileID: 251603938}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: startPracticeButton
+      value: 
+      objectReference: {fileID: 1960094768}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[0].rewardSprite
+      value: 
+      objectReference: {fileID: 21300000, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
+        type: 3}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[1].rewardSprite
+      value: 
+      objectReference: {fileID: 21300018, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
+        type: 3}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[2].rewardSprite
+      value: 
+      objectReference: {fileID: 21300012, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
+        type: 3}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[3].rewardSprite
+      value: 
+      objectReference: {fileID: 21300000, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
+        type: 3}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[4].rewardSprite
+      value: 
+      objectReference: {fileID: 21300018, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
+        type: 3}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[5].rewardSprite
+      value: 
+      objectReference: {fileID: 21300012, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
+        type: 3}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[0].customRewardPrefab
+      value: 
+      objectReference: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
+        type: 3}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[1].customRewardPrefab
+      value: 
+      objectReference: {fileID: 9181912887003914726, guid: 989337141fe604338aed78ac97f42db1,
+        type: 3}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[2].customRewardPrefab
+      value: 
+      objectReference: {fileID: 6861172893992282259, guid: ab4849fe315e544faabccbbeb391c3e6,
+        type: 3}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[3].customRewardPrefab
+      value: 
+      objectReference: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
+        type: 3}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[4].customRewardPrefab
+      value: 
+      objectReference: {fileID: 9181912887003914726, guid: 989337141fe604338aed78ac97f42db1,
+        type: 3}
+    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[5].customRewardPrefab
+      value: 
+      objectReference: {fileID: 6861172893992282259, guid: ab4849fe315e544faabccbbeb391c3e6,
+        type: 3}
+    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: skipButton
+      value: 
+      objectReference: {fileID: 251603938}
+    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: startPracticeButton
+      value: 
+      objectReference: {fileID: 1960094768}
+    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[0].rewardSprite
+      value: 
+      objectReference: {fileID: 21300000, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
+        type: 3}
+    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[1].rewardSprite
+      value: 
+      objectReference: {fileID: 21300018, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
+        type: 3}
+    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[2].rewardSprite
+      value: 
+      objectReference: {fileID: 21300012, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
+        type: 3}
+    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[0].customRewardPrefab
+      value: 
+      objectReference: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
+        type: 3}
+    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[1].customRewardPrefab
+      value: 
+      objectReference: {fileID: 9181912887003914726, guid: 989337141fe604338aed78ac97f42db1,
+        type: 3}
+    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
+        type: 3}
+      propertyPath: practiceTrials.Array.data[2].customRewardPrefab
+      value: 
+      objectReference: {fileID: 6861172893992282259, guid: ab4849fe315e544faabccbbeb391c3e6,
+        type: 3}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: cf96765f7320747d3a1db6abff587e85, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -1644,4 +1784,4 @@ SceneRoots:
   - {fileID: 772451265}
   - {fileID: 606494806}
   - {fileID: 1417293842}
-  - {fileID: 1954606387}
+  - {fileID: 4525902253318107643}

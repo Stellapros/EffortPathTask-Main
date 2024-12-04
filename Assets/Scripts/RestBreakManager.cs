@@ -31,7 +31,7 @@ public class RestBreakManager : MonoBehaviour
 
         // Add in Start() method
 ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-navigationController.AddButton(continueButton);
+navigationController.AddElement(continueButton);
     }
 
     private void UpdateBlockInfo()

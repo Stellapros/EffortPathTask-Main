@@ -14,10 +14,10 @@ public class TitlePage : MonoBehaviour
     private void Start()
     {
         // Add in Start() method
-ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-navigationController.AddButton(startButton);
+        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+        navigationController.AddElement(startButton);
 
-// Set up the title
+        // Set up the title
         titleText.text = "Neuronauts";
 
         // Set up the subtitle

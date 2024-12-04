@@ -9,7 +9,7 @@ public class CountdownTimer : MonoBehaviour
     public bool IsInitialized { get; private set; }
 
     [SerializeField] private TextMeshProUGUI timerText; // Reference to the UI text component
-    [SerializeField] private float totalTime = 10.0f; // Default time set to 10 seconds
+    [SerializeField] private float totalTime = 5.0f; // Default time set to 5 seconds
     private float timeLeft;
     private bool isRunning = false;
 
@@ -85,16 +85,27 @@ public class CountdownTimer : MonoBehaviour
     }
 
     // Starts the timer with a specified duration
+    // public void StartTimer(float duration)
+    // {
+    //     UnityEngine.Debug.Log($"StartTimer called with duration: {duration}");
+    //     totalTime = duration;
+    //     timeLeft = totalTime;
+    //     isRunning = true;
+    //     // startTime = Time.time;
+    //     stopwatch.Restart();
+    //     UpdateTimerUI();
+    //     UnityEngine.Debug.Log($"Timer started at {Time.realtimeSinceStartup}. totalTime: {totalTime}, timeLeft: {timeLeft}, isRunning: {isRunning}");
+    // }
+
+    // after change the total duration to 5s.
     public void StartTimer(float duration)
     {
-        UnityEngine.Debug.Log($"StartTimer called with duration: {duration}");
         totalTime = duration;
         timeLeft = totalTime;
         isRunning = true;
-        // startTime = Time.time;
         stopwatch.Restart();
         UpdateTimerUI();
-        UnityEngine.Debug.Log($"Timer started at {Time.realtimeSinceStartup}. totalTime: {totalTime}, timeLeft: {timeLeft}, isRunning: {isRunning}");
+        UnityEngine.Debug.Log($"Timer started with duration: {duration}s");
     }
 
 
@@ -149,7 +160,7 @@ public class CountdownTimer : MonoBehaviour
     {
         if (timerText != null)
         {
-            timerText.text = $"Time: {timeLeft:F1}";
+            timerText.text = $"Time: {timeLeft:F0}";
         }
     }
 

@@ -87,13 +87,14 @@ private string filePath;
         if (m_ShowDebugLogManager) Debug.Log($"CSV file initialized at: {filePath}");
     }
 
-    public void LogTrialStart(int trialNumber, int blockNumber, float blockDistance, int effortLevel, int pressesRequired, bool isPractice)
+    // public void LogTrialStart(int trialNumber, int blockNumber, float blockDistance, int effortLevel, int pressesRequired, bool isPractice)
+public void LogTrialStart(int trialNumber, int blockNumber, int effortLevel, int pressesRequired, bool isPractice)
     {
         var trialData = new TrialData
         {
             TrialNumber = trialNumber,
             BlockNumber = blockNumber,
-            BlockDistance = blockDistance,
+            // BlockDistance = blockDistance,
             TrialStart = DateTime.Now,
             EffortLevel = effortLevel,
             PressesRequired = pressesRequired,

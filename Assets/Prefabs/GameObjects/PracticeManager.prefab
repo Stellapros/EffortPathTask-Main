@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2947154079151239543
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8453209092313896474}
+  - component: {fileID: 8165224307821008778}
+  m_Layer: 0
+  m_Name: PracticeManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8453209092313896474
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2947154079151239543}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8165224307821008778
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2947154079151239543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7ac9a1e41f9c4b4abc9b5dfd4fbacdb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  practiceTrialDuration: 10
+  getReadyPracticeScene: GetReadyPractice
+  decisionPhaseScene: DecisionPhase
+  getReadyCheckScene: GetReadyCheck
+  startPracticeButton: {fileID: 0}
+  skipButton: {fileID: 0}
+  practiceTrials:
+  - effortLevel: 2
+    rewardValue: 10
+    rewardSprite: {fileID: 0}
+    rewardSpriteIndex: 0
+    useCustomPrefab: 0
+    customRewardPrefab: {fileID: 0}
+  - effortLevel: 4
+    rewardValue: 10
+    rewardSprite: {fileID: 0}
+    rewardSpriteIndex: 1
+    useCustomPrefab: 0
+    customRewardPrefab: {fileID: 0}
+  - effortLevel: 6
+    rewardValue: 10
+    rewardSprite: {fileID: 0}
+    rewardSpriteIndex: 2
+    useCustomPrefab: 0
+    customRewardPrefab: {fileID: 0}
+  - effortLevel: 2
+    rewardValue: 10
+    rewardSprite: {fileID: 0}
+    rewardSpriteIndex: 0
+    useCustomPrefab: 0
+    customRewardPrefab: {fileID: 0}
+  - effortLevel: 4
+    rewardValue: 10
+    rewardSprite: {fileID: 0}
+    rewardSpriteIndex: 1
+    useCustomPrefab: 0
+    customRewardPrefab: {fileID: 0}
+  - effortLevel: 6
+    rewardValue: 10
+    rewardSprite: {fileID: 0}
+    rewardSpriteIndex: 2
+    useCustomPrefab: 0
+    customRewardPrefab: {fileID: 0}

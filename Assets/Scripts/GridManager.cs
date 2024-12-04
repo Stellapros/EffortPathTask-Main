@@ -2,6 +2,9 @@ using UnityEngine;
 using UnityEditor;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using System;
+using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 public enum CellType { Empty, Floor, Wall }
 
@@ -34,6 +37,7 @@ public class GridManager : MonoBehaviour
 
     public int GridWidth => gridWidth;
     public int GridHeight => gridHeight;
+    private Vector2Int gridSize;
 
     private bool isInitialized = false;
 
@@ -127,7 +131,8 @@ public class GridManager : MonoBehaviour
         grid = new CellType[gridWidth, gridHeight];
         availableFloorPositions = new List<Vector2Int>();
         gridObjects = new GameObject[gridWidth, gridHeight];
-occupiedPositions = new bool[gridWidth, gridHeight]; // Initialize the occupiedPositions array
+        gridSize = new Vector2Int(gridWidth, gridHeight);
+        occupiedPositions = new bool[gridWidth, gridHeight]; // Initialize the occupiedPositions array
 
 
         if (gridLayoutFile != null)
@@ -139,40 +144,21 @@ occupiedPositions = new bool[gridWidth, gridHeight]; // Initialize the occupiedP
             CreateDefaultGrid();
         }
 
-            // Reset all positions to unoccupied
-    for (int x = 0; x < gridWidth; x++)
-    {
-        for (int y = 0; y < gridHeight; y++)
+        // Reset all positions to unoccupied
+        for (int x = 0; x < gridWidth; x++)
         {
-            occupiedPositions[x, y] = false;
+            for (int y = 0; y < gridHeight; y++)
+            {
+                occupiedPositions[x, y] = false;
+            }
         }
     }
-    }
 
-    // Add these methods to manage occupied positions
-public void SetPositionOccupied(Vector2 worldPosition, bool occupied)
-{
-    Vector2Int gridPos = WorldToGridPosition(worldPosition);
-    if (IsValidGridPosition(gridPos))
+    public bool IsValidGridPosition(Vector2Int gridPos)
     {
-        occupiedPositions[gridPos.x, gridPos.y] = occupied;
+        return gridPos.x >= 0 && gridPos.x < gridWidth &&
+               gridPos.y >= 0 && gridPos.y < gridHeight;
     }
-}
-
-public bool IsPositionOccupied(Vector2 worldPosition)
-{
-    Vector2Int gridPos = WorldToGridPosition(worldPosition);
-    return IsValidGridPosition(gridPos) && occupiedPositions[gridPos.x, gridPos.y];
-}
-
-private bool IsValidGridPosition(Vector2Int gridPos)
-{
-    return gridPos.x >= 0 && gridPos.x < gridWidth &&
-           gridPos.y >= 0 && gridPos.y < gridHeight;
-}
-
-
-
 
     // Method to validate and load prefabs
     private bool ValidateAndLoadPrefabs()
@@ -199,12 +185,6 @@ private bool IsValidGridPosition(Vector2Int gridPos)
         }
 
         return true;
-    }
-
-    // Add this method to check if grid is initialized
-    public bool IsInitialized()
-    {
-        return grid != null && gridObjects != null;
     }
 
     private void LoadGridFromFile()
@@ -240,26 +220,6 @@ private bool IsValidGridPosition(Vector2Int gridPos)
                 availableFloorPositions.Add(new Vector2Int(x, y));
             }
         }
-    }
-
-    /// <summary>
-    /// Sets the size of the grid and reinitializes it with the new dimensions.
-    /// </summary>
-    /// <param name="width">The new width of the grid</param>
-    /// <param name="height">The new height of the grid</param>
-    public void SetGridSize(int width, int height)
-    {
-        // Store new dimensions
-        this.gridWidth = Mathf.Max(1, width);
-        this.gridHeight = Mathf.Max(1, height);
-
-        // Clean up existing grid if any
-        HideGrid();
-
-        // Reinitialize with new dimensions
-        InitializeGrid();
-        InitializeObjectPools();
-        ShowGrid();
     }
 
     private void InitializeObjectPools()
@@ -370,8 +330,6 @@ private bool IsValidGridPosition(Vector2Int gridPos)
         }
     }
 
-
-
     public Vector2 GetRandomAvailablePosition()
     {
         if (availableFloorPositions.Count == 0)
@@ -386,169 +344,193 @@ private bool IsValidGridPosition(Vector2Int gridPos)
 
         return GridToWorldPosition(gridPos);
     }
-    public Vector2Int GetGridPositionAtDistance(Vector2Int startGridPos, int distance)
-    {
-        Debug.Log($"GetGridPositionAtDistance called: Start {startGridPos}, Distance {distance}");
-        List<Vector2Int> candidatePositions = new List<Vector2Int>();
 
-        for (int x = 0; x < gridWidth; x++)
-        {
-            for (int y = 0; y < gridHeight; y++)
-            {
-                if (grid[x, y] == CellType.Floor)
-                {
-                    Vector2Int gridPos = new Vector2Int(x, y);
-                    int gridDistance = Mathf.Abs(gridPos.x - startGridPos.x) + Mathf.Abs(gridPos.y - startGridPos.y);
-                    if (gridDistance == distance)
-                    {
-                        candidatePositions.Add(gridPos);
-                    }
-                }
-            }
-        }
 
-        Debug.Log($"Candidate positions found: {candidatePositions.Count}");
-
-        if (candidatePositions.Count == 0)
-        {
-            Debug.LogWarning("No positions found at the exact distance. Returning closest available position.");
-            return GetClosestAvailableGridPosition(startGridPos, distance);
-        }
-
-        Vector2Int selectedPosition = candidatePositions[Random.Range(0, candidatePositions.Count)];
-        Debug.Log($"Selected position: {selectedPosition}");
-        return selectedPosition;
-    }
-
-// Modified GetPositionAtDistance method with null check and better error handling
-public Vector2 GetPositionAtDistance(Vector2 startPosition, float distance)
-{
-    if (occupiedPositions == null)
-    {
-        Debug.LogError("occupiedPositions array is not initialized!");
-        return startPosition; // Return original position as fallback
-    }
-
-    Vector2Int startGridPos = WorldToGridPosition(startPosition);
-    List<Vector2Int> candidatePositions = new List<Vector2Int>();
-
-    for (int x = 0; x < gridWidth; x++)
-    {
-        for (int y = 0; y < gridHeight; y++)
-        {
-            if (grid[x, y] == CellType.Floor && !occupiedPositions[x, y])
-            {
-                Vector2Int gridPos = new Vector2Int(x, y);
-                float gridDistance = Vector2Int.Distance(startGridPos, gridPos);
-                if (Mathf.Abs(gridDistance - distance) < 0.5f) // Allow some tolerance
-                {
-                    candidatePositions.Add(gridPos);
-                }
-            }
-        }
-    }
-
-    if (candidatePositions.Count == 0)
-    {
-        Debug.LogWarning("No positions found at the exact distance. Returning closest available position.");
-        return GetClosestAvailablePosition(startPosition, distance);
-    }
-
-    Vector2Int selectedGridPos = candidatePositions[Random.Range(0, candidatePositions.Count)];
-    return GridToWorldPosition(selectedGridPos);
-}
-
-    // public Vector2 GetPositionAtDistance(Vector2 startPosition, float distance)
+    /// <summary>
+    /// find a position exactly 5 cells away
+    /// </summary>
+    // public Vector2 GetPositionAtDistance(Vector2 startPosition, int exactDistance)
     // {
-    //     Vector2Int startGridPos = WorldToGridPosition(startPosition);
-    //     List<Vector2Int> candidatePositions = new List<Vector2Int>();
-
-    //     for (int x = 0; x < gridWidth; x++)
+    //     try
     //     {
-    //         for (int y = 0; y < gridHeight; y++)
+    //         Vector2Int startGridPos = WorldToGridPosition(startPosition);
+    //         List<Vector2Int> candidatePositions = new List<Vector2Int>();
+
+    //         // Systematically search all positions exactly 'exactDistance' away
+    //         for (int x = -exactDistance; x <= exactDistance; x++)
     //         {
-    //             if (grid[x, y] == CellType.Floor && !occupiedPositions[x, y])
+    //             for (int y = -exactDistance; y <= exactDistance; y++)
     //             {
-    //                 Vector2Int gridPos = new Vector2Int(x, y);
-    //                 float gridDistance = Vector2Int.Distance(startGridPos, gridPos);
-    //                 if (Mathf.Abs(gridDistance - distance) < 0.5f) // Allow some tolerance
+    //                 // Skip positions not exactly at the specified distance
+    //                 if (Mathf.Abs(x) + Mathf.Abs(y) != exactDistance)
+    //                     continue;
+
+    //                 Vector2Int testPos = startGridPos + new Vector2Int(x, y);
+
+    //                 // Verify position is within grid, a valid floor tile, and not occupied
+    //                 if (testPos.x >= 0 && testPos.x < gridWidth &&
+    //                     testPos.y >= 0 && testPos.y < gridHeight &&
+    //                     grid[testPos.x, testPos.y] == CellType.Floor &&
+    //                     !occupiedPositions[testPos.x, testPos.y])
     //                 {
-    //                     candidatePositions.Add(gridPos);
+    //                     candidatePositions.Add(testPos);
     //                 }
     //             }
     //         }
+
+    //         // Throw an exception if no positions found exactly at the specified distance
+    //         if (candidatePositions.Count == 0)
+    //         {
+    //             throw new InvalidOperationException(
+    //                 $"No valid positions found exactly {exactDistance} cells away from the start position.");
+    //         }
+
+    //         // Randomly select from valid positions
+    //         Vector2Int selectedGridPos = candidatePositions[Random.Range(0, candidatePositions.Count)];
+    //         return GridToWorldPosition(selectedGridPos);
     //     }
-    //     if (candidatePositions.Count == 0)
+    //     catch (InvalidOperationException)
     //     {
-    //         Debug.LogWarning("No positions found at the exact distance. Returning closest available position.");
-    //         return GetClosestAvailablePosition(startPosition, distance);
+    //         // Fallback mechanism
+    //         Debug.LogWarning($"No positions found at exactly {exactDistance} cells. Expanding search.");
+
+    //         // Gradually expand search radius
+    //         for (int distance = 1; distance <= exactDistance * 2; distance++)
+    //         {
+    //             List<Vector2Int> expandedCandidatePositions = new List<Vector2Int>();
+    //             Vector2Int startGridPos = WorldToGridPosition(startPosition);
+
+    //             for (int x = -distance; x <= distance; x++)
+    //             {
+    //                 for (int y = -distance; y <= distance; y++)
+    //                 {
+    //                     if (Mathf.Abs(x) + Mathf.Abs(y) > exactDistance) continue;
+
+    //                     Vector2Int testPos = startGridPos + new Vector2Int(x, y);
+    //                     if (testPos.x >= 0 && testPos.x < gridWidth &&
+    //                         testPos.y >= 0 && testPos.y < gridHeight &&
+    //                         grid[testPos.x, testPos.y] == CellType.Floor &&
+    //                         !occupiedPositions[testPos.x, testPos.y])
+    //                     {
+    //                         expandedCandidatePositions.Add(testPos);
+    //                     }
+    //                 }
+    //             }
+
+    //             if (expandedCandidatePositions.Count > 0)
+    //             {
+    //                 Vector2Int selectedGridPos = expandedCandidatePositions[Random.Range(0, expandedCandidatePositions.Count)];
+    //                 return GridToWorldPosition(selectedGridPos);
+    //             }
+    //         }
+
+    //         // Absolute fallback: return start position if no valid position found
+    //         Debug.LogError("Could not find any valid position near the start!");
+    //         return startPosition;
     //     }
-
-    //     Vector2Int selectedGridPos = candidatePositions[Random.Range(0, candidatePositions.Count)];
-    //     return GridToWorldPosition(selectedGridPos);
     // }
-    public Vector2 GetCellCenterWorldPosition(Vector2Int gridPos)
-    {
-        Vector2 worldPos = new Vector2(gridPos.x * cellSize, gridPos.y * cellSize);
-        Vector2 cellCenter = worldPos + new Vector2(cellSize * 0.5f, cellSize * 0.5f);
-        Vector2 gridCenter = new Vector2(gridWidth * 0.5f, gridHeight * 0.5f) * cellSize;
-        return cellCenter - gridCenter;
-    }
 
-    private Vector2 GetClosestAvailablePosition(Vector2 startPosition, float targetDistance)
+    public Vector2 GetPositionAtDistance(Vector2 startPosition, int exactDistance)
     {
-        Vector2Int startGridPos = WorldToGridPosition(startPosition);
-        Vector2Int closestPos = startGridPos;
-        float closestDistanceDiff = float.MaxValue;
-
-        for (int x = 0; x < gridWidth; x++)
+        try
         {
-            for (int y = 0; y < gridHeight; y++)
+            Vector2Int startGridPos = WorldToGridPosition(startPosition);
+            List<Vector2Int> candidatePositions = new List<Vector2Int>();
+
+            // Systematically search all positions exactly 'exactDistance' away
+            for (int x = -exactDistance; x <= exactDistance; x++)
             {
-                if (grid[x, y] == CellType.Floor)
+                for (int y = -exactDistance; y <= exactDistance; y++)
                 {
-                    Vector2Int gridPos = new Vector2Int(x, y);
-                    float distance = Vector2.Distance(GridToWorldPosition(startGridPos), GridToWorldPosition(gridPos));
-                    float distanceDiff = Mathf.Abs(distance - targetDistance);
-                    if (distanceDiff < closestDistanceDiff)
+                    // Ensure position is exactly 'exactDistance' away using Manhattan distance
+                    if (Mathf.Abs(x) + Mathf.Abs(y) != exactDistance)
+                        continue;
+
+                    Vector2Int testPos = startGridPos + new Vector2Int(x, y);
+
+                    // Verify position is within grid, a valid floor tile, and not occupied
+                    if (IsValidPosition(testPos))
                     {
-                        closestDistanceDiff = distanceDiff;
-                        closestPos = gridPos;
+                        candidatePositions.Add(testPos);
                     }
                 }
             }
-        }
 
-        return GridToWorldPosition(closestPos);
+            // If no positions found exactly at the specified distance
+            if (candidatePositions.Count == 0)
+            {
+                Debug.LogWarning($"No positions found exactly {exactDistance} cells away. Trying alternative approaches.");
+
+                // Try expanding search with more flexible criteria
+                return FindAlternativePosition(startPosition, exactDistance);
+            }
+
+            // Randomly select from valid positions
+            Vector2Int selectedGridPos = candidatePositions[Random.Range(0, candidatePositions.Count)];
+            Vector2 selectedWorldPos = GridToWorldPosition(selectedGridPos);
+
+            // Double-check the distance
+            float actualDistance = Vector2.Distance(startPosition, selectedWorldPos);
+            Debug.Log($"Selected Position - Grid: {selectedGridPos}, World: {selectedWorldPos}, Actual Distance: {actualDistance}");
+
+            return selectedWorldPos;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error finding position at distance {exactDistance}: {e.Message}");
+            return FindAlternativePosition(startPosition, exactDistance);
+        }
     }
 
-    public Vector2Int GetClosestAvailableGridPosition(Vector2Int startGridPos, int targetDistance)
+    private bool IsValidPosition(Vector2Int testPos)
     {
-        Debug.Log($"GetClosestAvailableGridPosition called: Start {startGridPos}, Target Distance {targetDistance}");
-        Vector2Int closestPos = startGridPos;
-        int closestDistanceDiff = int.MaxValue;
+        // Implement your specific grid validation logic
+        return testPos.x >= 0 &&
+               testPos.x < gridWidth &&
+               testPos.y >= 0 &&
+               testPos.y < gridHeight &&
+               grid[testPos.x, testPos.y] == CellType.Floor &&
+               !occupiedPositions[testPos.x, testPos.y];
+    }
 
-        for (int x = 0; x < gridWidth; x++)
+    private Vector2 FindAlternativePosition(Vector2 startPosition, int exactDistance)
+    {
+        // More flexible search strategy
+        for (int offset = 1; offset <= exactDistance * 2; offset++)
         {
-            for (int y = 0; y < gridHeight; y++)
+            List<Vector2Int> expandedCandidates = new List<Vector2Int>();
+            Vector2Int startGridPos = WorldToGridPosition(startPosition);
+
+            for (int x = -exactDistance - offset; x <= exactDistance + offset; x++)
             {
-                if (grid[x, y] == CellType.Floor)
+                for (int y = -exactDistance - offset; y <= exactDistance + offset; y++)
                 {
-                    Vector2Int gridPos = new Vector2Int(x, y);
-                    int distance = Mathf.Abs(gridPos.x - startGridPos.x) + Mathf.Abs(gridPos.y - startGridPos.y);
-                    int distanceDiff = Mathf.Abs(distance - targetDistance);
-                    if (distanceDiff < closestDistanceDiff)
+                    Vector2Int testPos = startGridPos + new Vector2Int(x, y);
+
+                    // More relaxed distance check
+                    float distance = Vector2.Distance(startGridPos, testPos);
+                    if (Mathf.Abs(distance - exactDistance) <= 1.0f && IsValidPosition(testPos))
                     {
-                        closestDistanceDiff = distanceDiff;
-                        closestPos = gridPos;
+                        expandedCandidates.Add(testPos);
                     }
                 }
             }
+
+            if (expandedCandidates.Count > 0)
+            {
+                Vector2Int selectedGridPos = expandedCandidates[Random.Range(0, expandedCandidates.Count)];
+                Vector2 alternativePos = GridToWorldPosition(selectedGridPos);
+
+                Debug.LogWarning($"Alternative position found: {alternativePos}, Distance from start: {Vector2.Distance(startPosition, alternativePos)}");
+                return alternativePos;
+            }
         }
 
-        Debug.Log($"Closest available position: {closestPos}, Distance difference: {closestDistanceDiff}");
-        return closestPos;
+        // Absolute fallback
+        Debug.LogError("Could not find any valid position near the start!");
+        return startPosition;
     }
+
 
     public void ReleasePosition(Vector2 worldPosition)
     {
@@ -564,6 +546,7 @@ public Vector2 GetPositionAtDistance(Vector2 startPosition, float distance)
         Vector2Int gridPos = WorldToGridPosition(worldPosition);
         return IsValidFloorPosition(gridPos);
     }
+
     public void EnsureInitialization()
     {
         if (grid == null || !enabled)
@@ -588,7 +571,6 @@ public Vector2 GetPositionAtDistance(Vector2 startPosition, float distance)
             }
         }
     }
-
 
     // Modify IsValidFloorPosition to include null check
     public bool IsValidFloorPosition(Vector2Int gridPos)
@@ -629,28 +611,6 @@ public Vector2 GetPositionAtDistance(Vector2 startPosition, float distance)
             Mathf.FloorToInt(offsetPosition.x / cellSize),
             Mathf.FloorToInt(offsetPosition.y / cellSize)
         );
-    }
-
-    private void OnDrawGizmos()
-    {
-        if (grid == null) return;
-
-        for (int x = 0; x < gridWidth; x++)
-        {
-            for (int y = 0; y < gridHeight; y++)
-            {
-                Vector2 cellPosition = GridToWorldPosition(new Vector2Int(x, y));
-                Gizmos.color = grid[x, y] == CellType.Floor ? Color.green : Color.red;
-                Gizmos.DrawWireCube(cellPosition, Vector2.one * cellSize);
-            }
-        }
-    }
-
-    public void ResetGrid()
-    {
-        HideGrid();
-        InitializeGrid();
-        ShowGrid();
     }
 
     public class ObjectPool

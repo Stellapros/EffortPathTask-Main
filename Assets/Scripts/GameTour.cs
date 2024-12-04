@@ -32,13 +32,15 @@ public class InstructionManager : MonoBehaviour
 
     private string[] instructions = new string[]
         {
-            "Ahoy, brave explorer! You've been chosen for an extraordinary mission across two mysterious islands in The Motivation Expedition. Each island presents unique challenges and mouthwatering rewards. Your task? Survive, thrive, and satisfy your fruity cravings!",
+            "Ahoy, brave explorer! You've been chosen for an extraordinary mission across two mysterious islands in The Motivation Expedition.", 
+            "Each island presents unique challenges and mouthwatering rewards. Your task? Survive, thrive, and satisfy your fruity cravings!",
             "Now, let's explore how to play.",
             "On each island, you'll face different levels of effort to obtain the fruits. Some fruits are the easiest to gather. Others are quite challenging.",
             "This is the grid-based island. Your character can move around here using the direction buttons (↑, ↓, ←, →) or WASD.",
             "See that apple on the grid? That's your target! Each fruit you collect is worth 10 points. Your time is LIMITED since the fruit will disappear soon.",
             "Your time on each island is also LIMITED, so you have to seize the chance. On each island, you'll face many decisions. Let's look at how you make decisions.",
             "Use the '←' or '→' keys on your keyboard (or mouse) to select 'Work' and enter the island to collect fruit. Once inside, use the arrow keys to move your character. Note: if a fruit is difficult to reach, you may need to press the keys multiple times to take a single step.",
+            "After collecting the fruit, wait for the next opportunity to appear.",
             "Or, you can choose to 'Skip', rest, and wait for the next opportunity. If you choose to 'Skip', you will earn 1 point for resting. Sometimes, this might be a good strategy.",
             "You will have 2.5 seconds to choose; otherwise, you'll receive 0 points for that trial. Stay focused and don't miss any chances—or you'll have to wait for the next opportunity.",
             "Your score will accumulate based on the fruits you collect. Each fruit has a base point value. Your total score will be displayed at the top of the screen. Try to maximize your score while managing your energy levels!",
@@ -71,9 +73,9 @@ public class InstructionManager : MonoBehaviour
 
         // Add in Start() method
 ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-navigationController.AddButton(nextButton);
-navigationController.AddButton(previousButton);
-navigationController.AddButton(skipButton);
+navigationController.AddElement(previousButton);
+navigationController.AddElement(nextButton);
+navigationController.AddElement(skipButton);
     }
 
     private void UpdateButtonStates()
@@ -86,11 +88,11 @@ navigationController.AddButton(skipButton);
     {
         if (isTransitioning) return;
 
-        if (currentInstructionIndex == 2) // Grid World demonstration
+        if (currentInstructionIndex == 3) // Grid World demonstration
         {
             StartCoroutine(ShowGridWorldDemo());
         }
-        else if (currentInstructionIndex == 5) // Decision Phase demonstration
+        else if (currentInstructionIndex == 6) // Decision Phase demonstration
         {
             StartCoroutine(ShowDecisionPhaseDemo());
         }
