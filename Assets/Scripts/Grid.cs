@@ -7,7 +7,7 @@ public class Grid : MonoBehaviour
     /// Source: Unity tutorial https://www.youtube.com/watch?v=AKKpPmxx07w
     /// Date: 22/08/2019
     /// For our A* computer pathfinding
-   
+
     public LayerMask wallMask;       // for finding obstructions on map
     public Vector2 gridWorldSize;
     public float nodeRadius;         // node size
@@ -33,20 +33,20 @@ public class Grid : MonoBehaviour
 
     // ********************************************************************** //
 
-    void CreateGrid() 
+    void CreateGrid()
     {
         grid = new Node[gridSizeX, gridSizeY];
         Vector3 bottomLeft = transform.position - Vector3.right * gridWorldSize.x / 2 - Vector3.up * gridWorldSize.y / 2;
-    
+
         for (int x = 0; x < gridSizeX; x++)
-        { 
-            for (int y = 0; y < gridSizeY; y++) 
+        {
+            for (int y = 0; y < gridSizeY; y++)
             {
                 Vector3 worldPoint = bottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.up * (y * nodeDiameter + nodeRadius);
                 bool Wall = true;
 
                 // check if this is a walkable node (if there is a collision this statement returns false)
-                if (Physics.CheckSphere(worldPoint, nodeRadius, wallMask)) 
+                if (Physics.CheckSphere(worldPoint, nodeRadius, wallMask))
                 {
                     Wall = false;
                 }
@@ -58,8 +58,8 @@ public class Grid : MonoBehaviour
 
     // ********************************************************************** //
 
-    public Node NodeFromWorldPosition(Vector3 a_worldPosition) 
-    { 
+    public Node NodeFromWorldPosition(Vector3 a_worldPosition)
+    {
         float xpoint = ((a_worldPosition.x + gridWorldSize.x / 2) / gridWorldSize.x);
         float ypoint = ((a_worldPosition.y + gridWorldSize.y / 2) / gridWorldSize.y);
 
@@ -78,15 +78,15 @@ public class Grid : MonoBehaviour
     {
         Gizmos.DrawWireCube(transform.position, new Vector3(gridWorldSize.x, gridWorldSize.y, 1));
 
-        if (grid != null) 
-        { 
-            foreach(Node node in grid) 
-            { 
+        if (grid != null)
+        {
+            foreach (Node node in grid)
+            {
                 if (node.IsWall) // if its not a wall make it white
                 {
                     Gizmos.color = Color.white;
                 }
-                else 
+                else
                 {
                     Gizmos.color = Color.yellow; // walls are yellow
                 }
@@ -106,7 +106,7 @@ public class Grid : MonoBehaviour
 
     // ********************************************************************** //
 
-    public List<Node> GetNeighbouringNodes(Node a_Node) 
+    public List<Node> GetNeighbouringNodes(Node a_Node)
     {
         List<Node> neighbouringNodes = new List<Node>();
         int xCheck;
@@ -116,9 +116,9 @@ public class Grid : MonoBehaviour
         xCheck = a_Node.gridX + 1;
         yCheck = a_Node.gridY;
 
-        if (xCheck >= 0 && xCheck < gridSizeX) 
-        { 
-            if (yCheck >= 0 && yCheck < gridSizeY) 
+        if (xCheck >= 0 && xCheck < gridSizeX)
+        {
+            if (yCheck >= 0 && yCheck < gridSizeY)
             {
                 neighbouringNodes.Add(grid[xCheck, yCheck]);
             }

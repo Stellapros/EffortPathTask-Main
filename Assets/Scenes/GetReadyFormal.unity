@@ -995,12 +995,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1109397882}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cf5d9e254949d4f768f98e99e30dceab, type: 3}
+  m_Script: {fileID: 11500000, guid: 6a6bc54f1d5c44d7a87b298d4b777140, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   loadingBar: {fileID: 805105981}
   countdownText: {fileID: 1045245035}
-  nextSceneName: DecisionPhase
+  nextSceneName: Block1_Instructions
 --- !u!1 &1470027179
 GameObject:
   m_ObjectHideFlags: 0

@@ -7,9 +7,9 @@ using TMPro;
 public class CheckManager2 : MonoBehaviour
 {
     [Header("Fruit Settings")]
-    public GameObject cherryPrefab;
-    public GameObject bananaPrefab;
-    public GameObject orangePrefab;
+    public GameObject applePrefab;
+    public GameObject grapesPrefab;
+    public GameObject watermelonPrefab;
 
     [SerializeField] private Image fruitImage;
 
@@ -18,19 +18,22 @@ public class CheckManager2 : MonoBehaviour
     [SerializeField] private Button choice70Button;
     [SerializeField] private Button choice90Button;
     [SerializeField] private TextMeshProUGUI questionText;
+    [SerializeField] private TextMeshProUGUI debugText; // New debug text component
 
     private GameObject currentFruit;
     private readonly Dictionary<string, Dictionary<int, int>> choiceRecords = new Dictionary<string, Dictionary<int, int>>();
     private readonly List<GameObject> fruitPrefabs = new List<GameObject>();
     private int trialCount = 0;
-    private int totalTrials = 3; // Set the desired number of trials
+    private int totalTrials = 3;
     private int currentTrialIndex = 0;
+    private bool isProcessing = false;
+    private int correctChoiceScore = 0; // Track correct choices
 
     private void Start()
     {
         InitializeChoiceRecords();
         SetupButtons();
-        fruitPrefabs.AddRange(new[] { cherryPrefab, bananaPrefab, orangePrefab });
+        fruitPrefabs.AddRange(new[] { applePrefab, grapesPrefab, watermelonPrefab });
 
         // Start the first trial
         SpawnRandomFruit();
@@ -42,113 +45,136 @@ public class CheckManager2 : MonoBehaviour
         choice70Button.onClick.AddListener(() => RecordChoice(70));
         choice90Button.onClick.AddListener(() => RecordChoice(90));
 
-        // Add in SetupUI() method
-// Add in SetupButtons() method
-ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-navigationController.AddElement(choice50Button);
-navigationController.AddElement(choice70Button);
-navigationController.AddElement(choice90Button);
+        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+        navigationController.AddElement(choice50Button);
+        navigationController.AddElement(choice70Button);
+        navigationController.AddElement(choice90Button);
     }
 
-private void SpawnRandomFruit()
-{
-    // Destroy previous fruit if it exists
-    if (currentFruit != null)
+    private void SpawnRandomFruit()
     {
-        Destroy(currentFruit.gameObject);
+        // Destroy previous fruit if it exists
+        if (currentFruit != null)
+        {
+            Destroy(currentFruit.gameObject);
+        }
+
+        // Randomly select and spawn a fruit
+        int randomIndex = Random.Range(0, fruitPrefabs.Count);
+        GameObject selectedFruit = fruitPrefabs[randomIndex];
+        currentFruit = Instantiate(selectedFruit, Vector3.zero, Quaternion.identity);
+
+        // Set the fruit image
+        if (fruitImage != null)
+        {
+            fruitImage.sprite = currentFruit.GetComponent<SpriteRenderer>().sprite;
+            fruitImage.rectTransform.sizeDelta = new Vector2(100, 100);
+        }
+
+        // Update question text
+        string fruitName = selectedFruit.name.Replace("(Clone)", "").Replace("Reward_", "");
+        questionText.text = $"Which threshold did you see most frequently with this {fruitName}?";
+
+        // Remove the used fruit prefab from the list
+        fruitPrefabs.RemoveAt(randomIndex);
+
+        // Increment the trial count
+        trialCount++;
+
+        // Start the new trial
+        if (LogManager.Instance != null)
+        {
+            LogManager.Instance.LogTrialStart(currentTrialIndex + 1, 1, 0, 0, false);
+        }
+
+        // Update debug text
+        debugText.text = $"Trial {currentTrialIndex + 1}: {fruitName}";
     }
 
-    // Randomly select and spawn a fruit
-    int randomIndex = Random.Range(0, fruitPrefabs.Count);
-    GameObject selectedFruit = fruitPrefabs[randomIndex];
-    currentFruit = Instantiate(selectedFruit, Vector3.zero, Quaternion.identity);
-
-    // Set the fruit image
-    if (fruitImage != null)
-    {
-        fruitImage.sprite = currentFruit.GetComponent<SpriteRenderer>().sprite;
-        fruitImage.rectTransform.sizeDelta = new Vector2(100, 100);
-    }
-
-    // Update question text
-    string fruitName = selectedFruit.name.Replace("(Clone)", "").Replace("Reward_", "");
-    questionText.text = $"Which threshold did you see most frequently with this {fruitName}?";
-
-    // Remove the used fruit prefab from the list
-    fruitPrefabs.RemoveAt(randomIndex);
-
-    // Increment the trial count
-    trialCount++;
-
-    // Start the new trial
-    if (LogManager.Instance != null)
-    {
-        LogManager.Instance.LogTrialStart(currentTrialIndex + 1, 1, 0, 0, false); // Adjust the block number and other parameters as needed
-    }
-}
     private void RecordChoice(int threshold)
     {
-            if (currentFruit == null)
-    {
-        Debug.LogError("currentFruit is null, unable to record choice.");
-        return;
-    }
-    string currentFruitName = currentFruit.name.Replace("(Clone)", "").Replace("Reward_", "");
+        // Immediate guard against multiple processing
+        if (currentFruit == null || isProcessing) return;
+
+        // Synchronization flag
+        isProcessing = true;
+
+        string currentFruitName = currentFruit.name.Replace("(Clone)", "").Replace("Reward_", "");
+
         if (choiceRecords.ContainsKey("Reward_" + currentFruitName))
         {
             choiceRecords["Reward_" + currentFruitName][threshold]++;
+            LogManager.Instance.LogCheckQuestionResponse(currentTrialIndex + 1, 1, "TODO", "TODO", threshold.ToString(), true);
 
-            // Log the choice
-            LogManager.Instance.LogCheckQuestionResponse(currentTrialIndex + 1, 1, "TODO", "TODO", threshold.ToString(), true); // Adjust the check question number and fruit names as needed
+            // Disable buttons during processing
+            choice50Button.interactable = false;
+            choice70Button.interactable = false;
+            choice90Button.interactable = false;
 
-            // Log debugging information
-            Debug.Log($"Recorded choice for {currentFruitName}: {threshold}%");
-            LogCurrentStats("Reward_" + currentFruitName);
+            // Determine correct choice based on fruit type
+            bool correctChoice = false;
+            if (currentFruitName == "Apple" && threshold == 90)
+                correctChoice = true;
+            else if (currentFruitName == "Grapes" && threshold == 70)
+                correctChoice = true;
+            else if (currentFruitName == "Watermelon" && threshold == 50)
+                correctChoice = true;
 
-            // Move to the next trial
-            currentTrialIndex++;
-            if (currentTrialIndex < totalTrials)
+            // Update score if correct
+            if (correctChoice)
             {
-                SpawnRandomFruit();
+                correctChoiceScore++;
+                debugText.text += $"\nCorrect choice: +1 (Total: {correctChoiceScore})";
             }
             else
             {
-                // All trials completed, end the experiment and transition to the next scene
-                LogManager.Instance.LogExperimentEnd();
-                LoadNextScene();
+                debugText.text += $"\nIncorrect choice (Total: {correctChoiceScore})";
             }
-        }
-        else
-        {
-            Debug.LogError($"Fruit name 'Reward_{currentFruitName}' not found in choiceRecords dictionary.");
+
+            // Save the score to PlayerPrefs with a max of 3
+            PlayerPrefs.SetInt("Check2Score", Mathf.Min(correctChoiceScore, 3));
+            PlayerPrefs.Save();
+
+            // Use Invoke to manage progression and reset
+            Invoke("ProcessNextTrial", 0.5f);
         }
     }
 
-    private void LogCurrentStats(string fruitName)
+    private void ProcessNextTrial()
     {
-        string stats = $"\nCurrent stats for {fruitName}:\n";
-        foreach (var choice in choiceRecords[fruitName])
+        currentTrialIndex++;
+        isProcessing = false;
+
+        // Re-enable buttons
+        choice50Button.interactable = true;
+        choice70Button.interactable = true;
+        choice90Button.interactable = true;
+
+        if (currentTrialIndex < totalTrials)
         {
-            stats += $"{choice.Key}%: {choice.Value} times\n";
+            SpawnRandomFruit();
         }
-        Debug.Log(stats);
+        else
+        {
+            LogManager.Instance.LogExperimentEnd();
+            LoadNextScene();
+        }
+    }
+
+    private void LoadNextScene()
+    {
+        UnityEngine.SceneManagement.SceneManager.LoadScene("Check3_ComprehensionQuiz");
+    }
+
+    private void InitializeChoiceRecords()
+    {
+        choiceRecords["Reward_Apple"] = new Dictionary<int, int> { { 50, 0 }, { 70, 0 }, { 90, 0 } };
+        choiceRecords["Reward_Grapes"] = new Dictionary<int, int> { { 50, 0 }, { 70, 0 }, { 90, 0 } };
+        choiceRecords["Reward_Watermelon"] = new Dictionary<int, int> { { 50, 0 }, { 70, 0 }, { 90, 0 } };
     }
 
     public Dictionary<string, Dictionary<int, int>> GetChoiceRecords()
     {
         return new Dictionary<string, Dictionary<int, int>>(choiceRecords);
-    }
-
-private void InitializeChoiceRecords()
-{
-    choiceRecords["Reward_Cherries"] = new Dictionary<int, int> { { 50, 0 }, { 70, 0 }, { 90, 0 } };
-    choiceRecords["Reward_Banana"] = new Dictionary<int, int> { { 50, 0 }, { 70, 0 }, { 90, 0 } };
-    choiceRecords["Reward_Orange"] = new Dictionary<int, int> { { 50, 0 }, { 70, 0 }, { 90, 0 } };
-}
-
-    private void LoadNextScene()
-    {
-        // Replace "Check3_ComprehensionQuiz" with the actual name of the next scene
-        UnityEngine.SceneManagement.SceneManager.LoadScene("Check3_ComprehensionQuiz");
     }
 }

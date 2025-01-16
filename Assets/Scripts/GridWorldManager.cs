@@ -11,136 +11,104 @@ using UnityEngine.SceneManagement;
 public class GridWorldManager : MonoBehaviour
 {
     // Singleton instance
-    public static GridWorldManager Instance { get; private set; }
+    // public static GridWorldManager Instance { get; private set; }
+
+    private static GridWorldManager _instance;
+    public static GridWorldManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindFirstObjectByType<GridWorldManager>();
+            }
+            return _instance;
+        }
+        private set { _instance = value; }
+    }
 
     // Events
     public event System.Action<bool> OnTrialEnded;
-    public event System.Action<int> OnRewardCollected;
+    // public event System.Action<int> OnRewardCollected;
 
     [Header("Core Components")]
-    [SerializeField] private GameController gameController;
-    [SerializeField] private PlayerSpawner playerSpawner;
-    [SerializeField] private PlayerController playerController;
-    [SerializeField] private RewardSpawner rewardSpawner;
-    [SerializeField] private GridManager gridManager;
-    [SerializeField] private ScoreManager scoreManager;
-    [SerializeField] private DecisionManager decisionManager;
-    [SerializeField] private CountdownTimer countdownTimer;
-    [SerializeField] private LogManager logManager;
-    [SerializeField] private ExperimentManager experimentManager;
+    public GameController gameController;
+    public PlayerSpawner playerSpawner;
+    public PlayerController playerController;
+    public RewardSpawner rewardSpawner;
+    public GridManager gridManager;
+    public ScoreManager scoreManager;
+    public LogManager logManager;
+    public CountdownTimer countdownTimer;
+    public ExperimentManager experimentManager;
 
     [Header("Prefabs")]
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject rewardPrefab;
 
-    [Header("Practice Settings")]
-    [SerializeField] private float practiceTrialDuration = 10f;
-    [SerializeField] private int practiceGridSize = 7;
-    [SerializeField] private float practiceDurationMultiplier = 1.5f;
+    // [Header("Practice Settings")]
+    // [SerializeField] private float practiceTrialDuration = 10f;
+    // [SerializeField] private int practiceGridSize = 7;
+    // [SerializeField] private float practiceDurationMultiplier = 1.5f;
 
     [Header("Experiment Settings")]
-    [SerializeField] private float defaultTrialDuration = 5.0f;
-    [SerializeField] private int defaultGridSize = 7;
+    // [SerializeField] private float defaultTrialDuration = 5.0f;
+    // [SerializeField] private int defaultGridSize = 7;
 
     private bool isTrialActive = false;
-    private bool componentsInitialized = false;
+    // private bool componentsInitialized = false;
 
-    private void Awake()
+private void Awake()
+{
+    // Proper singleton pattern implementation
+    if (Instance != null && Instance != this)
     {
-        SetupSingleton();
+        Destroy(gameObject);
+        return;
+    }
+    
+    Instance = this;
+    DontDestroyOnLoad(gameObject);
+    
+    // Always start disabled - will be enabled when needed
+    gameObject.SetActive(false);
+}
 
-        // Add this line to hide the GameObject in scenes where it's not needed
-        gameObject.SetActive(false);
+private void Start()
+{
+    // Only initialize components if we're in GridWorld scene
+    if (SceneManager.GetActiveScene().name == "GridWorld")
+    {
+        gameObject.SetActive(true);
         InitializeComponents();
+        SetupTrialGridWorld();
     }
+}
 
-    private void Start()
+void OnEnable()
+{
+    SceneManager.sceneLoaded += OnSceneLoaded;
+}
+
+void OnDisable()
+{
+    SceneManager.sceneLoaded -= OnSceneLoaded;
+}
+
+void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+{
+    // Only activate and initialize in GridWorld scene
+    if (scene.name == "GridWorld")
     {
-        // Check if this is the GridWorld scene
-        if (SceneManager.GetActiveScene().name == "GridWorldScene")
-        {
-            // Make the GameObject active
-            gameObject.SetActive(true);
-
-            // Double-check components on Start
-            if (!componentsInitialized)
-            {
-                InitializeComponents();
-            }
-
-            // Determine trial type and configure accordingly
-            bool isPracticeTrial = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1;
-
-            if (isPracticeTrial)
-            {
-                SetupPracticeTrialGridWorld();
-            }
-            else
-            {
-                SetupFormalTrialGridWorld();
-            }
-        }
-        else
-        {
-            // Disable the GameObject in other scenes
-            gameObject.SetActive(false);
-        }
+        gameObject.SetActive(true);
+        InitializeComponents();
+        SetupTrialGridWorld();
     }
-
-    private void SetupPracticeTrialGridWorld()
+    else
     {
-        // Any specific configuration for practice trials in GridWorld
-        // For example, adjusting difficulty, providing more guidance, etc.
-        Debug.Log("Configuring GridWorld for Practice Trial");
-
-        // Ensure the practice trial sprite is loaded
-        string spriteName = PlayerPrefs.GetString("CurrentRewardSpriteName", "");
-        if (!string.IsNullOrEmpty(spriteName))
-        {
-            // Load and set the sprite for this practice trial
-            Sprite practiceSprite = LoadSpriteByName(spriteName);
-            // Use the sprite as needed in your GridWorld scene
-        }
+        gameObject.SetActive(false);
     }
-
-    private void SetupFormalTrialGridWorld()
-    {
-        // Configuration for formal trials
-        Debug.Log("Configuring GridWorld for Formal Trial");
-    }
-
-    private Sprite LoadSpriteByName(string spriteName)
-    {
-        // First, try loading from Resources
-        Sprite sprite = Resources.Load<Sprite>(spriteName);
-
-        if (sprite == null)
-        {
-            // If not found in Resources, try other methods
-            // For example, search through all sprites in the project
-            Sprite[] allSprites = Resources.FindObjectsOfTypeAll<Sprite>();
-            sprite = System.Array.Find(allSprites, s => s.name == spriteName);
-        }
-
-        if (sprite == null)
-        {
-            Debug.LogError($"Could not find sprite with name: {spriteName}");
-        }
-
-        return sprite;
-    }
-    private void SetupSingleton()
-    {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
+}
 
     private void InitializeComponents()
     {
@@ -219,43 +187,42 @@ public class GridWorldManager : MonoBehaviour
             return;
         }
 
-        componentsInitialized = true;
+        // componentsInitialized = true;
         Debug.Log("All required components initialized successfully.");
     }
 
-    public void SetRewardSpriteFromDecisionPhase()
+
+    private void SetupTrialGridWorld()
     {
-        if (rewardSpawner == null)
+        string spriteName = PlayerPrefs.GetString("CurrentRewardSpriteName", "");
+        if (!string.IsNullOrEmpty(spriteName))
         {
-            Debug.LogError("RewardSpawner is null. Cannot set reward sprite.");
-            return;
-        }
-
-        Sprite effortSprite = null;
-
-        // Check if we're in a practice trial
-        if (PracticeManager.Instance.IsPracticeTrial())
-        {
-            // Get sprite from PracticeManager
-            effortSprite = PracticeManager.Instance.GetCurrentPracticeTrialSprite();
-        }
-        else if (experimentManager != null)
-        {
-            // Get sprite from ExperimentManager for formal trials
-            effortSprite = experimentManager.GetCurrentTrialSprite();
-        }
-
-        if (effortSprite != null)
-        {
-            Debug.Log($"Setting reward sprite in GridWorldManager: {effortSprite.name}");
-            rewardSpawner.SetRewardSprite(effortSprite);
-        }
-        else
-        {
-            Debug.LogError("Current trial sprite is null!");
+            Sprite trialSprite = LoadSpriteByName(spriteName);
+            if (trialSprite != null)
+            {
+                rewardSpawner.SetRewardSprite(trialSprite);
+            }
         }
     }
-    
+
+    private Sprite LoadSpriteByName(string spriteName)
+    {
+        Sprite sprite = Resources.Load<Sprite>(spriteName);
+
+        if (sprite == null)
+        {
+            Sprite[] allSprites = Resources.FindObjectsOfTypeAll<Sprite>();
+            sprite = System.Array.Find(allSprites, s => s.name == spriteName);
+        }
+
+        if (sprite == null)
+        {
+            Debug.LogError($"Could not find sprite with name: {spriteName}");
+        }
+
+        return sprite;
+    }
+
     private void EndTrialOnTimeUp()
     {
         if (isTrialActive)

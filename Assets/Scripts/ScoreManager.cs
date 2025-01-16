@@ -17,35 +17,6 @@ public class ScoreManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
             SceneManager.sceneLoaded += OnSceneLoaded;
-
-            // Check if LogManager is available before logging
-            if (LogManager.Instance != null)
-            {
-                LogManager.Instance.LogInfoMessage("Score System Initialized", $"Initial Total Score: {totalScore}, Initial Practice Score: {practiceScore}");
-            }
-            else
-            {
-                Debug.LogWarning("LogManager not available, unable to log score initialization.");
-            }
-
-            // Find the scoreText in the current scene
-            if (scoreText == null)
-            {
-                scoreText = GameObject.FindAnyObjectByType<TextMeshProUGUI>();
-                if (scoreText == null)
-                {
-                    // Check if LogManager is available before logging
-                    if (LogManager.Instance != null)
-                    {
-                        LogManager.Instance.LogWarning("UI Element Missing", "ScoreText component not found in the current scene");
-                    }
-                    else
-                    {
-                        Debug.LogWarning("LogManager not available, unable to log UI element missing.");
-                    }
-                }
-            }
-            // UpdateScoreDisplay();
         }
         else if (Instance != this)
         {
@@ -55,56 +26,46 @@ public class ScoreManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        // Specifically for GridWorld scene
         if (scene.name == "GridWorld")
         {
-            // Find the scoreText only in the GridWorld scene
-            scoreText = GameObject.FindAnyObjectByType<TextMeshProUGUI>();
-            if (scoreText == null)
-            {
-                Debug.LogWarning("ScoreText not found in the GridWorld scene.");
-            }
+            // Delay to ensure UI is fully loaded
+            StartCoroutine(FindAndUpdateScoreText());
         }
-        else
-        {
-            scoreText = null;
-        }
-        UpdateScoreDisplay();
     }
 
-    //    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    //     {
-    //         if (scoreText != null)
-    //         {
-    //             UpdateScoreDisplay();
-    //         }
-    //         else
-    //         {
-    //             scoreText = GameObject.FindAnyObjectByType<TextMeshProUGUI>();
-    //             if (scoreText != null)
-    //             {
-    //                 UpdateScoreDisplay();
-    //             }
-    //             else
-    //             {
-    //                 LogManager.Instance.LogWarning("UI Element Missing", "ScoreText component not found in the current scene");
-    //             }
-    //         }
-    //     }
+    private System.Collections.IEnumerator FindAndUpdateScoreText()
+    {
+        // Wait a frame to ensure UI is fully initialized
+        yield return null;
+
+        // Find score text in the scene
+        scoreText = GameObject.FindAnyObjectByType<TextMeshProUGUI>();
+
+        if (scoreText == null)
+        {
+            Debug.LogError("ScoreText not found in GridWorld scene!");
+            yield break;
+        }
+
+        // Always show score in GridWorld
+        UpdateScoreDisplay();
+    }
 
     public void AddScore(int points, bool isFormalTrial)
     {
         if (isFormalTrial)
         {
             totalScore += points;
-            LogManager.Instance.LogScoreUpdate(0, false, points, $"Total Score: {totalScore}");
             Debug.Log($"Formal trial: Score added: {points}. Total score: {totalScore}");
         }
         else
         {
             practiceScore += points;
-            LogManager.Instance.LogScoreUpdate(0, true, points, $"Practice Score: {practiceScore}");
             Debug.Log($"Practice trial: Score added: {points}. Practice score: {practiceScore}");
         }
+
+        // Immediately update score display
         UpdateScoreDisplay();
     }
 
@@ -134,47 +95,15 @@ public class ScoreManager : MonoBehaviour
             scoreText.text = $"Score: {totalScore}";
             scoreText.gameObject.SetActive(true);
         }
-        else if (scoreText != null)
-        {
-            scoreText.gameObject.SetActive(false);
-        }
     }
-
-    // private void UpdateScoreDisplay()
-    // {
-    //     if (scoreText != null)
-    //     {
-    //         bool isPracticeTrial = PracticeManager.Instance.IsPracticeTrial();
-    //         int scoreToDisplay = isPracticeTrial ? practiceScore : totalScore;
-    //         string scoreType = isPracticeTrial ? "Practice Score" : "Score";
-    //         scoreText.text = $"{scoreType}: {scoreToDisplay}";
-    //         scoreText.gameObject.SetActive(true);
-
-    //         LogManager.Instance.LogMessage("Score Display Updated",
-    //             $"Display Type: {scoreType}, Value: {scoreToDisplay}");
-    //     }
-    //     else
-    //     {
-    //         // Try to find the scoreText in the current scene
-    //         scoreText = GameObject.FindAnyObjectByType<TextMeshProUGUI>();
-    //         if (scoreText == null)
-    //         {
-    //             LogManager.Instance.LogWarning("UI Element Missing",
-    //                 "ScoreText component not found in the current scene");
-    //         }
-    //         else
-    //         {
-    //             UpdateScoreDisplay();
-    //         }
-    //     }
-    // }
 
     public int GetTotalScore() => totalScore;
     public int GetPracticeScore() => practiceScore;
-    
+
     private void OnDestroy()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
         LogManager.Instance.LogInfoMessage("Score Manager Destroyed", $"Final Total Score: {totalScore}, Final Practice Score: {practiceScore}");
     }
+
 }

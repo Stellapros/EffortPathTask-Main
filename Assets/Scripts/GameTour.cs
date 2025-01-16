@@ -32,7 +32,7 @@ public class InstructionManager : MonoBehaviour
 
     private string[] instructions = new string[]
         {
-            "Ahoy, brave explorer! You've been chosen for an extraordinary mission across two mysterious islands in The Motivation Expedition.", 
+            "Ahoy, brave explorer! You've been chosen for an extraordinary mission across two mysterious islands in The Motivation Expedition.",
             "Each island presents unique challenges and mouthwatering rewards. Your task? Survive, thrive, and satisfy your fruity cravings!",
             "Now, let's explore how to play.",
             "On each island, you'll face different levels of effort to obtain the fruits. Some fruits are the easiest to gather. Others are quite challenging.",
@@ -72,10 +72,10 @@ public class InstructionManager : MonoBehaviour
         UpdateButtonStates();
 
         // Add in Start() method
-ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-navigationController.AddElement(previousButton);
-navigationController.AddElement(nextButton);
-navigationController.AddElement(skipButton);
+        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+        navigationController.AddElement(previousButton);
+        navigationController.AddElement(nextButton);
+        navigationController.AddElement(skipButton);
     }
 
     private void UpdateButtonStates()

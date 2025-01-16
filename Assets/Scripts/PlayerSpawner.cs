@@ -40,6 +40,8 @@ public class PlayerSpawner : MonoBehaviour
     /// <returns>The spawned player GameObject, or null if spawning failed.</returns>
     public GameObject SpawnPlayer()
     {
+        Debug.Log("Attempting to spawn player...");
+
         if (playerPrefab == null)
         {
             Debug.LogError("Cannot spawn player: Player prefab is not assigned.");
@@ -49,6 +51,12 @@ public class PlayerSpawner : MonoBehaviour
         Vector2 spawnPosition = GetRandomSpawnPosition();
         Vector3 spawnPosition3D = new Vector3(spawnPosition.x, spawnPosition.y, 0f);
         GameObject spawnedPlayer = Instantiate(playerPrefab, spawnPosition3D, Quaternion.identity);
+
+        if (spawnedPlayer == null)
+        {
+            Debug.LogError("CRITICAL: Player instantiation failed!");
+            return null;
+        }
 
         if (spawnedPlayer != null)
         {
@@ -65,33 +73,33 @@ public class PlayerSpawner : MonoBehaviour
 
         return spawnedPlayer;
     }
-// public (GameObject player, Vector2 spawnPosition) SpawnPlayer()
-// {
-//     if (playerPrefab == null)
-//     {
-//         Debug.LogError("Cannot spawn player: Player prefab is not assigned.");
-//         return (null, Vector2.zero);
-//     }
+    // public (GameObject player, Vector2 spawnPosition) SpawnPlayer()
+    // {
+    //     if (playerPrefab == null)
+    //     {
+    //         Debug.LogError("Cannot spawn player: Player prefab is not assigned.");
+    //         return (null, Vector2.zero);
+    //     }
 
-//     Vector2 spawnPosition = GetRandomSpawnPosition();
-//     Vector3 spawnPosition3D = new Vector3(spawnPosition.x, spawnPosition.y, 0f);
-//     GameObject spawnedPlayer = Instantiate(playerPrefab, spawnPosition3D, Quaternion.identity);
+    //     Vector2 spawnPosition = GetRandomSpawnPosition();
+    //     Vector3 spawnPosition3D = new Vector3(spawnPosition.x, spawnPosition.y, 0f);
+    //     GameObject spawnedPlayer = Instantiate(playerPrefab, spawnPosition3D, Quaternion.identity);
 
-//     if (spawnedPlayer != null)
-//     {
-//         PlayerController controller = spawnedPlayer.GetComponent<PlayerController>();
-//         if (controller != null)
-//         {
-//             controller.EnableMovement();
-//         }
-//         else
-//         {
-//             Debug.LogError("PlayerController component not found on spawned player!");
-//         }
-//     }
+    //     if (spawnedPlayer != null)
+    //     {
+    //         PlayerController controller = spawnedPlayer.GetComponent<PlayerController>();
+    //         if (controller != null)
+    //         {
+    //             controller.EnableMovement();
+    //         }
+    //         else
+    //         {
+    //             Debug.LogError("PlayerController component not found on spawned player!");
+    //         }
+    //     }
 
-//     return (spawnedPlayer, spawnPosition);
-// }
+    //     return (spawnedPlayer, spawnPosition);
+    // }
 
 
     /// <summary>

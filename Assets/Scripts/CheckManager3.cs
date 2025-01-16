@@ -19,11 +19,11 @@ public class CheckManager3 : MonoBehaviour
     {
         new Question
         {
-            questionText = "Which of the two FRUITS needs more presses to get?",
-            optionA = "The [FRUIT1]",
-            optionB = "The [FRUIT2]",
-            optionC = "They have required the same amount of presses",
-            correctAnswer = 'B'
+        questionText = "Which of the two FRUITS needs more presses to get?",
+        optionA = "The Apple",
+        optionB = "The Watermelon",
+        optionC = "They have required the same amount of presses",
+        correctAnswer = 'B'
         },
         new Question
         {
@@ -58,14 +58,15 @@ public class CheckManager3 : MonoBehaviour
     public Button buttonA;
     public Button buttonB;
     public Button buttonC;
-    public TextMeshProUGUI attemptText; // Add this to show remaining attempts
-
+    public TextMeshProUGUI attemptText;
+    public TextMeshProUGUI debugText;
 
     private int currentQuestionIndex = 0;
-    private int score = 0;
-    
-    // Static variable to track attempts across scene reloads
+    private int comprehensionScore = 0;
+
+    // Static variables to track total score and attempts across scene reloads
     private static int failedAttempts = 0;
+    private bool isProcessing = false;
 
     void Start()
     {
@@ -78,11 +79,49 @@ public class CheckManager3 : MonoBehaviour
         DisplayCurrentQuestion();
         UpdateAttemptText();
 
-        // Add in SetupButtons() method
-ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-navigationController.AddElement(buttonA);
-navigationController.AddElement(buttonB);
-navigationController.AddElement(buttonC);
+        // Add button navigation
+        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+        navigationController.AddElement(buttonA);
+        navigationController.AddElement(buttonB);
+        navigationController.AddElement(buttonC);
+
+        // Retrieve and validate scores from PlayerPrefs
+        int check1Score = ValidateScore(PlayerPrefs.GetInt("Check1Score", 0), 6);
+        int check2Score = ValidateScore(PlayerPrefs.GetInt("Check2Score", 0), 3);
+
+        // Calculate and display debug information
+        UpdateDebugText(check1Score, check2Score);
+        Debug.Log($"Score Update: check1Score = {check1Score}, check1Score = {check1Score}");
+    }
+
+
+    // Validate score to ensure it doesn't exceed maximum possible score
+    int ValidateScore(int score, int maxScore)
+    {
+        return Mathf.Clamp(score, 0, maxScore);
+    }
+
+    void UpdateDebugText(int check1Score, int check2Score)
+    {
+        if (debugText != null)
+        {
+            int currentComprehensionScore = comprehensionScore;
+            int totalScore = check1Score + check2Score + currentComprehensionScore;
+
+            debugText.text = $"Debug Info:\n" +
+                             $"Check 1 Score (Max 6): {check1Score}\n" +
+                             $"Check 2 Score (Max 3): {check2Score}\n" +
+                             $"Comprehension Score (Max 4): {currentComprehensionScore}\n" +
+                             $"Current Total Score: {totalScore}\n" +
+                             $"Remaining Attempts: {2 - failedAttempts}";
+
+            Debug.Log($"Debug Information:\n" +
+                             $"Check 1 Score (Max 6): {check1Score}\n" +
+                             $"Check 2 Score (Max 3): {check2Score}\n" +
+                             $"Comprehension Score (Max 4): {currentComprehensionScore}\n" +
+                             $"Current Total Score: {totalScore}\n" +
+                             $"Remaining Attempts: {2 - failedAttempts}");
+        }
     }
 
     void UpdateAttemptText()
@@ -104,28 +143,96 @@ navigationController.AddElement(buttonC);
 
     void OnAnswerSelected(char answer)
     {
-        // Check if answer is correct
+        // Immediate guard against multiple processing
+        if (isProcessing) return;
+
+        // Synchronization flag
+        isProcessing = true;
+
+        // Disable all buttons during processing
+        buttonA.interactable = false;
+        buttonB.interactable = false;
+        buttonC.interactable = false;
+
+        // Check answer
         if (answer == questions[currentQuestionIndex].correctAnswer)
         {
-            score++;
+            comprehensionScore++;
+            if (debugText != null)
+            {
+                debugText.text += $"\nQuestion {currentQuestionIndex + 1} Correct!";
+            }
+        }
+        else
+        {
+            if (debugText != null)
+            {
+                debugText.text += $"\nQuestion {currentQuestionIndex + 1} Incorrect.";
+            }
         }
 
-        // Move to next question or finish
+        // Use Invoke to manage progression and reset
+        Invoke("ProcessQuestionProgression", 0.5f);
+    }
+
+    void ProcessQuestionProgression()
+    {
+        // Move to next question
         currentQuestionIndex++;
-        
+
+        // Re-enable buttons
+        buttonA.interactable = true;
+        buttonB.interactable = true;
+        buttonC.interactable = true;
+
+        // Reset processing flag
+        isProcessing = false;
+
         if (currentQuestionIndex < questions.Length)
         {
             DisplayCurrentQuestion();
         }
         else
         {
-            CalculateScoreAndProceed();
+            // Retrieve and validate previous scores
+            int check1Score = ValidateScore(PlayerPrefs.GetInt("Check1Score", 0), 6);
+            int check2Score = ValidateScore(PlayerPrefs.GetInt("Check2Score", 0), 3);
+
+            // Calculate total score
+            int totalScore = check1Score + check2Score + comprehensionScore;
+
+            // Save the total score to PlayerPrefs
+            PlayerPrefs.SetInt("TotalScore", totalScore);
+            PlayerPrefs.Save();
+
+            // Update debug text with final score
+            if (debugText != null)
+            {
+                debugText.text += $"\n\nFinal Detailed Scores:\n" +
+                                  $"Check 1 (Max 6): {check1Score}\n" +
+                                  $"Check 2 (Max 3): {check2Score}\n" +
+                                  $"Comprehension (Max 4): {comprehensionScore}\n" +
+                                  $"Total Score: {totalScore}";
+
+                Debug.Log($"\n\nFinal Detailed Scores:\n" +
+                                  $"Check 1 (Max 6): {check1Score}\n" +
+                                  $"Check 2 (Max 3): {check2Score}\n" +
+                                  $"Comprehension (Max 4): {comprehensionScore}\n" +
+                                  $"Total Score: {totalScore}");
+            }
+
+            // Proceed to score calculation
+            CalculateScoreAndProceed(totalScore);
         }
     }
 
-    void CalculateScoreAndProceed()
+    void CalculateScoreAndProceed(int totalScore)
     {
-        if (score >= 3)
+        // Log detailed score information
+        Debug.Log($"Total Score: {totalScore}, Failed Attempts: {failedAttempts}");
+
+        // Check if total score meets the threshold
+        if (totalScore >= 11)
         {
             // Reset failed attempts on success
             failedAttempts = 0;
@@ -134,55 +241,32 @@ navigationController.AddElement(buttonC);
         else
         {
             failedAttempts++;
-            
+
+            if (debugText != null)
+            {
+                debugText.text += $"\n\nScore is below 11. Failed Attempts: {failedAttempts}";
+            }
+
             if (failedAttempts >= 2)
             {
-                // Load the EndExperiment scene instead of quitting
+                // Load the EndExperiment scene on second failure
                 SceneManager.LoadScene("EndExperiment");
             }
             else
             {
-                SceneManager.LoadScene("GetReadyPractise");
+                // Go back to practice phase on first failure
+                SceneManager.LoadScene("GetReadyPractice");
             }
         }
     }
 
-    // void ShowQuitMessage()
-    // {
-    //     // Hide all other UI elements
-    //     questionText.transform.parent.gameObject.SetActive(false);
-
-    //     // Create and show quit message
-    //     GameObject quitPanel = new GameObject("QuitPanel");
-    //     quitPanel.transform.SetParent(transform);
-        
-    //     Text quitText = quitPanel.AddComponent<Text>();
-    //     quitText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-    //     quitText.fontSize = 36;
-    //     quitText.alignment = TextAnchor.MiddleCenter;
-    //     quitText.color = Color.white;
-    //     quitText.text = "You have failed the manipulation check twice.\nThe experiment will now end.\nThank you for your participation.";
-
-    //     // Position the quit message in the center of the screen
-    //     RectTransform rectTransform = quitText.GetComponent<RectTransform>();
-    //     rectTransform.anchorMin = new Vector2(0, 0);
-    //     rectTransform.anchorMax = new Vector2(1, 1);
-    //     rectTransform.offsetMin = new Vector2(0, 0);
-    //     rectTransform.offsetMax = new Vector2(0, 0);
-    // }
-
-    // void QuitApplication()
-    // {
-    //     #if UNITY_EDITOR
-    //         UnityEditor.EditorApplication.isPlaying = false;
-    //     #else
-    //         Application.Quit();
-    //     #endif
-    // }
-
-    // Optional: Add this method to reset attempts (useful for testing)
-    public static void ResetAttempts()
+    // Optional: Add this method to reset attempts and score (useful for testing)
+    public static void ResetAttemptsAndScore()
     {
         failedAttempts = 0;
+        PlayerPrefs.DeleteKey("Check1Score");
+        PlayerPrefs.DeleteKey("Check2Score");
+        PlayerPrefs.DeleteKey("TotalScore");
+        PlayerPrefs.Save();
     }
 }

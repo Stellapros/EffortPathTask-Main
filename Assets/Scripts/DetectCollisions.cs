@@ -12,7 +12,7 @@ public class DetectCollisions : MonoBehaviour
     private bool hasCollectedReward = false;
 
     private void Start()
-    { 
+    {
         // Find necessary components if not assigned
         if (gameController == null)
             gameController = FindAnyObjectByType<GameController>();
@@ -42,7 +42,7 @@ public class DetectCollisions : MonoBehaviour
     //         HandleRewardCollision(reward, other.gameObject);
     //     }
     // }
-        private void OnTriggerEnter2D(Collider2D other)
+    private void OnTriggerEnter2D(Collider2D other)
     {
         if (!hasCollectedReward && other.CompareTag("Reward") && other.TryGetComponent<Reward>(out var reward))
         {
@@ -59,7 +59,7 @@ public class DetectCollisions : MonoBehaviour
     {
         hasCollectedReward = true;
         gameController.RewardCollected(true);
-        
+
         // Use RewardSpawner to clear the reward properly
         if (rewardSpawner != null)
         {
@@ -72,7 +72,7 @@ public class DetectCollisions : MonoBehaviour
         }
     }
 
-        public void ResetCollisionState()
+    public void ResetCollisionState()
     {
         hasCollectedReward = false;
     }

@@ -1,51 +1,39 @@
+using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using UnityEngine;
-
-
 
 public class LogManager : MonoBehaviour
 {
+    #region Singleton
     public static LogManager Instance { get; private set; }
+    #endregion
 
-     public static LogManager instance = null; //Static instance of LogManager which allows it to be accessed by any other script.
-
-private string filePath;
-    private List<string> dataColumns;
-    private Dictionary<int, TrialData> trialDataDict = new Dictionary<int, TrialData>();
+    #region Private Fields
+    private string logFilePath;
+    private List<string> unloggedTrials = new List<string>();
+    private readonly object logLock = new object();
     [SerializeField] private bool m_ShowDebugLogManager;
 
     // Participant info
     private string participantID;
     private int participantAge;
     private string participantGender;
+    #endregion
 
-    private class TrialData
-    {
-        public int BlockNumber;
-        public int TrialNumber;
-        public float BlockDistance;
-        public DateTime TrialStart;
-        public DateTime DecisionPhaseStart;
-        public DateTime? GridWorldPhaseStart;
-        public DateTime? DecisionMade;
-        public DateTime? CollisionTime;
-        public DateTime? TrialEnd;
-        public string Decision;
-        public string Outcome;
-        public int EffortLevel;
-        public int PressesRequired;
-        public bool IsPractice;
+    #region Additional Fields for Behavioral Analysis
+    private List<Vector2> rewardPositions = new List<Vector2>();
+    private Dictionary<int, List<float>> reactionTimesByBlock = new Dictionary<int, List<float>>();
+    private Dictionary<int, List<float>> movementTimesByEffortLevel = new Dictionary<int, List<float>>();
+    private Dictionary<int, int> skipCountByEffortLevel = new Dictionary<int, int>();
+    private Dictionary<int, int> successCountByEffortLevel = new Dictionary<int, int>();
+    #endregion
 
-        public bool IsComplete()
-        {
-            return TrialEnd.HasValue && !string.IsNullOrEmpty(Decision) && !string.IsNullOrEmpty(Outcome);
-        }
-    }
 
+
+    #region Unity Lifecycle
     private void Awake()
     {
         if (Instance == null)
@@ -53,14 +41,16 @@ private string filePath;
             Instance = this;
             DontDestroyOnLoad(gameObject);
             LoadParticipantInfo();
-            InitializeCSVFile();
+            InitializeLogging();
         }
-        else if (Instance != this)
+        else
         {
             Destroy(gameObject);
         }
     }
+    #endregion
 
+    #region Initialization
     private void LoadParticipantInfo()
     {
         participantID = PlayerPrefs.GetString("ParticipantID", "Unknown");
@@ -68,353 +58,461 @@ private string filePath;
         participantGender = PlayerPrefs.GetString("ParticipantGender", "Unknown");
     }
 
-    private void InitializeCSVFile()
+    private void InitializeLogging()
     {
+        string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
         string strDir = Path.Combine(Application.dataPath, "_ExpData");
         Directory.CreateDirectory(strDir);
-        filePath = Path.Combine(strDir, $"ExperimentData_{participantID}_{DateTime.Now:yyyyMMdd-HHmmss}.csv");
+        logFilePath = Path.Combine(strDir, $"decision_task_log_{participantID}_{timestamp}.csv");
 
-        dataColumns = new List<string>
+        // Create header for the log file
+        string header = "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
+                       "EffortLevel,RequiredPresses,DecisionType,DecisionRT,OutcomeType,RewardCollected,MovementDuration," +
+                       "ButtonPresses,TotalScore,CheckQuestionNumber,CheckQuestionResponse,CheckQuestionCorrect,AdditionalInfo\n";
+
+        try
         {
-            "ParticipantID", "ParticipantAge", "ParticipantGender", "TrialType",
-            "TrialNumber", "BlockNumber", "BlockDistance", "TrialStartTime", "DecisionPhaseStartTime",
-            "GridWorldPhaseStartTime", "DecisionMadeTime", "CollisionTime", "TrialEndTime",
-            "DecisionReactionTime", "RewardCollectionTime", "Decision", "Outcome",
-            "EffortLevel", "PressesRequired"
-        };
-
-        WriteCSVLine(dataColumns);
-        if (m_ShowDebugLogManager) Debug.Log($"CSV file initialized at: {filePath}");
-    }
-
-    // public void LogTrialStart(int trialNumber, int blockNumber, float blockDistance, int effortLevel, int pressesRequired, bool isPractice)
-public void LogTrialStart(int trialNumber, int blockNumber, int effortLevel, int pressesRequired, bool isPractice)
-    {
-        var trialData = new TrialData
-        {
-            TrialNumber = trialNumber,
-            BlockNumber = blockNumber,
-            // BlockDistance = blockDistance,
-            TrialStart = DateTime.Now,
-            EffortLevel = effortLevel,
-            PressesRequired = pressesRequired,
-            IsPractice = isPractice
-        };
-
-        trialDataDict[trialNumber] = trialData;
-
-        Debug.Log($"{(isPractice ? "Practice" : "Formal")} Trial {trialNumber} started. Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
-    }
-    // public void LogTrialStart(int trialNumber, int blockNumber, float blockDistance, int effortLevel, int pressesRequired)
-    // {
-    //     if (!trialDataDict.ContainsKey(trialNumber))
-    //     {
-    //         trialDataDict[trialNumber] = new TrialData
-    //         {
-    //             TrialNumber = trialNumber + 1, // Add 1 to convert from 0-based to 1-based index for logging
-    //             BlockNumber = blockNumber + 1, // Add 1 to convert from 0-based to 1-based index for logging
-    //             BlockDistance = blockDistance,
-    //             TrialStart = DateTime.Now,
-    //             EffortLevel = effortLevel,
-    //             PressesRequired = pressesRequired
-    //         };
-    //         Debug.Log($"New trial data created for Trial {trialNumber + 1}");
-    //     }
-    //     else
-    //     {
-    //         var trial = trialDataDict[trialNumber];
-    //         trial.BlockNumber = blockNumber + 1; // Add 1 to convert from 0-based to 1-based index for logging
-    //         trial.BlockDistance = blockDistance;
-    //         trial.TrialStart = DateTime.Now;
-    //         trial.EffortLevel = effortLevel;
-    //         trial.PressesRequired = pressesRequired;
-    //         Debug.Log($"Existing trial data updated for Trial {trialNumber + 1}");
-    //     }
-    //     Debug.Log($"Trial {trialNumber + 1} in Block {blockNumber + 1} started. Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
-    // }
-    public void LogCheckQuestionResponse(int trialNumber, int checkQuestionNumber, string leftFruitName, string rightFruitName, string choice, bool isCorrect)
-    {
-        // Append check question response data to the CSV file
-        var rowData = new string[]
-        {
-            participantID,
-            participantAge.ToString(),
-            participantGender,
-            "CheckQuestion",
-            trialNumber.ToString(),
-            checkQuestionNumber.ToString(),
-            leftFruitName,
-            rightFruitName,
-            choice,
-            isCorrect.ToString()
-        };
-
-        WriteCSVLine(rowData);
-    }
-
-    public void LogScoreUpdate(int trialNumber, bool isPractice, int points, string outcome)
-    {
-        if (isPractice)
-        {
-            LogDecisionMade(trialNumber, $"Practice Score +{points}");
-            LogTrialEnd(trialNumber, outcome);
+            File.WriteAllText(logFilePath, header);
+            if (m_ShowDebugLogManager) Debug.Log($"Initialized logging to: {logFilePath}");
         }
-        else
+        catch (Exception e)
         {
-            LogDecisionMade(trialNumber, $"Score +{points}");
-            LogTrialEnd(trialNumber, outcome);
+            Debug.LogError($"Failed to initialize logging: {e.Message}");
         }
     }
+    #endregion
 
-    public void LogScoreReset(int trialNumber, bool isPractice, int oldScore, int newScore, string decision)
+    #region Logging Methods
+    private int AdjustToOneBasedIndex(int index)
     {
-        if (isPractice)
+        return index + 1;
+    }
+
+    public void LogInfoMessage(string messageType, string details)
+    {
+        LogEvent("InfoMessage", new Dictionary<string, string>
         {
-            LogDecisionMade(trialNumber, decision);
-            LogTrialEnd(trialNumber, $"Practice Score Reset from {oldScore} to {newScore}");
-        }
-        else
-        {
-            LogDecisionMade(trialNumber, decision);
-            LogTrialEnd(trialNumber, $"Total Score Reset from {oldScore} to {newScore}");
-        }
-    }
-
-
-    public void LogDecisionPhaseStart(int trialNumber)
-    {
-        if (trialDataDict.TryGetValue(trialNumber, out var trial))
-        {
-            trial.DecisionPhaseStart = DateTime.Now;
-        }
-    }
-    public void LogGridWorldPhaseStart(int trialNumber)
-    {
-        if (trialDataDict.TryGetValue(trialNumber, out var trial))
-        {
-            trial.GridWorldPhaseStart = DateTime.Now;
-        }
-    }
-    public void LogDecisionMade(int trialNumber, string decision)
-    {
-        if (trialDataDict.TryGetValue(trialNumber, out var trial))
-        {
-            trial.DecisionMade = DateTime.Now;
-            trial.Decision = decision;
-        }
-    }
-    public void LogCollisionTime(int trialNumber)
-    {
-        if (trialDataDict.TryGetValue(trialNumber, out var trial))
-        {
-            trial.CollisionTime = DateTime.Now;
-        }
-    }
-
-    // public void LogTrialEnd(int trialNumber, string outcome)
-    // {
-    //     EnsureTrialDataExists(trialNumber);
-    //     var trial = trialDataDict[trialNumber];
-    //     trial.TrialEnd = DateTime.Now;
-    //     trial.Outcome = outcome;
-    //     if (m_ShowDebugLogManager) Debug.Log($"Trial {trialNumber} ended at {trial.TrialEnd} with outcome: {outcome}");
-
-    //     if (trial.IsComplete())
-    //     {
-    //         WriteTrialData(trial);
-    //     }
-    //     else
-    //     {
-    //         Debug.LogWarning($"Trial {trialNumber} data is incomplete and will not be logged.");
-    //     }
-    // }
-
-    public void LogInfoMessage(string title, string message)
-    {
-        LogManager.Instance.LogScoreUpdate(0, false, 0, $"{title}: {message}");
-    }
-
-    public void LogMessage(string title, string message)
-    {
-        // Implement the logic to log the message, e.g., write to a file or the console
-        Debug.Log($"{title}: {message}");
-    }
-
-    public void LogWarning(string title, string message)
-    {
-        // Implement the logic to log the warning, e.g., write to the console or a log file
-        Debug.LogWarning($"{title}: {message}");
-    }
-
-    public void LogTrialEnd(int trialNumber, string outcome)
-    {
-        if (trialDataDict.TryGetValue(trialNumber, out var trial))
-        {
-            trial.TrialEnd = DateTime.Now;
-            trial.Outcome = outcome;
-
-            WriteTrialData(trial);
-
-            trialDataDict.Remove(trialNumber);
-            Debug.Log($"{(trial.IsPractice ? "Practice" : "Formal")} Trial {trialNumber} data logged and removed from memory. Outcome: {outcome}");
-        }
-        else
-        {
-            Debug.LogWarning($"Trial {trialNumber} data not found when ending trial.");
-        }
-    }
-    private void WriteTrialData(TrialData trial)
-    {
-        TimeSpan? decisionReactionTime = trial.DecisionMade - trial.DecisionPhaseStart;
-        TimeSpan? rewardCollectionTime = trial.CollisionTime - trial.GridWorldPhaseStart;
-
-        var rowData = new string[]
-        {
-            participantID,
-            participantAge.ToString(),
-            participantGender,
-            trial.IsPractice ? "Practice" : "Formal",
-            trial.TrialNumber.ToString(),
-            trial.BlockNumber.ToString(),
-            trial.BlockDistance.ToString("F2"),
-            FormatDateTime(trial.TrialStart),
-            FormatDateTime(trial.DecisionPhaseStart),
-            FormatDateTime(trial.GridWorldPhaseStart),
-            FormatDateTime(trial.DecisionMade),
-            FormatDateTime(trial.CollisionTime),
-            FormatDateTime(trial.TrialEnd),
-            FormatTimeSpan(decisionReactionTime),
-            FormatTimeSpan(rewardCollectionTime),
-            trial.Decision ?? "N/A",
-            trial.Outcome ?? "N/A",
-            trial.EffortLevel.ToString(),
-            trial.PressesRequired.ToString()
-        };
-
-        WriteCSVLine(rowData);
-    }
-
-    // Update the WritePartialTrialData method to include participant info
-    private void WritePartialTrialData(TrialData trial)
-    {
-        var rowData = new string[]
-        {
-            participantID,
-            participantAge.ToString(),
-            participantGender,
-            trial.TrialNumber.ToString(),
-            trial.BlockNumber.ToString(),
-            trial.BlockDistance.ToString("F2"),
-            FormatDateTime(trial.TrialStart),
-            "N/A", // DecisionPhaseStartTime
-            "N/A", // GridWorldPhaseStartTime
-            "N/A", // DecisionMadeTime
-            "N/A", // CollisionTime
-            "N/A", // TrialEndTime
-            "N/A", // DecisionReactionTime
-            "N/A", // RewardCollectionTime
-            "N/A", // Decision
-            "N/A", // Outcome
-            trial.EffortLevel.ToString(),
-            trial.PressesRequired.ToString()
-        };
-
-        WriteCSVLine(rowData);
-    }
-
-    private string FormatDateTime(DateTime? dateTime)
-    {
-        return dateTime?.ToString("yyyy-MM-dd HH:mm:ss.fff") ?? "N/A";
-    }
-
-    private string FormatTimeSpan(TimeSpan? timeSpan)
-    {
-        return timeSpan?.TotalSeconds.ToString("F3") ?? "N/A";
-    }
-
-    private void WriteCSVLine(IEnumerable<string> data)
-    {
-        string line = string.Join(",", data.Select(field => field.Contains(",") ? $"\"{field}\"" : field));
-        File.AppendAllText(filePath, line + Environment.NewLine);
-    }
-
-    public void LogBlockStart(int blockNumber)
-    {
-        Debug.Log($"Block {blockNumber} started at {DateTime.Now}");
-    }
-
-    public void LogBlockEnd(int blockNumber)
-    {
-        Debug.Log($"Block {blockNumber} ended at {DateTime.Now}");
+            {"MessageType", messageType},
+            {"Details", details}
+        });
     }
 
     public void LogExperimentStart(bool isPractice)
     {
-        Debug.Log($"{(isPractice ? "Practice" : "Formal")} experiment started.");
+        LogEvent("ExperimentStart", new Dictionary<string, string>
+        {
+            {"IsPractice", isPractice.ToString()},
+            {"StartTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}
+        });
+    }
+
+    public void LogBlockStart(int blockNumber)
+    {
+        LogEvent("BlockStart", new Dictionary<string, string>
+        {
+            {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()}
+        });
+    }
+
+    public void LogTrialStart(int trialNumber, int blockNumber, int effortLevel, int requiredPresses, bool isPractice)
+    {
+        LogEvent("TrialStart", new Dictionary<string, string>
+        {
+            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+            {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
+            {"EffortLevel", effortLevel.ToString()},
+            {"RequiredPresses", requiredPresses.ToString()},
+            {"IsPractice", isPractice.ToString()}
+        });
+    }
+
+    public void LogRewardPosition(int trialNumber, Vector2 position, int effortLevel)
+    {
+        rewardPositions.Add(position);
+        LogEvent("RewardPosition", new Dictionary<string, string>
+        {
+            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+            {"PositionX", position.x.ToString("F2")},
+            {"PositionY", position.y.ToString("F2")},
+            {"EffortLevel", effortLevel.ToString()},
+            {"DistanceFromCenter", Vector2.Distance(Vector2.zero, position).ToString("F2")}
+        });
+    }
+    public void LogEffortLevelMetrics(int trialNumber, int effortLevel, int requiredPresses, float completionTime)
+    {
+        if (!movementTimesByEffortLevel.ContainsKey(effortLevel))
+        {
+            movementTimesByEffortLevel[effortLevel] = new List<float>();
+        }
+        movementTimesByEffortLevel[effortLevel].Add(completionTime);
+
+        LogEvent("EffortMetrics", new Dictionary<string, string>
+        {
+            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+            {"EffortLevel", effortLevel.ToString()},
+            {"RequiredPresses", requiredPresses.ToString()},
+            {"CompletionTime", completionTime.ToString("F3")},
+            {"AverageTimeForLevel", movementTimesByEffortLevel[effortLevel].Average().ToString("F3")}
+        });
+    }
+
+    public void LogDecisionMetrics(int trialNumber, int blockNumber, string decisionType, float reactionTime)
+    {
+        if (!reactionTimesByBlock.ContainsKey(blockNumber))
+        {
+            reactionTimesByBlock[blockNumber] = new List<float>();
+        }
+        reactionTimesByBlock[blockNumber].Add(reactionTime);
+
+        LogEvent("DecisionMetrics", new Dictionary<string, string>
+        {
+            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+            {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
+            {"DecisionType", decisionType},
+            {"ReactionTime", reactionTime.ToString("F3")},
+            {"AverageRTForBlock", reactionTimesByBlock[blockNumber].Average().ToString("F3")},
+            {"MedianRTForBlock", GetMedian(reactionTimesByBlock[blockNumber]).ToString("F3")}
+        });
+    }
+
+    public void LogBehavioralSummary(int blockNumber)
+    {
+        var summary = new Dictionary<string, float>();
+        foreach (var kvp in skipCountByEffortLevel)
+        {
+            int totalTrials = skipCountByEffortLevel[kvp.Key] + successCountByEffortLevel.GetValueOrDefault(kvp.Key, 0);
+            float skipRate = totalTrials > 0 ? (float)kvp.Value / totalTrials : 0f;
+            summary[$"SkipRate_Effort{kvp.Key}"] = skipRate;
+        }
+
+        LogEvent("BlockSummary", new Dictionary<string, string>
+        {
+            {"BlockNumber", (blockNumber + 1).ToString()},
+            {"AverageRT", reactionTimesByBlock.GetValueOrDefault(blockNumber, new List<float>()).Average().ToString("F3")},
+            {"SkipRates", string.Join(";", summary.Select(kvp => $"{kvp.Key}={kvp.Value:F3}"))}
+        });
+    }
+
+    public void LogCheckQuestionResponse(int trialNumber, int checkQuestionNumber, string leftFruitName,
+                                       string rightFruitName, string choice, bool isCorrect)
+    {
+        LogEvent("CheckQuestion", new Dictionary<string, string>
+        {
+            {"TrialNumber", trialNumber.ToString()},
+            {"CheckQuestionNumber", checkQuestionNumber.ToString()},
+            {"LeftOption", leftFruitName},
+            {"RightOption", rightFruitName},
+            {"Choice", choice},
+            {"IsCorrect", isCorrect.ToString()}
+        });
+    }
+
+    public void LogDecisionPhaseStart(int trialNumber)
+    {
+        LogEvent("DecisionPhaseStart", new Dictionary<string, string>
+        {
+            {"TrialNumber", trialNumber.ToString()},
+            {"StartTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}
+        });
+    }
+
+    public void LogDecisionMade(int trialNumber, string decisionType, float reactionTime = -1)
+    {
+        LogEvent("Decision", new Dictionary<string, string>
+        {
+            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+            {"DecisionType", decisionType},
+            {"ReactionTime", reactionTime.ToString("F3")},
+            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
+    }
+
+    public void LogDecisionOutcome(int trialNumber, string decisionType)
+    {
+        LogEvent("DecisionOutcome", new Dictionary<string, string> {
+        {"TrialNumber", trialNumber.ToString()},
+        {"DecisionType", decisionType},
+        {"Timestamp", System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+    });
+    }
+
+    public void LogNoDecision(int trialNumber)
+    {
+        LogEvent("NoDecision", new Dictionary<string, string>
+        {
+            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+            {"TimeoutDuration", "5.0"},
+            {"PenaltyApplied", "true"},
+            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
+    }
+
+    public void LogSkipDecision(int trialNumber, string decisionType, float reactionTime = -1)
+    {
+        LogEvent("Skip", new Dictionary<string, string>
+        {
+            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+            {"DecisionType", decisionType},
+            {"PenaltyDuration", "3.0"},
+            {"ReactionTime", reactionTime.ToString("F3")},
+            {"PenaltyApplied", "true"},
+            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
+    }
+
+    public void LogGridWorldPhaseStart(int trialNumber)
+    {
+        LogEvent("GridWorldStart", new Dictionary<string, string>
+        {
+            {"TrialNumber", trialNumber.ToString()},
+            {"StartTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}
+        });
+    }
+
+    public void LogMovementOutcome(int trialNumber, bool rewardCollected, float movementDuration, int buttonPresses)
+    {
+        LogEvent("MovementOutcome", new Dictionary<string, string>
+        {
+            {"TrialNumber", trialNumber.ToString()},
+            {"RewardCollected", rewardCollected.ToString()},
+            {"MovementDuration", movementDuration.ToString("F3")},
+            {"ButtonPresses", buttonPresses.ToString()}
+        });
+    }
+
+    public void LogCollisionTime(int trialNumber)
+    {
+        LogEvent("CollisionTime", new Dictionary<string, string>
+    {
+        {"TrialNumber", trialNumber.ToString()},
+        {"CollisionTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+    });
+    }
+
+    public void LogScoreUpdate(int trialNumber, bool isPractice, int points, string outcome)
+    {
+        LogEvent("ScoreUpdate", new Dictionary<string, string>
+        {
+            {"TrialNumber", trialNumber.ToString()},
+            {"IsPractice", isPractice.ToString()},
+            {"Points", points.ToString()},
+            {"Outcome", outcome}
+        });
+    }
+
+    public void LogScoreReset(int trialNumber, bool isPractice, int oldScore, int newScore, string reason)
+    {
+        LogEvent("ScoreReset", new Dictionary<string, string>
+        {
+            {"TrialNumber", trialNumber.ToString()},
+            {"IsPractice", isPractice.ToString()},
+            {"OldScore", oldScore.ToString()},
+            {"NewScore", newScore.ToString()},
+            {"ResetReason", reason}
+        });
+    }
+
+    public void LogPenaltyStart(int trialNumber, string penaltyType, float duration)
+    {
+        LogEvent("PenaltyStart", new Dictionary<string, string>
+        {
+            {"TrialNumber", trialNumber.ToString()},
+            {"PenaltyType", penaltyType},
+            {"Duration", duration.ToString()}
+        });
+    }
+
+    public void LogPenaltyEnd(int trialNumber, string penaltyType)
+    {
+        LogEvent("PenaltyEnd", new Dictionary<string, string>
+        {
+            {"TrialNumber", trialNumber.ToString()},
+            {"PenaltyType", penaltyType}
+        });
+    }
+
+    public void LogPenaltyApplied(int trialNumber, string decisionType, float penaltyDuration)
+    {
+        LogEvent("Penalty", new Dictionary<string, string>
+        {
+            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+            {"DecisionType", decisionType},
+            {"PenaltyDuration", penaltyDuration.ToString("F3")},
+            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
+    }
+
+    public void LogTrialEnd(int trialNumber, bool rewardCollected, float trialDuration, float actionReactionTime)
+    {
+        LogEvent("TrialEnd", new Dictionary<string, string>
+    {
+        {"TrialNumber", trialNumber.ToString()},
+        {"Outcome", rewardCollected ? "Success" : "Failure"},
+        {"TrialDuration", trialDuration.ToString("F2")},
+        {"ReactionTime", actionReactionTime.ToString("F2")},
+        {"Timestamp", System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+    });
+    }
+
+    public void LogTrialOutcome(int trialNumber, int blockNumber, string decisionType, bool rewardCollected, float completionTime, int effortLevel)
+    {
+        // Update success/skip counts
+        if (decisionType == "Skip")
+        {
+            skipCountByEffortLevel[effortLevel] = skipCountByEffortLevel.GetValueOrDefault(effortLevel, 0) + 1;
+        }
+        else if (rewardCollected)
+        {
+            successCountByEffortLevel[effortLevel] = successCountByEffortLevel.GetValueOrDefault(effortLevel, 0) + 1;
+        }
+
+        LogEvent("TrialOutcome", new Dictionary<string, string>
+        {
+            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+            {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
+            {"DecisionType", decisionType},
+            {"RewardCollected", rewardCollected.ToString()},
+            {"CompletionTime", completionTime.ToString("F3")},
+            {"EffortLevel", effortLevel.ToString()},
+            {"SuccessRate", GetSuccessRate(effortLevel).ToString("F3")}
+
+        });
+    }
+
+    public void LogBlockEnd(int blockNumber)
+    {
+        LogEvent("BlockEnd", new Dictionary<string, string>
+        {
+            {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
+            {"EndTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}
+        });
     }
 
     public void LogExperimentEnd()
     {
-        Debug.Log($"Experiment ended at {DateTime.Now}. Total trials completed: {trialDataDict.Count}");
+        LogEvent("ExperimentEnd", new Dictionary<string, string>
+        {
+            {"EndTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}
+        });
         DumpUnloggedTrials();
     }
+    #endregion
 
-    // public void LogPracticeTrialStart(int trialNumber, int effortLevel, int pressesRequired)
-    // {
-    //     practiceTrialDataDict[trialNumber] = new TrialData
-    //     {
-    //         TrialNumber = trialNumber,
-    //         BlockNumber = 0,
-    //         BlockDistance = 3,
-    //         TrialStart = DateTime.Now,
-    //         EffortLevel = effortLevel,
-    //         PressesRequired = pressesRequired
-    //     };
-    //     Debug.Log($"Practice Trial {trialNumber} started. Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
-    // }
+    #region Helper Methods
+    private void LogEvent(string eventType, Dictionary<string, string> parameters)
+    {
+        StringBuilder logEntry = new StringBuilder();
+        logEntry.Append($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff},");
+        logEntry.Append($"{eventType},");
+        logEntry.Append($"{participantID},");
+        logEntry.Append($"{participantAge},");
+        logEntry.Append($"{participantGender},");
 
-    // public void LogPracticeDecisionMade(int trialNumber, string decision, int effortLevel, int pressesRequired)
-    // {
-    //     if (practiceTrialDataDict.TryGetValue(trialNumber, out var trial))
-    //     {
-    //         trial.DecisionMade = DateTime.Now;
-    //         trial.Decision = decision;
-    //         trial.EffortLevel = effortLevel;
-    //         trial.PressesRequired = pressesRequired;
-    //     }
-    // }
-    // public void LogPracticeTrialEnd(int trialNumber, string outcome)
-    // {
-    //     if (practiceTrialDataDict.TryGetValue(trialNumber, out var trial))
-    //     {
-    //         trial.TrialEnd = DateTime.Now;
-    //         trial.Outcome = outcome;
-    //         WritePracticeTrialData(trial);
-    //         practiceTrialDataDict.Remove(trialNumber);
-    //     }
-    // }
+        // Add standard fields (use "-" for missing values)
+        string[] standardFields = new string[]
+        {
+            parameters.GetValueOrDefault("BlockNumber", "-"),
+            parameters.GetValueOrDefault("TrialNumber", "-"),
+            parameters.GetValueOrDefault("EffortLevel", "-"),
+            parameters.GetValueOrDefault("RequiredPresses", "-"),
+            parameters.GetValueOrDefault("DecisionType", "-"),
+            parameters.GetValueOrDefault("ReactionTime", "-"),
+            parameters.GetValueOrDefault("OutcomeType", "-"),
+            parameters.GetValueOrDefault("RewardCollected", "-"),
+            parameters.GetValueOrDefault("MovementDuration", "-"),
+            parameters.GetValueOrDefault("ButtonPresses", "-"),
+            parameters.GetValueOrDefault("TotalScore", "-"),
+            parameters.GetValueOrDefault("CheckQuestionNumber", "-"),
+            parameters.GetValueOrDefault("Choice", "-"),
+            parameters.GetValueOrDefault("IsCorrect", "-")
+        };
 
-    // public void LogFormalTrialStart(int trialNumber, int blockNumber, float blockDistance, int effortLevel, int pressesRequired)
-    // {
-    //     formalTrialDataDict[trialNumber] = new TrialData
-    //     {
-    //         TrialNumber = trialNumber,
-    //         BlockNumber = blockNumber,
-    //         BlockDistance = blockDistance,
-    //         TrialStart = DateTime.Now,
-    //         EffortLevel = effortLevel,
-    //         PressesRequired = pressesRequired
-    //     };
-    //     Debug.Log($"Formal Trial {trialNumber} in Block {blockNumber} started. Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
-    // }
+        logEntry.Append(string.Join(",", standardFields));
 
-    // Add a method to dump all trial data for debugging purposes
+        // Add any additional parameters as extra info
+        string additionalInfo = string.Join(";", parameters
+            .Where(p => !standardFields.Contains(p.Value))
+            .Select(p => $"{p.Key}={p.Value}"));
+        logEntry.Append($",{additionalInfo}");
+
+        lock (logLock)
+        {
+            try
+            {
+                File.AppendAllText(logFilePath, logEntry.ToString() + "\n");
+                if (m_ShowDebugLogManager) Debug.Log($"Logged event: {eventType}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to write log entry: {e.Message}");
+                unloggedTrials.Add(logEntry.ToString());
+            }
+        }
+    }
+
     public void DumpUnloggedTrials()
     {
-        foreach (var trial in trialDataDict.Values)
+        if (unloggedTrials.Count > 0)
         {
-            WriteTrialData(trial);
+            try
+            {
+                File.AppendAllLines(logFilePath, unloggedTrials);
+                unloggedTrials.Clear();
+                Debug.Log("Successfully dumped unlogged trials");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to dump unlogged trials: {e.Message}");
+            }
         }
-        trialDataDict.Clear();
     }
+    #endregion
+
+    #region Analysis Helper Methods
+    private float GetMedian(List<float> values)
+    {
+        var sortedValues = values.OrderBy(v => v).ToList();
+        int mid = sortedValues.Count / 2;
+        return sortedValues.Count % 2 == 0
+            ? (sortedValues[mid - 1] + sortedValues[mid]) / 2
+            : sortedValues[mid];
+    }
+
+    private float GetSuccessRate(int effortLevel)
+    {
+        int successes = successCountByEffortLevel.GetValueOrDefault(effortLevel, 0);
+        int totalAttempts = successes + skipCountByEffortLevel.GetValueOrDefault(effortLevel, 0);
+        return totalAttempts > 0 ? (float)successes / totalAttempts : 0f;
+    }
+    #endregion
+
+    // // For work decisions
+    // logManager.LogDecisionMade(currentTrialIndex, "Work", reactionTime);
+
+    // // For skip decisions
+    // logManager.LogSkipDecision(currentTrialIndex, reactionTime);
+    // logManager.LogPenaltyApplied(currentTrialIndex, "Skip", 3.0f);
+
+    // // For no decisions
+    // logManager.LogNoDecision(currentTrialIndex);
+    // logManager.LogPenaltyApplied(currentTrialIndex, "NoDecision", 5.0f);
+
+    // // At the end of each trial
+    // logManager.LogTrialOutcome(currentTrialIndex, decisionType, rewardCollected, completionTime);
+    // logManager.LogTrialProgression(currentTrialIndex, currentBlockNumber, progressionType);
+
+
+
+    // // Your internal code can use 0-based indexing
+    // int currentTrialIndex = 0;  // First trial
+    // int currentBlockIndex = 0;  // First block
+
+    // // The logging will automatically convert to 1-based indexing
+    // logManager.LogTrialStart(currentTrialIndex, currentBlockIndex, effortLevel, requiredPresses, isPractice);
+    // // This will log as Trial 1, Block 1
+
+    // // For the last trial in first block
+    // currentTrialIndex = 8;  // (TRIALS_PER_BLOCK - 1)
+    // logManager.LogTrialEnd(currentTrialIndex, rewardCollected, trialDuration, reactionTime);
+    // // This will log as Trial 9, Block 1
 }

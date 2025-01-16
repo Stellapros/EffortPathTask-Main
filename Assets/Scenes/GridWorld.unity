@@ -1003,22 +1003,15 @@ MonoBehaviour:
   rewardSpawner: {fileID: 559933965}
   gridManager: {fileID: 3518301202708184085}
   scoreManager: {fileID: 4872053700752718782}
-  decisionManager: {fileID: 5015606522049160688, guid: 269e5bfde267843afab5c7d3b477bb86,
-    type: 3}
-  countdownTimer: {fileID: 3935823065129658971}
   logManager: {fileID: 3404956456498695464, guid: 54dd36bf67cfa4080a440bbc6615ec0a,
     type: 3}
-  experimentManager: {fileID: 3507179296321619295, guid: 082b8600c17df4d43939728b5144dd10,
+  countdownTimer: {fileID: 3935823065129658971}
+  experimentManager: {fileID: 3127791733430911248, guid: 082b8600c17df4d43939728b5144dd10,
     type: 3}
   playerPrefab: {fileID: 197052547065130213, guid: ab9f9bb94afc64c7e89ec2641835a2f1,
     type: 3}
   rewardPrefab: {fileID: 9181912887003914726, guid: 989337141fe604338aed78ac97f42db1,
     type: 3}
-  practiceTrialDuration: 10
-  practiceGridSize: 7
-  practiceDurationMultiplier: 1.5
-  defaultTrialDuration: 5
-  defaultGridSize: 7
 --- !u!1 &1704339047
 GameObject:
   m_ObjectHideFlags: 0
@@ -1383,11 +1376,11 @@ MonoBehaviour:
   startTrialDelay: 0.5
   endTrialDelay: 0.5
   pressesPerEffortLevel: 010000000200000003000000
-  sceneTransitionTimeout: 5
   experimentManager: {fileID: 3507179296321619295, guid: 082b8600c17df4d43939728b5144dd10,
     type: 3}
   gridWorldManager: {fileID: -8690266444773239620, guid: 96d776e8ee130440d8b6e04107cc91e0,
     type: 3}
+  practiceManager: {fileID: 0}
 --- !u!1001 &1065090123916010027
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1614,27 +1607,9 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
         type: 3}
-      propertyPath: gridManager
-      value: 
-      objectReference: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
       propertyPath: playerSpawner
       value: 
       objectReference: {fileID: 1772104562}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: practiceManager
-      value: 
-      objectReference: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: experimentManager
-      value: 
-      objectReference: {fileID: 3507179296321619295, guid: 082b8600c17df4d43939728b5144dd10,
-        type: 3}
     - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
         type: 3}
       propertyPath: rewardPrefabs.Array.size
@@ -1673,70 +1648,6 @@ PrefabInstance:
     - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
         type: 3}
       propertyPath: 'rewardPrefabs.Array.data[5]'
-      value: 
-      objectReference: {fileID: 6861172893992282259, guid: ab4849fe315e544faabccbbeb391c3e6,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: formalRewardPrefabs.Array.size
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: practiceRewardPrefabs.Array.size
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: 'formalRewardPrefabs.Array.data[0]'
-      value: 
-      objectReference: {fileID: 5496166358235005989, guid: c6d232e5fd3e0495cbbbe7570d7614eb,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: 'formalRewardPrefabs.Array.data[1]'
-      value: 
-      objectReference: {fileID: 8022593480357226567, guid: fa3db00718bc74c898e62edd28433419,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: 'formalRewardPrefabs.Array.data[2]'
-      value: 
-      objectReference: {fileID: 1766563905567626122, guid: f8e91945949c349a5ad7d8796fd15fcc,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: 'formalRewardPrefabs.Array.data[3]'
-      value: 
-      objectReference: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: 'formalRewardPrefabs.Array.data[4]'
-      value: 
-      objectReference: {fileID: 9181912887003914726, guid: 989337141fe604338aed78ac97f42db1,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: 'formalRewardPrefabs.Array.data[5]'
-      value: 
-      objectReference: {fileID: 6861172893992282259, guid: ab4849fe315e544faabccbbeb391c3e6,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: 'practiceRewardPrefabs.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: 'practiceRewardPrefabs.Array.data[1]'
-      value: 
-      objectReference: {fileID: 9181912887003914726, guid: 989337141fe604338aed78ac97f42db1,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: 'practiceRewardPrefabs.Array.data[2]'
       value: 
       objectReference: {fileID: 6861172893992282259, guid: ab4849fe315e544faabccbbeb391c3e6,
         type: 3}

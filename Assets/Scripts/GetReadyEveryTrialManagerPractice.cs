@@ -11,15 +11,15 @@ public class GetReadyEveryTrialManagerPractice : MonoBehaviour
     [SerializeField] private TextMeshProUGUI readyText;
 
     private float currentTimer;
-    private ExperimentManager experimentManager;
+    private PracticeManager practiceManager;
 
     private void Start()
     {
         // Initialize timer
         currentTimer = displayDuration;
 
-        // Get ExperimentManager instance
-        experimentManager = ExperimentManager.Instance;
+        // Get PracticeManager instance
+        practiceManager = PracticeManager.Instance;
 
         // Update trial and block counters
         UpdateTrialCounter();
@@ -43,21 +43,21 @@ public class GetReadyEveryTrialManagerPractice : MonoBehaviour
 
     private void UpdateTrialCounter()
     {
-        if (trialCounterText != null && experimentManager != null)
+        if (trialCounterText != null && practiceManager != null)
         {
-            int currentTrialInBlock = experimentManager.GetCurrentTrialInBlock();
-            int totalTrialsInBlock = experimentManager.GetTotalTrialsInBlock();
+            int currentTrialIndex = practiceManager.GetCurrentPracticeTrialIndex();
+            int totalTrials = 6; // Hardcoded total practice trials
 
-            trialCounterText.text = $"Trial {currentTrialInBlock} of {totalTrialsInBlock}";
+            trialCounterText.text = $"Trial {currentTrialIndex + 1} of {totalTrials}";
         }
     }
 
     private void UpdateBlockCounter()
     {
-        if (blockCounterText != null && experimentManager != null)
+        if (blockCounterText != null)
         {
-            int currentBlock = experimentManager.GetCurrentBlockNumber();
-            blockCounterText.text = $"Block {currentBlock + 1}";
+            // For practice trials, always show "Practice Block"
+            blockCounterText.text = "Practice Block";
         }
     }
 
@@ -71,8 +71,8 @@ public class GetReadyEveryTrialManagerPractice : MonoBehaviour
 
     private void MoveToNextScene()
     {
-        // Move to GridWorld scene
-        SceneManager.LoadScene("PracticeGridWorld");
+        // Move to Decision Phase for practice
+        SceneManager.LoadScene("PracticeDecisionPhase");
     }
 
     // Optional: Add a method to manually skip (for testing)
@@ -81,21 +81,19 @@ public class GetReadyEveryTrialManagerPractice : MonoBehaviour
         MoveToNextScene();
     }
 
-    // Optional additional debug information
-    private void LogTrialDetails()
+    // Optional debug method 
+    private void LogPracticeTrialDetails()
     {
-        if (experimentManager != null)
+        if (practiceManager != null)
         {
-            Debug.Log($"Current Block: {experimentManager.GetCurrentBlockNumber()}");
-            Debug.Log($"Current Trial in Block: {experimentManager.GetCurrentTrialInBlock()}");
-            
-            Vector2 playerPos = experimentManager.GetCurrentTrialPlayerPosition();
-            Vector2 rewardPos = experimentManager.GetCurrentTrialRewardPosition();
-            int rewardValue = experimentManager.GetCurrentTrialRewardValue();
+            var currentTrial = practiceManager.GetCurrentPracticeTrial();
 
-            Debug.Log($"Player Position: {playerPos}");
-            Debug.Log($"Reward Position: {rewardPos}");
-            Debug.Log($"Reward Value: {rewardValue}");
+            if (currentTrial != null)
+            {
+                Debug.Log($"Current Practice Trial Index: {practiceManager.GetCurrentPracticeTrialIndex()}");
+                Debug.Log($"Effort Level: {currentTrial.effortLevel}");
+                Debug.Log($"Reward Value: {currentTrial.rewardValue}");
+            }
         }
     }
 }

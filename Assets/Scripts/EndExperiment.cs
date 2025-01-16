@@ -17,7 +17,7 @@ public class EndExperiment : MonoBehaviour
     [SerializeField] public AudioClip buttonClickSound;
     private AudioSource audioSource;
 
-    
+
     [Header("Input Field Settings")]
     [SerializeField] public Vector2 inputFieldSize = new Vector2(300, 50);
     [SerializeField] private int fontSize = 16;
@@ -53,9 +53,9 @@ public class EndExperiment : MonoBehaviour
         }
 
         // Add in Start() method
-ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-navigationController.AddElement(submitButton);
-navigationController.AddElement(feedbackInputField);
+        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+        navigationController.AddElement(submitButton);
+        navigationController.AddElement(feedbackInputField);
     }
 
     private void DisplayTotalTime()

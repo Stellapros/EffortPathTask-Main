@@ -15,7 +15,7 @@ public class UniversalTimerOverlay : MonoBehaviour
     public RectTransform timerRectTransform;
 
     [Header("Timer Styling")]
-    public Color timerColor = new Color(0.67f, 0.87f, 0.86f); 
+    public Color timerColor = new Color(0.67f, 0.87f, 0.86f);
     public int fontSize = 24;
     public FontStyles fontStyle = FontStyles.Bold;
 
@@ -62,26 +62,33 @@ public class UniversalTimerOverlay : MonoBehaviour
         {
             GameObject textObject = new GameObject("TimerText");
             textObject.transform.SetParent(timerCanvas.transform, false);
-            
+
             timerText = textObject.AddComponent<TextMeshProUGUI>();
-            
+
             // Default styling
             timerText.color = timerColor;
             timerText.fontSize = fontSize;
             timerText.fontStyle = fontStyle;
-            
+
+            // Make text left-aligned for better readability with two lines
+            timerText.alignment = TextAlignmentOptions.Left;
+
             // Optional: You can set a specific font if you have one
             // timerText.font = Resources.Load<TMP_FontAsset>("path/to/your/font");
         }
 
         // Ensure RectTransform is set up
         timerRectTransform = timerText.rectTransform;
-        
+
         // Position in bottom-right corner with padding
         timerRectTransform.anchorMin = new Vector2(1, 0);
         timerRectTransform.anchorMax = new Vector2(1, 0);
         timerRectTransform.pivot = new Vector2(1, 0);
         timerRectTransform.anchoredPosition = new Vector2(-20, 20); // 20 pixel padding from bottom-right
+
+        // Set a wider width for the timer text
+        timerRectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 500f);
+        timerRectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 100f);
 
         // Optional: Add outline or shadow
         timerText.enableAutoSizing = false;
@@ -109,12 +116,42 @@ public class UniversalTimerOverlay : MonoBehaviour
     {
         // Format time as hours:minutes:seconds with milliseconds
         TimeSpan timePlayed = TimeSpan.FromSeconds(time);
-        timerText.text = string.Format("{0:D2}:{1:D2}:{2:D2}.<size=50%>{3:D3}</size>", 
-            timePlayed.Hours, 
-            timePlayed.Minutes, 
+
+        // Get current system time
+        DateTime currentTime = DateTime.Now;
+
+        // Combine elapsed game time and current system time
+        timerText.text = string.Format(
+            "Game Time: {0:D2}:{1:D2}:{2:D2}.<size=50%>{3:D3}</size>\n" +
+            "Current Time: {4:HH}:{4:mm}:{4:ss}",
+            timePlayed.Hours,
+            timePlayed.Minutes,
             timePlayed.Seconds,
-            timePlayed.Milliseconds);
+            timePlayed.Milliseconds,
+            currentTime);
     }
+
+    // private void UpdateTimerDisplay(float time)
+    // {
+    //     // Format time as hours:minutes:seconds with milliseconds
+    //     TimeSpan timePlayed = TimeSpan.FromSeconds(time);
+
+    //     // Get current system time
+    //     DateTime currentTime = DateTime.Now;
+
+    //     // Combine elapsed game time and current system time with more spacing
+    //     timerText.text = string.Format(
+    //         "<b>Game Time:</b>\n" +
+    //         "{0:D2}:{1:D2}:{2:D2}.<size=50%>{3:D3}</size>\n\n" +
+    //         "<b>Current Time:</b>\n" +
+    //         "{4:HH}:{4:mm}:{4:ss}", 
+    //         timePlayed.Hours, 
+    //         timePlayed.Minutes, 
+    //         timePlayed.Seconds,
+    //         timePlayed.Milliseconds,
+    //         currentTime);
+    // }
+
 
     // Additional utility methods
     public void PauseTimer()
@@ -134,18 +171,18 @@ public class UniversalTimerOverlay : MonoBehaviour
 
     // Method to customize timer appearance
     public void CustomizeTimerAppearance(
-        int? fontSize = null, 
-        Color? textColor = null, 
+        int? fontSize = null,
+        Color? textColor = null,
         FontStyles? fontStyle = null)
     {
         if (timerText != null)
         {
             if (fontSize.HasValue)
                 timerText.fontSize = fontSize.Value;
-            
+
             if (textColor.HasValue)
                 timerText.color = textColor.Value;
-            
+
             if (fontStyle.HasValue)
                 timerText.fontStyle = fontStyle.Value;
         }

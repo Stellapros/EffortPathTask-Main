@@ -79,17 +79,18 @@ public class ButtonNavigationController : MonoBehaviour
 
     private void Update()
     {
+        // Add a more immediate response to key presses
         if (navigationElements.Count == 0) return;
 
-        // If dropdown is expanded, only handle dropdown navigation
-        if (isDropdownExpanded && activeDropdown != null)
+        // Check for immediate key down instead of relying solely on Update()
+        if (!isDropdownExpanded)
+        {
+            // Add more immediate key handling
+            HandleQuickNavigation();
+        }
+        else if (isDropdownExpanded && activeDropdown != null)
         {
             HandleDropdownNavigation();
-        }
-        // Otherwise handle standard navigation
-        else
-        {
-            HandleStandardNavigation();
         }
 
         UpdateVisualFeedback();
@@ -129,85 +130,141 @@ public class ButtonNavigationController : MonoBehaviour
         }
     }
 
-    // // if up-down navigation needed in the drop down, can use this code
-    // private void HandleDropdownNavigation()
-    // {
-    //     if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S) ||
-    //         (useHorizontalNavigation && Input.GetKeyDown(KeyCode.RightArrow)) ||
-    //         (useHorizontalNavigation && Input.GetKeyDown(KeyCode.D)))
-    //     {
-    //         if (currentDropdownIndex < activeDropdown.options.Count - 1)
-    //         {
-    //             currentDropdownIndex++;
-    //             activeDropdown.value = currentDropdownIndex;
-    //         }
-    //     }
-    //     else if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W) ||
-    //              (useHorizontalNavigation && Input.GetKeyDown(KeyCode.LeftArrow)) ||
-    //              (useHorizontalNavigation && Input.GetKeyDown(KeyCode.A)))
-    //     {
-    //         if (currentDropdownIndex > 0)
-    //         {
-    //             currentDropdownIndex--;
-    //             activeDropdown.value = currentDropdownIndex;
-    //         }
-    //     }
-    //     else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
-    //     {
-    //         activeDropdown.value = currentDropdownIndex;
-    //         ExitDropdownMode(true);
-    //     }
-    //     else if (Input.GetKeyDown(KeyCode.Escape))
-    //     {
-    //         activeDropdown.value = savedDropdownValue;
-    //         ExitDropdownMode(false);
-    //     }
-    // }
-
-    private void HandleStandardNavigation()
+    [SerializeField] private float navigationRepeatDelay = 0.2f; // Adjustable repeat rate
+    private float nextNavigationTime = 0f;
+    private void HandleQuickNavigation()
     {
-        if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+        if (Time.time >= nextNavigationTime)
         {
-            NavigateToNextElement();
+            bool navigated = false;
+
+            // More granular and immediate key checks
+            if (Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S))
+            {
+                NavigateToNextElement();
+                navigated = true;
+            }
+            else if (Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W))
+            {
+                NavigateToPreviousElement();
+                navigated = true;
+            }
+
+            // Optional: Add horizontal navigation if needed
+            if (useHorizontalNavigation)
+            {
+                if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D))
+                {
+                    NavigateToNextElement();
+                    navigated = true;
+                }
+                else if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A))
+                {
+                    NavigateToPreviousElement();
+                    navigated = true;
+                }
+            }
+            if (navigated)
+            {
+                nextNavigationTime = Time.time + navigationRepeatDelay;
+            }
         }
-        else if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
-        {
-            NavigateToPreviousElement();
-        }
-        else if (useHorizontalNavigation && (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)))
-        {
-            NavigateToNextElement();
-        }
-        else if (useHorizontalNavigation && (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)))
-        {
-            NavigateToPreviousElement();
-        }
-        else if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
-        {
+        // Immediate selection handling
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
             HandleElementSelection();
-        }
     }
 
     private void HandleElementSelection()
     {
-        if (currentSelectedElement is TMP_Dropdown dropdown)
+        if (currentSelectedElement == null) return;
+
+        switch (currentSelectedElement)
         {
-            // Enter dropdown mode
-            EnterDropdownMode(dropdown);
+            case TMP_Dropdown dropdown when dropdown != null && dropdown.gameObject.activeInHierarchy:
+                EnterDropdownMode(dropdown);
+                break;
+
+            // case Button button when button != null &&
+            //                          button.gameObject != null &&
+            //                          button.gameObject.activeInHierarchy:
+            //     if (elementImages.TryGetValue(button, out var buttonImage) && buttonImage != null)
+            //     {
+            //         buttonImage.color = pressedColor;
+            //         PlayButtonSound();
+            //         button.onClick.Invoke();
+            //     }
+            //     break;
+
+            // case Button button when button != null &&
+            //                          button.gameObject != null &&
+            //                          button.gameObject.activeInHierarchy:
+            //     if (elementImages.TryGetValue(button, out var buttonImage) && buttonImage != null)
+            //     {
+            //         Debug.Log("Button selected and about to invoke");
+            //         buttonImage.color = pressedColor;
+            //         PlayButtonSound();
+
+            //         // Prevent multiple invocations by temporarily disabling the button
+            //         button.interactable = false;
+
+            //         // Use Invoke with a small delay to reset interactability
+            //         Invoke("ResetButtonInteractable", 0.2f);
+
+            //         button.onClick.Invoke();
+            //     }
+            //     break;
+
+            case Button button when button != null &&
+                        button.gameObject != null &&
+                        button.gameObject.activeInHierarchy:
+                if (elementImages.TryGetValue(button, out var buttonImage) && buttonImage != null)
+                {
+                    Debug.Log("Button selected and about to invoke");
+
+                    // Ensure button is still valid before proceeding
+                    if (button != null && !button.Equals(null) && button.interactable)
+                    {
+                        buttonImage.color = pressedColor;
+                        PlayButtonSound();
+
+                        // Prevent multiple invocations by temporarily disabling the button
+                        button.interactable = false;
+
+                        // Use Invoke with a small delay to reset interactability
+                        Invoke("ResetButtonInteractable", 0.2f);
+
+                        button.onClick.Invoke();
+                    }
+                }
+                break;
+
+
+            case TMP_InputField inputField when inputField != null &&
+                                                 inputField.gameObject != null &&
+                                                 inputField.gameObject.activeInHierarchy:
+                inputField.ActivateInputField();
+                inputField.Select();
+                break;
         }
-        else if (currentSelectedElement is Button button)
+    }
+
+    private void ResetButtonInteractable()
+    {
+        // Add comprehensive null and destroyed object checks
+        if (currentSelectedElement != null &&
+            currentSelectedElement is Button button &&
+            button != null &&
+            !button.Equals(null) &&
+            button.gameObject != null)
         {
-            if (elementImages.ContainsKey(button))
+            try
             {
-                elementImages[button].color = pressedColor;
-                PlayButtonSound();
-                button.onClick.Invoke();
+                button.interactable = true;
             }
-        }
-        else if (currentSelectedElement is TMP_InputField inputField)
-        {
-            inputField.ActivateInputField();
-            inputField.Select();
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"Could not reset button interactability: {e.Message}");
+            }
         }
     }
 
@@ -219,18 +276,6 @@ public class ButtonNavigationController : MonoBehaviour
         currentDropdownIndex = dropdown.value;
         dropdown.Show();
     }
-
-    // private void ExitDropdownMode(bool confirmed)
-    // {
-    //     if (!confirmed)
-    //     {
-    //         activeDropdown.value = savedDropdownValue;
-    //     }
-
-    //     isDropdownExpanded = false;
-    //     activeDropdown.Hide();
-    //     activeDropdown = null;
-    // }
 
     private void ExitDropdownMode(bool confirmed)
     {
@@ -294,22 +339,11 @@ public class ButtonNavigationController : MonoBehaviour
         }
     }
 
-    // private void UpdateVisualFeedback()
-    // {
-    //     foreach (var elementPair in elementImages)
-    //     {
-    //         Component element = elementPair.Key;
-    //         Image elementImage = elementPair.Value;
-
-    //         elementImage.color = (element == currentSelectedElement) ? selectedColor : normalColor;
-    //     }
-    // }
+    [SerializeField] private float selectionPulseSpeed = 2f;
+    [SerializeField] private float selectionPulseIntensity = 0.2f;
 
     private void UpdateVisualFeedback()
     {
-        // Avoid processing if elementImages is null or empty
-        if (elementImages == null || elementImages.Count == 0) return;
-
         // Create a list to track elements to remove
         List<Component> elementsToRemove = new List<Component>();
 
@@ -321,9 +355,8 @@ public class ButtonNavigationController : MonoBehaviour
             // Comprehensive null and destroyed object checks
             if (element == null ||
                 elementImage == null ||
-                !elementImage || // Unity's null check for destroyed objects
-                element.gameObject == null ||
-                !element.gameObject.activeInHierarchy)
+                elementImage.gameObject == null ||
+                !elementImage.gameObject.activeInHierarchy)
             {
                 elementsToRemove.Add(element);
                 continue;
@@ -331,8 +364,17 @@ public class ButtonNavigationController : MonoBehaviour
 
             try
             {
-                // Safe color assignment
-                elementImage.color = (element == currentSelectedElement) ? selectedColor : normalColor;
+                if (element == currentSelectedElement)
+                {
+                    // Pulsing effect for selected element
+                    float pulse = Mathf.PingPong(Time.time * selectionPulseSpeed, 1f);
+                    Color pulseColor = Color.Lerp(selectedColor, Color.white, pulse * selectionPulseIntensity);
+                    elementImage.color = pulseColor;
+                }
+                else
+                {
+                    elementImage.color = normalColor;
+                }
             }
             catch (System.Exception e)
             {
@@ -391,28 +433,6 @@ public class ButtonNavigationController : MonoBehaviour
         }
     }
 
-    // public void RemoveElement(Component element)
-    // {
-    //     if (navigationElements.Contains(element))
-    //     {
-    //         if (element == activeDropdown)
-    //         {
-    //             ExitDropdownMode(false);
-    //         }
-
-    //         navigationElements.Remove(element);
-    //         elementImages.Remove(element);
-
-    //         if (currentSelectedElement == element)
-    //         {
-    //             currentElementIndex = 0;
-    //             if (navigationElements.Count > 0)
-    //             {
-    //                 SetSelectedElement(navigationElements[0]);
-    //             }
-    //         }
-    //     }
-    // }
     public void RemoveElement(Component element)
     {
         if (element == null) return;

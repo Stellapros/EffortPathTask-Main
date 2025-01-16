@@ -15,11 +15,12 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private AudioClip rewardSound;
     [SerializeField] private AudioClip stepSound; //step sound
     [SerializeField] private GridManager gridManager;
+    [SerializeField] private PracticeManager practiceManager; // Add SerializeField to allow setting in inspector
     private Vector2 lastMoveDirection = Vector2.right; // Initialize facing right
     private Vector2 lastNonZeroMovement = Vector2.right; // Initialize facing right
     private SpriteRenderer spriteRenderer;
     private Vector2 lastHorizontalDirection = Vector2.right; // To keep track of last horizontal movement; Initialize facing right
-
+    
     private bool isTrialRunning = false;
     private float moveStartTime;
     private bool isMoving = false;
@@ -33,6 +34,7 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody playerRigidbody;
     private AudioSource audioSource;
+
 
     private void Awake()
     {
@@ -74,6 +76,16 @@ public class PlayerController : MonoBehaviour
 
         gridManager = gridManager ?? FindAnyObjectByType<GridManager>();
         if (gridManager == null) Debug.LogError("GridManager not found in the scene!");
+
+                // Modified PracticeManager initialization
+        if (practiceManager == null)
+        {
+            practiceManager = FindAnyObjectByType<PracticeManager>();
+            if (practiceManager == null)
+            {
+                Debug.LogWarning("PracticeManager not found - defaulting to ExperimentManager values");
+            }
+        }
     }
 
     private void ConfigureRigidbody()
@@ -124,13 +136,13 @@ public class PlayerController : MonoBehaviour
     private void IncrementCounter(int index, Vector2 direction)
     {
         if (!isTrialRunning) return;  // Additional safety check
-        
+
         directionCounters[index]++;
         totalButtonPresses++;
 
         Debug.Log($"Counter incremented. Total presses: {totalButtonPresses}, Presses needed: {pressesPerStep}");
 
-        if (directionCounters[index] >= pressesPerStep)
+        if (directionCounters[index] >= pressesPerStep && !isMoving)
         {
             isMoving = true;  // Set moving state before attempting move
             AttemptMove(direction);
@@ -193,7 +205,7 @@ public class PlayerController : MonoBehaviour
         PlaySound(stepSound);
     }
 
-    private void ResetCounters()
+    public void ResetCounters()
     {
         for (int i = 0; i < directionCounters.Length; i++)
             directionCounters[i] = 0;
@@ -221,12 +233,6 @@ public class PlayerController : MonoBehaviour
             ApplyFacingDirection();
         }
     }
-
-    // private void ApplyFacingDirection()
-    // {
-    //     // Apply the rotation based on lastHorizontalDirection
-    //     transform.rotation = Quaternion.Euler(0, lastHorizontalDirection.x < 0 ? 180 : 0, 0);
-    // }
 
     private void ApplyFacingDirection()
     {
@@ -256,16 +262,9 @@ public class PlayerController : MonoBehaviour
     //         spriteRenderer.flipX = direction.x < 0;
     //     }
     // }
-
-    public Vector2 GetInitialPosition()
-    {
-        return initialPosition;
-    }
-
-    public Vector2 GetCurrentPosition()
-    {
-        return currentPosition;
-    }
+    public Vector2 GetInitialPosition() => initialPosition;
+    public Vector2 GetCurrentPosition() => currentPosition;
+    public int GetButtonPressCount() => totalButtonPresses;
 
     public void SetPressesPerStep(int presses)
     {
@@ -275,21 +274,69 @@ public class PlayerController : MonoBehaviour
         Debug.Log($"PlayerController: Presses per step set to {pressesPerStep}");
     }
 
-    public void UpdatePressesPerStep()
+    // public void UpdatePressesPerStep()
+    // {
+    //     if (ExperimentManager.Instance != null)
+    //     {
+    //         pressesPerStep = ExperimentManager.Instance.GetCurrentTrialEV();
+    //         Debug.Log($"PlayerController: Updated presses per step to {pressesPerStep}");
+    //     }
+    //     else
+    //     {
+    //         Debug.LogError("ExperimentManager.Instance is null in PlayerController.UpdatePressesPerStep");
+    //     }
+    // }
+public void UpdatePressesPerStep()
     {
-        if (ExperimentManager.Instance != null)
+        Debug.Log("UpdatePressesPerStep called with details:");
+        Debug.Log($"IsPracticeTrial: {PlayerPrefs.GetInt("IsPracticeTrial", 0)}");
+        Debug.Log($"Current Practice Trial Index: {PlayerPrefs.GetInt("CurrentPracticeTrialIndex", -1)}");
+
+        // Check if it's a practice trial
+        if (PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1)
         {
-            pressesPerStep = ExperimentManager.Instance.GetCurrentTrialEV();
-            Debug.Log($"PlayerController: Updated presses per step to {pressesPerStep}");
+            // Try to use PracticeManager
+            if (practiceManager != null)
+            {
+                int effortLevel = practiceManager.GetCurrentTrialEffortLevel();
+                pressesPerStep = effortLevel;
+                Debug.Log($"Practice trial - using effort level: {effortLevel}");
+            }
+            else if (ExperimentManager.Instance != null)
+            {
+                // Fallback to ExperimentManager if PracticeManager is not available
+                pressesPerStep = ExperimentManager.Instance.GetCurrentTrialEV();
+                Debug.Log($"Practice trial but no PracticeManager - using ExperimentManager value: {pressesPerStep}");
+            }
+            else
+            {
+                // Ultimate fallback
+                pressesPerStep = 1;
+                Debug.LogError("No managers found - defaulting to 1 press per step");
+            }
         }
         else
         {
-            Debug.LogError("ExperimentManager.Instance is null in PlayerController.UpdatePressesPerStep");
+            // Normal trial logic
+            if (ExperimentManager.Instance != null)
+            {
+                pressesPerStep = ExperimentManager.Instance.GetCurrentTrialEV();
+                Debug.Log($"Normal trial - using ExperimentManager value: {pressesPerStep}");
+            }
+            else
+            {
+                pressesPerStep = 1;
+                Debug.LogError("ExperimentManager not found - defaulting to 1 press per step");
+            }
         }
+
+        Debug.Log($"PlayerController: Final presses per step value: {pressesPerStep}");
     }
 
     public void EnableMovement()
     {
+        Debug.Log("EnableMovement called with comprehensive logging:");
+
         UpdatePressesPerStep(); // Add this line
         isTrialRunning = true;
         isMoving = false; // Ensure we start in a non-moving state
@@ -309,7 +356,7 @@ public class PlayerController : MonoBehaviour
     {
         isTrialRunning = false;
         isMoving = false;  // Reset moving state
-        
+
         if (playerRigidbody != null)
         {
             playerRigidbody.linearVelocity = Vector3.zero;
@@ -321,40 +368,38 @@ public class PlayerController : MonoBehaviour
         Debug.Log("Player movement disabled from PlayerController");
     }
 
-    public int GetButtonPressCount() => totalButtonPresses;
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Reward") && isTrialRunning)
+        {
+            float collisionTime = Time.time;
+            Debug.Log($"Player collided with reward at time: {Time.time}");
+            float movementDuration = isMoving ? collisionTime - moveStartTime : 0f;
 
-    // private void OnTriggerEnter(Collider other)
-    // {
-    //     if (other.CompareTag("Reward") && isTrialRunning)
-    //     {
-    //         float collisionTime = Time.time;
-    //         Debug.Log($"Player collided with reward at time: {Time.time}");
-    //         float movementDuration = isMoving ? collisionTime - moveStartTime : 0f;
+            GameController gameController = GameController.Instance;
+            if (gameController != null)
+            {
+                gameController.LogRewardCollectionTiming(collisionTime, movementDuration);
+                gameController.RewardCollected(true);
+            }
+            else
+            {
+                Debug.LogError("GameController not found in the scene!");
+            }
 
-    //         GameController gameController = GameController.Instance;
-    //         if (gameController != null)
-    //         {
-    //             gameController.LogRewardCollectionTiming(collisionTime, movementDuration);
-    //             gameController.RewardCollected(true);
-    //         }
-    //         else
-    //         {
-    //             Debug.LogError("GameController not found in the scene!");
-    //         }
+            // Play reward sound
+            PlaySound(rewardSound);
 
-    //         // Play reward sound
-    //         PlaySound(rewardSound);
+            // Disable the reward object
+            other.gameObject.SetActive(false);
 
-    //         // Disable the reward object
-    //         other.gameObject.SetActive(false);
+            // IMPORTANT: Invoke the reward collected event BEFORE disabling movement
+            OnRewardCollected?.Invoke();
 
-    //         // Disable player movement
-    //         DisableMovement();
+            // Disable player movement
+            DisableMovement();
 
-    //         // Invoke the reward collected event
-    //         OnRewardCollected?.Invoke();
-
-    //         Debug.Log("Reward collected!");
-    //     }
-    // }
-} 
+            Debug.Log("Reward collected!");
+        }
+    }
+}

@@ -8,7 +8,7 @@ public class CircularProgressBar5s : MonoBehaviour
 {
     public Image loadingBar;
     public TextMeshProUGUI countdownText;
-    
+
     private const float DURATION = 5f;
     public string nextSceneName = "DecisionPhase";
 
@@ -30,7 +30,7 @@ public class CircularProgressBar5s : MonoBehaviour
             loadingBar.fillAmount = elapsedTime / DURATION;
 
             int remainingSeconds = Mathf.CeilToInt(DURATION - elapsedTime);
-            
+
             // added Mathf.Max(0, remainingSeconds) to prevent negative numbers
             countdownText.text = Mathf.Max(0, remainingSeconds).ToString();
 

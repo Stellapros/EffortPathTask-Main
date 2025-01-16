@@ -30,7 +30,7 @@ EditorBuildSettings:
     path: Assets/Scenes/TourDecisionPhase.unity
     guid: 4f630ad7669b649c2aabbed2ccbba969
   - enabled: 1
-    path: Assets/Scenes/InstructionsScreen.unity
+    path: Assets/Scenes/PracticeInstructions.unity
     guid: a16e6968b753c402db62d92eeeb6d91d
   - enabled: 1
     path: Assets/Scenes/GetReadyPractice.unity
@@ -39,11 +39,11 @@ EditorBuildSettings:
     path: Assets/Scenes/PracticePhase.unity
     guid: 23aa71a20e8134580a19f02cbcc1bddd
   - enabled: 1
-    path: Assets/Scenes/GetReadyEveryTrialManagerPractice.unity
-    guid: c9db5c9da888647788e36b0a60435985
-  - enabled: 1
     path: Assets/Scenes/PracticeDecisionPhase.unity
     guid: 7a9d6174ac9ff4b98935910e86c3a93a
+  - enabled: 1
+    path: Assets/Scenes/GetReadyEveryTrialPractice.unity
+    guid: c9db5c9da888647788e36b0a60435985
   - enabled: 1
     path: Assets/Scenes/PracticeGridWorld.unity
     guid: 7b46a30fcd934473c891f806226186d2
@@ -63,6 +63,9 @@ EditorBuildSettings:
     path: Assets/Scenes/GetReadyFormal.unity
     guid: 4548849bdb80a468286516d993c41fd4
   - enabled: 1
+    path: Assets/Scenes/Block1_Instructions.unity
+    guid: 12c6bf3464fa544bcb327da72feef713
+  - enabled: 1
     path: Assets/Scenes/DecisionPhase.unity
     guid: 273b0feac00794dadbb805eaa16a639c
   - enabled: 1
@@ -77,6 +80,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/RestBreak.unity
     guid: aeef525b77894402f97b7531be261b15
+  - enabled: 1
+    path: Assets/Scenes/Block2_Instructions.unity
+    guid: 958b674ee0da14788b9b0f9fdacfa3c4
   - enabled: 1
     path: Assets/Scenes/EndExperiment.unity
     guid: 063beda456492436ebf54a3355db67f2

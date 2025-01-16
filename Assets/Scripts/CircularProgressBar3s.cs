@@ -8,7 +8,7 @@ public class CircularProgressBar3s : MonoBehaviour
 {
     public Image loadingBar;
     public TextMeshProUGUI countdownText;
-    
+
     private const float DURATION = 3f;
     public string nextSceneName = "DecisionPhase";
 

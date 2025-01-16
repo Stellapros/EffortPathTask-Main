@@ -8,7 +8,7 @@ public class CircularProgressBar1s : MonoBehaviour
 {
     public Image loadingBar;
     public TextMeshProUGUI countdownText;
-    
+
     private const float DURATION = 1f;
 
     private void Start()
@@ -21,16 +21,16 @@ public class CircularProgressBar1s : MonoBehaviour
     private IEnumerator FillLoadingBarQuickly()
     {
         float progress = 0f;
-        
+
         // Use a faster interpolation method
         while (progress < 1f)
         {
             // Rapidly increase progress - use a more aggressive approach
             progress += Time.deltaTime * 5f; // Multiplying by 5 makes it much faster
-            
+
             // Clamp to ensure we don't overshoot
             loadingBar.fillAmount = Mathf.Clamp01(progress);
-            
+
             // Update countdown (will rapidly go from 1 to 0)
             countdownText.text = Mathf.CeilToInt(DURATION * (1f - progress)).ToString();
 

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Node 
+public class Node
 {
     /// Source: Unity tutorial https://www.youtube.com/watch?v=AKKpPmxx07w
     /// Date: 22/08/2019
@@ -22,7 +22,7 @@ public class Node
 
     // ********************************************************************** //
 
-    public Node(bool a_IsWall, Vector3 a_pos, int a_gridX, int a_gridY) 
+    public Node(bool a_IsWall, Vector3 a_pos, int a_gridX, int a_gridY)
     {
         IsWall = a_IsWall;
         Position = a_pos;

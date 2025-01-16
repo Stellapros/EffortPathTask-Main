@@ -168,7 +168,7 @@ MonoBehaviour:
   totalScoreText: {fileID: 715696499}
   feedbackInputField: {fileID: 380066180}
   submitButton: {fileID: 438418020}
-  buttonClickSound: {fileID: 0}
+  buttonClickSound: {fileID: 8300000, guid: cf53646b57a144aa98287660968747ed, type: 3}
   inputFieldSize: {x: 300, y: 50}
   fontSize: 16
   characterLimit: 500
