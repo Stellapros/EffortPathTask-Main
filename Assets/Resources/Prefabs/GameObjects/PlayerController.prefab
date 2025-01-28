@@ -53,8 +53,8 @@ MonoBehaviour:
   stepSound: {fileID: 8300000, guid: c055490238b09493b9863464c08cd5ef, type: 3}
   gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
     type: 3}
-  isTrialRunning: 0
-  isMoving: 0
+  practiceManager: {fileID: 5028154936095916163, guid: cf96765f7320747d3a1db6abff587e85,
+    type: 3}
 --- !u!54 &6731956547182048973
 Rigidbody:
   m_ObjectHideFlags: 0

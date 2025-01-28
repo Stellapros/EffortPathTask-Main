@@ -63,6 +63,9 @@ EditorBuildSettings:
     path: Assets/Scenes/GetReadyFormal.unity
     guid: 4548849bdb80a468286516d993c41fd4
   - enabled: 1
+    path: Assets/Scenes/Block_Instructions.unity
+    guid: b1f232e182cf744bd95c550e8e35eef1
+  - enabled: 1
     path: Assets/Scenes/Block1_Instructions.unity
     guid: 12c6bf3464fa544bcb327da72feef713
   - enabled: 1

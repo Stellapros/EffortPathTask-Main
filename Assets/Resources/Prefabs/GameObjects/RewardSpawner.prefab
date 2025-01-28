@@ -61,4 +61,5 @@ MonoBehaviour:
     type: 3}
   practiceManager: {fileID: 5028154936095916163, guid: cf96765f7320747d3a1db6abff587e85,
     type: 3}
-  playerSpawner: {fileID: 0}
+  playerSpawner: {fileID: 9081304544560268536, guid: d85bd69af54564d66b9c7eca3ac10784,
+    type: 3}

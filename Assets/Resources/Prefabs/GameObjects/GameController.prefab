@@ -142,15 +142,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c2a55679c876416cb60c5851778b8b6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  experimentManager: {fileID: 3127791733430911248, guid: 082b8600c17df4d43939728b5144dd10,
+    type: 3}
+  gridWorldManager: {fileID: -8690266444773239620, guid: 96d776e8ee130440d8b6e04107cc91e0,
+    type: 3}
+  practiceManager: {fileID: 5028154936095916163, guid: cf96765f7320747d3a1db6abff587e85,
+    type: 3}
   maxTrialDuration: 5
   startTrialDelay: 0.1
   endTrialDelay: 0.1
   pressesPerEffortLevel: 010000000200000003000000
-  sceneTransitionTimeout: 5
-  experimentManager: {fileID: 3507179296321619295, guid: 082b8600c17df4d43939728b5144dd10,
-    type: 3}
-  gridWorldManager: {fileID: -8690266444773239620, guid: 96d776e8ee130440d8b6e04107cc91e0,
-    type: 3}
-  totalPracticeTrials: 12
-  practiceManager: {fileID: 5028154936095916163, guid: cf96765f7320747d3a1db6abff587e85,
-    type: 3}

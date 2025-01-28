@@ -23,7 +23,7 @@ public class DecisionManager : MonoBehaviour
     // private bool isPracticeTrial = false;
 
     // Added for keyboard navigation
-    private bool isWorkButtonSelected = true;
+    private bool? isWorkButtonSelected = true;
     [SerializeField] private Color normalColor = new Color(0.67f, 0.87f, 0.86f);
     [SerializeField] private Color selectedColor = new Color(0.87f, 0.86f, 0.67f);
 
@@ -108,17 +108,19 @@ public class DecisionManager : MonoBehaviour
 
     private void HandleInput()
     {
-        // Handle left/right navigation
-        if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow))
+        // Handle left arrow key press for Work
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            isWorkButtonSelected = !isWorkButtonSelected;
+            isWorkButtonSelected = true;
             UpdateButtonSelection();
+            OnDecisionMade(true); // Confirm Work decision immediately
         }
-
-        // Handle decision confirmation
-        if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
+        // Handle right arrow key press for Skip
+        else if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            OnDecisionMade(isWorkButtonSelected);
+            isWorkButtonSelected = false;
+            UpdateButtonSelection();
+            OnDecisionMade(false); // Confirm Skip decision immediately
         }
     }
 
@@ -160,7 +162,7 @@ public class DecisionManager : MonoBehaviour
         }
     }
 
-        private void TimeExpired()
+    private void TimeExpired()
     {
         isTimerRunning = false;
         DisableButtons();
@@ -168,7 +170,7 @@ public class DecisionManager : MonoBehaviour
         // Important: Count this as a trial and log it
         experimentManager.MoveToNextTrial(); // Advance to next trial
         LogDecision(false, true); // Log as a "no decision" trial
-        
+
         // Store current trial data before moving to penalty scene
         if (effortSpriteImage != null && effortSpriteImage.sprite != null)
         {
@@ -188,20 +190,30 @@ public class DecisionManager : MonoBehaviour
             Image workImage = workButton.GetComponent<Image>();
             if (workImage != null)
             {
-                workImage.color = isWorkButtonSelected ? selectedColor : normalColor;
+                // Neutral color when no selection
+                workImage.color = isWorkButtonSelected == true ? selectedColor : normalColor;
             }
 
             // Update skip button
             Image skipImage = skipButton.GetComponent<Image>();
             if (skipImage != null)
             {
-                skipImage.color = !isWorkButtonSelected ? selectedColor : normalColor;
+                // Neutral color when no selection
+                skipImage.color = isWorkButtonSelected == false ? selectedColor : normalColor;
             }
 
-            // Set EventSystem selection
-            EventSystem.current.SetSelectedGameObject(
-                isWorkButtonSelected ? workButton.gameObject : skipButton.gameObject
-            );
+            // Clear selection when no button is selected
+            if (isWorkButtonSelected == null)
+            {
+                EventSystem.current.SetSelectedGameObject(null);
+            }
+            else
+            {
+                // Set selection when a button is chosen
+                EventSystem.current.SetSelectedGameObject(
+                    isWorkButtonSelected.Value ? workButton.gameObject : skipButton.gameObject
+                );
+            }
         }
     }
 
@@ -211,7 +223,7 @@ public class DecisionManager : MonoBehaviour
         SetupDecisionPhase();
 
         // Reset selection when enabled
-        isWorkButtonSelected = true;
+        isWorkButtonSelected = null;
         UpdateButtonSelection();
     }
 
@@ -278,9 +290,9 @@ public class DecisionManager : MonoBehaviour
         EnableButtons();
         UpdateEffortSprite();
         StartTimer();
-        
-        // Reset selection state
-        isWorkButtonSelected = true;
+
+        // Reset selection state to ensure no default selection
+        isWorkButtonSelected = null;
         UpdateButtonSelection();
     }
 
@@ -293,7 +305,6 @@ public class DecisionManager : MonoBehaviour
             timerText.text = $"Time: {currentTimer:F0}";
         }
     }
-
 
     public void UpdateEffortSprite()
     {
@@ -342,7 +353,7 @@ public class DecisionManager : MonoBehaviour
         {
             workButton.interactable = true;
             // Reset selection state when enabling buttons
-            isWorkButtonSelected = true;
+            isWorkButtonSelected = null;
             UpdateButtonSelection();
         }
         if (skipButton != null) skipButton.interactable = true;
@@ -390,7 +401,7 @@ public class DecisionManager : MonoBehaviour
     //     }
     // }
 
-        private void OnDecisionMade(bool workDecision)
+    private void OnDecisionMade(bool workDecision)
     {
         if (!isTimerRunning) return;
 
@@ -480,7 +491,7 @@ public class DecisionManager : MonoBehaviour
     {
         isSkipDelayActive = true;
         skipDelayTimer = SKIP_DELAY;
-        
+
         if (timerText != null)
         {
             timerText.text = $"Waiting: {skipDelayTimer:F1}";
@@ -490,9 +501,16 @@ public class DecisionManager : MonoBehaviour
     // Modify LogDecision to include more detailed practice trial logging
     private void LogDecision(bool workDecision, bool isTimeExpired)
     {
-        string decision = isTimeExpired ? "No Decision (Time Expired)" : (workDecision ? "Work" : "Skip");
-        string logEntry = $"{System.DateTime.Now}: Trial {experimentManager.GetCurrentTrialIndex()} - {decision}";
-        System.IO.File.AppendAllText("decision_log.txt", logEntry + System.Environment.NewLine);
+        string decision = isTimeExpired
+            ? "No Decision (Time Expired)"
+            : (workDecision ? "Work" : "Skip");
+
+        string logEntry = $"{System.DateTime.Now}," +
+            $"Trial:{experimentManager.GetCurrentTrialIndex()}," +
+            $"Decision:{decision}," +
+            $"Block:{experimentManager.GetCurrentBlockNumber()}";
+
+        System.IO.File.AppendAllText("decision_log.csv", logEntry + System.Environment.NewLine);
         Debug.Log(logEntry);
     }
 }

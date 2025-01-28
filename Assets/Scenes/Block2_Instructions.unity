@@ -624,8 +624,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "Welcome to the second island! \n\nSweet cherries fill every corner of
-    this island! Banana plants dot the landscape, while orange trees make rare appearances.\r"
+  m_text: "Welcome to this island! \n\nSweet cherries fill every corner of this island!
+    Banana plants dot the landscape, while orange trees make rare appearances.\r"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8887514be60924b0ba1319bd10d63d0f, type: 2}
   m_sharedMaterial: {fileID: 21010144202549244, guid: 8887514be60924b0ba1319bd10d63d0f,
@@ -1143,6 +1143,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f1df15e26dc94759954b35be04693d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  headingText: {fileID: 1332759262}
   instructionText: {fileID: 1193662799}
   continueButton: {fileID: 969980811}
   minimumDisplayTime: 5

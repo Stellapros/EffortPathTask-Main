@@ -4,10 +4,9 @@ using System.Collections;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 
-
 /// <summary>
-/// Controls the gameplay mechanics for each trial in the GridWorld scene and manages the interaction
-/// with ExperimentManager for seamless flow between DecisionPhase and GridWorld scenes.
+/// Controls gameplay mechanics for GridWorld scene and manages interaction with ExperimentManager.
+/// Handles trial flow, player/reward spawning, and data logging.
 /// </summary>
 public class GameController : MonoBehaviour
 {
@@ -30,18 +29,28 @@ public class GameController : MonoBehaviour
     }
     #endregion
 
-    #region Serialized Fields
+
+    #region Component References
+    [SerializeField] private ExperimentManager experimentManager;
+    [SerializeField] private GridWorldManager gridWorldManager;
+    [SerializeField] private PracticeManager practiceManager;
+
+    private PlayerSpawner playerSpawner;
+    private RewardSpawner rewardSpawner;
+    private GridManager gridManager;
+    private CountdownTimer countdownTimer;
+    private ScoreManager scoreManager;
+    private LogManager logManager;
+    // Cache component references for better performance
+    private readonly Dictionary<Type, UnityEngine.Component> cachedComponents =
+        new Dictionary<Type, UnityEngine.Component>();
+    #endregion
+
+    #region Configuration
     [SerializeField] private float maxTrialDuration = 5f;
     [SerializeField] private float startTrialDelay = 0.1f;
     [SerializeField] private float endTrialDelay = 0.1f;
-    [SerializeField] private int[] pressesPerEffortLevel = { 1, 2, 3 }; // Default values
-    // [SerializeField] private float sceneTransitionTimeout = 5f; // Maximum time to wait for scene transition
-    // [SerializeField] private float constantRewardDistance = 5f;
-    [SerializeField] private ExperimentManager experimentManager;
-    [SerializeField] private GridWorldManager gridWorldManager;
-    #endregion
-
-    #region Decision Tracking
+    [SerializeField] private int[] pressesPerEffortLevel = { 1, 2, 3 };
     private float decisionPhaseStartTime;
     private float decisionMadeTime;
     private float reactionTime;
@@ -53,46 +62,45 @@ public class GameController : MonoBehaviour
         NoDecision
     }
 
-    private Dictionary<DecisionType, float> penaltyDurations = new Dictionary<DecisionType, float>()
+    private readonly Dictionary<DecisionType, float> penaltyDurations = new Dictionary<DecisionType, float>()
     {
         { DecisionType.Skip, 3f },
         { DecisionType.NoDecision, 5f }
     };
     #endregion
 
-
-    #region Private Fields
-    private PlayerSpawner playerSpawner;
-    private RewardSpawner rewardSpawner;
-    private GridManager gridManager;
+    #region State Tracking
     private GameObject currentPlayer;
     private GameObject currentReward;
-    private bool rewardCollected = false;
-    // private int buttonPressCount;
-    private bool isTrialActive = false;
-    private bool isTrialEnded = false;
-    private bool scoreAdded = false;
     private Vector2 playerInitialPosition;
     private Vector2 playerFinalPosition;
-    // private Vector2 actualRewardPosition;
-    private CountdownTimer countdownTimer;
-    private ScoreManager scoreManager;
-    private LogManager logManager;
     private float trialStartTime;
     private float trialEndTime;
-    private int currentBlockNumber = 0;
-    private int currentTrialIndex = 0;
-    private int currentEffortLevel = 0;
-    // private float decisionReactionTime = 0f;
-    private float actionReactionTime = 0f;
+    private float actionReactionTime;
+    private int currentBlockNumber;
+    private int currentTrialIndex;
+    private int currentEffortLevel;
+    private int currentPracticeTrialCount;
+
+    private bool isTrialActive;
+    private bool isTrialEnded;
+    private bool rewardCollected;
+    private bool scoreAdded;
+    private bool isPracticingTrials;
+    private bool isInitializingTrial;
+
+    // State validation
+    private readonly HashSet<string> requiredComponents = new HashSet<string>
+    {
+        "GridManager",
+        "PlayerSpawner",
+        "RewardSpawner",
+        "CountdownTimer",
+        "ScoreManager"
+    };
     #endregion
 
-    #region Practice Trials Fields
-    // [SerializeField] private int totalPracticeTrials = 12;
-    private int currentPracticeTrialCount = 0;
-    private bool isPracticingTrials = false;
-    public PracticeManager practiceManager;
-    #endregion
+
 
     #region Unity Lifecycle Methods
     private void Start()
@@ -823,7 +831,7 @@ public class GameController : MonoBehaviour
     /// Starts a new trial, spawning player and reward, and setting up the timer.
     /// </summary>
 
-    private bool isInitializingTrial = false; // Add this field
+    // private bool isInitializingTrial = false; // Add this field
 
     public IEnumerator StartTrial()
     {

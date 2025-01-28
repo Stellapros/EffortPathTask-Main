@@ -20,7 +20,7 @@ public class PlayerController : MonoBehaviour
     private Vector2 lastNonZeroMovement = Vector2.right; // Initialize facing right
     private SpriteRenderer spriteRenderer;
     private Vector2 lastHorizontalDirection = Vector2.right; // To keep track of last horizontal movement; Initialize facing right
-    
+
     private bool isTrialRunning = false;
     private float moveStartTime;
     private bool isMoving = false;
@@ -34,6 +34,11 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody playerRigidbody;
     private AudioSource audioSource;
+
+    // Add new delegate for movement tracking
+    public delegate void MovementRecordedHandler(Vector2 startPos, Vector2 endPos);
+    public event MovementRecordedHandler OnMovementRecorded;
+
 
 
     private void Awake()
@@ -52,6 +57,26 @@ public class PlayerController : MonoBehaviour
         else if (Instance != this)
         {
             Destroy(gameObject);
+        }
+    }
+    void Start()
+    {
+        PlayerController.Instance.OnMovementRecorded += HandleMovementRecorded;
+        UpdatePressesPerStep();
+    }
+
+
+    void HandleMovementRecorded(Vector2 startPos, Vector2 endPos)
+    {
+        Debug.Log($"Player moved from {startPos} to {endPos}");
+        // Store or process the movement coordinates as needed
+    }
+
+    void OnDestroy()
+    {
+        if (PlayerController.Instance != null)
+        {
+            PlayerController.Instance.OnMovementRecorded -= HandleMovementRecorded;
         }
     }
 
@@ -77,7 +102,7 @@ public class PlayerController : MonoBehaviour
         gridManager = gridManager ?? FindAnyObjectByType<GridManager>();
         if (gridManager == null) Debug.LogError("GridManager not found in the scene!");
 
-                // Modified PracticeManager initialization
+        // Modified PracticeManager initialization
         if (practiceManager == null)
         {
             practiceManager = FindAnyObjectByType<PracticeManager>();
@@ -135,6 +160,8 @@ public class PlayerController : MonoBehaviour
 
     private void IncrementCounter(int index, Vector2 direction)
     {
+        Debug.Log($"IncrementCounter called - isTrialRunning: {isTrialRunning}, isMoving: {isMoving}, pressesPerStep: {pressesPerStep}");
+
         if (!isTrialRunning) return;  // Additional safety check
 
         directionCounters[index]++;
@@ -149,20 +176,39 @@ public class PlayerController : MonoBehaviour
             ResetCounters();
             isMoving = false;  // Reset moving state after move is complete
         }
+            else
+    {
+        // If the number of key presses is insufficient, only update the direction without moving
+        UpdateFacingDirection(direction);
+    }
     }
 
     private void AttemptMove(Vector2 direction)
     {
+        Vector2 startPosition = transform.position;
         Vector2 newPosition = (Vector2)transform.position + (direction * moveStepSize);
-        Debug.Log($"Attempting move to {newPosition}");
+        float moveStartTime = Time.time;
+
+        Debug.Log($"Attempting move from {startPosition} to {newPosition}");
 
         if (gridManager != null && gridManager.IsValidPosition(newPosition))
         {
+            // Record movement before executing it
+            OnMovementRecorded?.Invoke(startPosition, newPosition);
+
+            // Log the movement
+            if (LogManager.Instance != null)
+            {
+                float movementTime = Time.time - moveStartTime;
+                // Get the current trial number from GameController or ExperimentManager
+                int currentTrial = ExperimentManager.Instance?.GetCurrentTrialIndex() ?? 0;
+                LogManager.Instance.LogPlayerMovement(currentTrial, startPosition, newPosition, movementTime);
+            }
+
             MoveCharacter(newPosition);
-            UpdateFacingDirection(direction); // This line ensures the facing direction is updated after each move
+            UpdateFacingDirection(direction);
             PlayStepSound();
 
-            // Update current position after successful move
             currentPosition = newPosition;
             Debug.Log($"Player moved. New position: {currentPosition}");
         }
@@ -286,7 +332,7 @@ public class PlayerController : MonoBehaviour
     //         Debug.LogError("ExperimentManager.Instance is null in PlayerController.UpdatePressesPerStep");
     //     }
     // }
-public void UpdatePressesPerStep()
+    public void UpdatePressesPerStep()
     {
         Debug.Log("UpdatePressesPerStep called with details:");
         Debug.Log($"IsPracticeTrial: {PlayerPrefs.GetInt("IsPracticeTrial", 0)}");
@@ -335,15 +381,17 @@ public void UpdatePressesPerStep()
 
     public void EnableMovement()
     {
-        Debug.Log("EnableMovement called with comprehensive logging:");
-
-        UpdatePressesPerStep(); // Add this line
-        isTrialRunning = true;
+        Debug.Log($"EnableMovement - pressesPerStep: {pressesPerStep}, isMoving: {isMoving}");
+        
         isMoving = false; // Ensure we start in a non-moving state
-        // moveStartTime = 0f;
-        moveStartTime = Time.time;  // Initialize moveStartTime when movement is enabled
-        ResetCounters();  // Reset counters when enabling movement
         totalButtonPresses = 0;
+
+        UpdatePressesPerStep();
+        ResetCounters();  // Reset counters when enabling movement
+        isTrialRunning = true;
+        
+        // moveStartTime = 0f;
+        moveStartTime = Time.time;  // Initialize moveStartTime when movement is enabled 
 
         if (playerRigidbody != null)
         {

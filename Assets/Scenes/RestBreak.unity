@@ -363,6 +363,7 @@ MonoBehaviour:
   continueButton: {fileID: 1166040812}
   blockInfoText: {fileID: 1369938735}
   scoreText: {fileID: 1318258815}
+  nextSceneName: Block_Instructions
   buttonClickSound: {fileID: 8300000, guid: eea496a1404bd450181a09bc7b6f7b1c, type: 3}
 --- !u!4 &295824196
 Transform:
@@ -1527,7 +1528,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 0, y: 250}
+  m_AnchoredPosition: {x: 0, y: 240}
   m_SizeDelta: {x: 500, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1369938735
@@ -1550,7 +1551,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 
+  m_text: --
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8887514be60924b0ba1319bd10d63d0f, type: 2}
   m_sharedMaterial: {fileID: 21010144202549244, guid: 8887514be60924b0ba1319bd10d63d0f,
