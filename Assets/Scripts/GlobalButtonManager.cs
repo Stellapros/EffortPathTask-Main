@@ -9,7 +9,7 @@ public class ButtonNavigationController : MonoBehaviour
 {
     [Header("Navigation Settings")]
     [SerializeField] private List<Component> navigationElements = new List<Component>();
-    [SerializeField] private bool useHorizontalNavigation = true; // New field to toggle horizontal navigation
+    [SerializeField] public bool useHorizontalNavigation = true; // New field to toggle horizontal navigation
 
     [Header("Button Colors")]
     [SerializeField] private Color normalColor = new Color(0.67f, 0.87f, 0.86f);
@@ -28,54 +28,48 @@ public class ButtonNavigationController : MonoBehaviour
     private TMP_Dropdown activeDropdown = null;
     private int savedDropdownValue = 0; // Store the original value in case of cancellation
 
-    private void Start()
+private void Start()
+{
+    audioSource = gameObject.AddComponent<AudioSource>();
+
+    // Remove any null elements from the list
+    navigationElements = navigationElements.Where(element => element != null).ToList();
+
+    foreach (Component element in navigationElements)
     {
-        audioSource = gameObject.AddComponent<AudioSource>();
+        Image elementImage = null;
 
-        // Remove any null elements from the list
-        navigationElements = navigationElements.Where(element => element != null).ToList();
-
-        foreach (Component element in navigationElements)
+        if (element is Button button)
+            elementImage = button.GetComponent<Image>();
+        else if (element is TMP_InputField inputField)
+            elementImage = inputField.GetComponent<Image>();
+        else if (element is TMP_Dropdown dropdown)
         {
-            Image elementImage = null;
+            elementImage = dropdown.GetComponent<Image>();
 
-            if (element is Button button)
-                elementImage = button.GetComponent<Image>();
-            else if (element is TMP_InputField inputField)
-                elementImage = inputField.GetComponent<Image>();
-            else if (element is TMP_Dropdown dropdown)
+            // Add listener to track dropdown state
+            dropdown.onValueChanged.AddListener(_ =>
             {
-                elementImage = dropdown.GetComponent<Image>();
-
-                // Add listener to track dropdown state
-                dropdown.onValueChanged.AddListener(_ =>
+                if (!isDropdownExpanded) // Only handle if this is a "real" selection
                 {
-                    if (!isDropdownExpanded) // Only handle if this is a "real" selection
-                    {
-                        isDropdownExpanded = false;
-                        activeDropdown = null;
-                    }
-                });
-            }
-
-            if (elementImage != null && elementImage.gameObject != null)
-            {
-                elementImages[element] = elementImage;
-                elementImage.color = normalColor;
-            }
+                    isDropdownExpanded = false;
+                    activeDropdown = null;
+                }
+            });
         }
 
-        // More defensive checks before initial selection
-        if (navigationElements != null && navigationElements.Count > 0)
+        if (elementImage != null && elementImage.gameObject != null)
         {
-            var firstValidElement = navigationElements.FirstOrDefault();
-            if (firstValidElement != null)
-            {
-                SetSelectedElement(firstValidElement);
-                currentElementIndex = 0;
-            }
+            elementImages[element] = elementImage;
+            elementImage.color = normalColor;
         }
     }
+
+    // Ensure no default selection
+    currentElementIndex = -1;
+    currentSelectedElement = null;
+    EventSystem.current.SetSelectedGameObject(null);
+}
 
     private void Update()
     {
@@ -130,8 +124,17 @@ public class ButtonNavigationController : MonoBehaviour
         }
     }
 
+        public void ClearElements()
+    {
+        navigationElements.Clear();
+        elementImages.Clear();
+        currentElementIndex = 0;
+        currentSelectedElement = null;
+    }
+
     [SerializeField] private float navigationRepeatDelay = 0.2f; // Adjustable repeat rate
     private float nextNavigationTime = 0f;
+
     private void HandleQuickNavigation()
     {
         if (Time.time >= nextNavigationTime)
@@ -174,79 +177,48 @@ public class ButtonNavigationController : MonoBehaviour
             HandleElementSelection();
     }
 
-    private void HandleElementSelection()
+private void HandleElementSelection()
+{
+    if (currentSelectedElement == null) return;
+
+    switch (currentSelectedElement)
     {
-        if (currentSelectedElement == null) return;
+        case TMP_Dropdown dropdown when dropdown != null && dropdown.gameObject.activeInHierarchy:
+            EnterDropdownMode(dropdown);
+            break;
 
-        switch (currentSelectedElement)
-        {
-            case TMP_Dropdown dropdown when dropdown != null && dropdown.gameObject.activeInHierarchy:
-                EnterDropdownMode(dropdown);
-                break;
+        case Button button when button != null &&
+                     button.gameObject != null &&
+                     button.gameObject.activeInHierarchy:
+            if (elementImages.TryGetValue(button, out var buttonImage) && buttonImage != null)
+            {
+                Debug.Log("Button selected and about to invoke");
 
-            // case Button button when button != null &&
-            //                          button.gameObject != null &&
-            //                          button.gameObject.activeInHierarchy:
-            //     if (elementImages.TryGetValue(button, out var buttonImage) && buttonImage != null)
-            //     {
-            //         buttonImage.color = pressedColor;
-            //         PlayButtonSound();
-            //         button.onClick.Invoke();
-            //     }
-            //     break;
-
-            // case Button button when button != null &&
-            //                          button.gameObject != null &&
-            //                          button.gameObject.activeInHierarchy:
-            //     if (elementImages.TryGetValue(button, out var buttonImage) && buttonImage != null)
-            //     {
-            //         Debug.Log("Button selected and about to invoke");
-            //         buttonImage.color = pressedColor;
-            //         PlayButtonSound();
-
-            //         // Prevent multiple invocations by temporarily disabling the button
-            //         button.interactable = false;
-
-            //         // Use Invoke with a small delay to reset interactability
-            //         Invoke("ResetButtonInteractable", 0.2f);
-
-            //         button.onClick.Invoke();
-            //     }
-            //     break;
-
-            case Button button when button != null &&
-                        button.gameObject != null &&
-                        button.gameObject.activeInHierarchy:
-                if (elementImages.TryGetValue(button, out var buttonImage) && buttonImage != null)
+                // Ensure button is still valid before proceeding
+                if (button != null && !button.Equals(null) && button.interactable)
                 {
-                    Debug.Log("Button selected and about to invoke");
+                    buttonImage.color = pressedColor;
+                    PlayButtonSound();
 
-                    // Ensure button is still valid before proceeding
-                    if (button != null && !button.Equals(null) && button.interactable)
-                    {
-                        buttonImage.color = pressedColor;
-                        PlayButtonSound();
+                    // Prevent multiple invocations by temporarily disabling the button
+                    button.interactable = false;
 
-                        // Prevent multiple invocations by temporarily disabling the button
-                        button.interactable = false;
+                    // Use Invoke with a small delay to reset interactability
+                    Invoke("ResetButtonInteractable", 0.2f);
 
-                        // Use Invoke with a small delay to reset interactability
-                        Invoke("ResetButtonInteractable", 0.2f);
-
-                        button.onClick.Invoke();
-                    }
+                    button.onClick.Invoke();
                 }
-                break;
+            }
+            break;
 
-
-            case TMP_InputField inputField when inputField != null &&
-                                                 inputField.gameObject != null &&
-                                                 inputField.gameObject.activeInHierarchy:
-                inputField.ActivateInputField();
-                inputField.Select();
-                break;
-        }
+        case TMP_InputField inputField when inputField != null &&
+                                             inputField.gameObject != null &&
+                                             inputField.gameObject.activeInHierarchy:
+            inputField.ActivateInputField();
+            inputField.Select();
+            break;
     }
+}
 
     private void ResetButtonInteractable()
     {

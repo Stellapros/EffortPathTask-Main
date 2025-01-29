@@ -758,7 +758,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 210, y: -50}
+  m_AnchoredPosition: {x: 250, y: -50}
   m_SizeDelta: {x: 400, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1002826858
@@ -1249,7 +1249,7 @@ MonoBehaviour:
     type: 3}
   logManager: {fileID: 3404956456498695464, guid: 54dd36bf67cfa4080a440bbc6615ec0a,
     type: 3}
-  experimentManager: {fileID: 3507179296321619295, guid: 082b8600c17df4d43939728b5144dd10,
+  experimentManager: {fileID: 3127791733430911248, guid: 082b8600c17df4d43939728b5144dd10,
     type: 3}
   playerPrefab: {fileID: 197052547065130213, guid: ab9f9bb94afc64c7e89ec2641835a2f1,
     type: 3}
@@ -1482,16 +1482,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c2a55679c876416cb60c5851778b8b6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxTrialDuration: 10
-  startTrialDelay: 0.5
-  endTrialDelay: 0.5
-  pressesPerEffortLevel: 010000000200000003000000
   experimentManager: {fileID: 3507179296321619295, guid: 082b8600c17df4d43939728b5144dd10,
     type: 3}
   gridWorldManager: {fileID: -8690266444773239620, guid: 96d776e8ee130440d8b6e04107cc91e0,
     type: 3}
   practiceManager: {fileID: 5028154936095916163, guid: cf96765f7320747d3a1db6abff587e85,
     type: 3}
+  maxTrialDuration: 10
+  startTrialDelay: 0.5
+  endTrialDelay: 0.5
+  pressesPerEffortLevel: 010000000200000003000000
 --- !u!1001 &1065090123916010027
 PrefabInstance:
   m_ObjectHideFlags: 0

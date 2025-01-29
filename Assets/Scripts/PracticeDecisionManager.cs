@@ -9,6 +9,8 @@ public class PracticeDecisionManager : MonoBehaviour
     [SerializeField] private Image effortSpriteImage;
     [SerializeField] private TextMeshProUGUI effortLevelText;
     [SerializeField] private TextMeshProUGUI pressesRequiredText;
+    [SerializeField] private TextMeshProUGUI timerText; // Added timer text
+
     [SerializeField] private Button workButton;
     [SerializeField] private Button skipButton;
     private AudioSource audioSource;
@@ -16,53 +18,46 @@ public class PracticeDecisionManager : MonoBehaviour
     [SerializeField] private AudioClip skipButtonSound;
     private PracticeManager practiceManager;
 
-    [Header("Time Settings")]
-    // [SerializeField] private float decisionTimeLimit = 2.5f;
-    [SerializeField] private TextMeshProUGUI timerText;
-    // private float currentTimer;
-    // private bool isTimerRunning;
-
-    // New flag to prevent double processing
-    private bool hasProcessedCurrentTrial = false;
+    // Added for keyboard navigation
+    private bool? isWorkButtonSelected = true;
+    [SerializeField] private Color normalColor = new Color(0.67f, 0.87f, 0.86f);
+    [SerializeField] private Color selectedColor = new Color(0.87f, 0.86f, 0.67f);
 
     // Skip delay constant
     private const float SKIP_DELAY = 3f;
     private bool isSkipDelayActive = false;
     private float skipDelayTimer;
 
+    // New flag to prevent double processing
+    private bool hasProcessedCurrentTrial = false;
+
     private void Awake()
     {
         ValidateComponents();
         SetupAudioSource();
         FindPracticeManager();
-        // SetupKeyboardNavigation();
-
-        // Add more robust null checks
-        if (practiceManager == null)
-        {
-            // Try to find PracticeManager again, this time using GetComponent if on the same GameObject
-            practiceManager = GetComponent<PracticeManager>();
-
-            // If still null, log a more detailed error
-            if (practiceManager == null)
-            {
-                Debug.LogError("PracticeManager could not be found! Ensure a PracticeManager exists in the scene.");
-            }
-        }
-
-        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-        navigationController.AddElement(workButton);
-        navigationController.AddElement(skipButton);
-
-        // SetupButtonListeners(); 
+        SetupKeyboardNavigation();
     }
 
-    private void FindPracticeManager()
+    private void SetupKeyboardNavigation()
     {
-        practiceManager = FindAnyObjectByType<PracticeManager>();
-        if (practiceManager == null)
+        // Add visual feedback components
+        SetupButtonVisualFeedback(workButton);
+        SetupButtonVisualFeedback(skipButton);
+
+        // Set initial selection
+        UpdateButtonSelection();
+    }
+
+    private void SetupButtonVisualFeedback(Button button)
+    {
+        if (button != null)
         {
-            Debug.LogError("PracticeManager could not be found in the scene!");
+            Image buttonImage = button.GetComponent<Image>();
+            if (buttonImage != null)
+            {
+                buttonImage.color = normalColor;
+            }
         }
     }
 
@@ -74,18 +69,73 @@ public class PracticeDecisionManager : MonoBehaviour
             return;
         }
 
-        // if (isTimerRunning)
-        // {
-        //     UpdateTimer();
-        // }
+        // Handle input only if buttons are interactable
+        if (workButton != null && skipButton != null &&
+            workButton.interactable && skipButton.interactable)
+        {
+            HandleInput();
+        }
+    }
 
-        // Handle keyboard navigation during practice trial
-        // if (workButton != null && skipButton != null &&
-        //     workButton.interactable && skipButton.interactable &&
-        //     isTimerRunning)
-        // {
-        // HandleKeyboardNavigation(); 
-        // }
+    private void HandleInput()
+    {
+        // Handle left arrow key press for Work
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            isWorkButtonSelected = true;
+            UpdateButtonSelection();
+            OnDecisionMade(true);
+        }
+        // Handle right arrow key press for Skip
+        else if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            isWorkButtonSelected = false;
+            UpdateButtonSelection();
+            OnDecisionMade(false);
+        }
+    }
+
+    private void UpdateButtonSelection()
+    {
+        if (workButton != null && skipButton != null)
+        {
+            // Update work button
+            Image workImage = workButton.GetComponent<Image>();
+            if (workImage != null)
+            {
+                workImage.color = isWorkButtonSelected == true ? selectedColor : normalColor;
+            }
+
+            // Update skip button
+            Image skipImage = skipButton.GetComponent<Image>();
+            if (skipImage != null)
+            {
+                skipImage.color = isWorkButtonSelected == false ? selectedColor : normalColor;
+            }
+
+            // Clear selection when no button is selected
+            if (isWorkButtonSelected == null)
+            {
+                EventSystem.current.SetSelectedGameObject(null);
+            }
+            else
+            {
+                // Set selection when a button is chosen
+                EventSystem.current.SetSelectedGameObject(
+                    isWorkButtonSelected.Value ? workButton.gameObject : skipButton.gameObject
+                );
+            }
+        }
+    }
+
+    private void FindPracticeManager()
+    {
+        practiceManager = FindAnyObjectByType<PracticeManager>();
+        if (practiceManager == null)
+        {
+            Debug.LogError("PracticeManager could not be found in the scene!");
+            practiceManager = GetComponent<PracticeManager>();
+        }
     }
 
     private void SetupAudioSource()
@@ -93,10 +143,8 @@ public class PracticeDecisionManager : MonoBehaviour
         audioSource = gameObject.GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
     }
 
-
     private void ValidateComponents()
     {
-        // Ensure effort sprite image is configured correctly
         if (effortSpriteImage == null)
         {
             effortSpriteImage = transform.Find("EV Image")?.GetComponent<Image>();
@@ -114,7 +162,6 @@ public class PracticeDecisionManager : MonoBehaviour
             effortSpriteImage.preserveAspect = true;
         }
 
-        // Attach decision method directly to buttons
         if (workButton != null)
         {
             workButton.onClick.AddListener(() => OnDecisionMade(true));
@@ -128,11 +175,9 @@ public class PracticeDecisionManager : MonoBehaviour
 
     private void OnEnable()
     {
-        // Ensure UI is properly initialized when object becomes active
         SetupDecisionPhase();
-        // Reset selection when enabled
-        // isWorkButtonSelected = true;
-        // UpdateButtonSelection();
+        isWorkButtonSelected = null;
+        UpdateButtonSelection();
     }
 
     public void SetupDecisionPhase()
@@ -143,7 +188,6 @@ public class PracticeDecisionManager : MonoBehaviour
         if (practiceManager == null)
         {
             Debug.LogError("PracticeManager is not assigned!");
-            // Consider finding the PracticeManager if it's null
             practiceManager = FindAnyObjectByType<PracticeManager>();
 
             if (practiceManager == null)
@@ -153,7 +197,6 @@ public class PracticeDecisionManager : MonoBehaviour
             }
         }
 
-        // Ensure practice mode is started if not already
         if (practiceManager.GetCurrentPracticeTrialIndex() < 0)
         {
             practiceManager.StartPracticeMode();
@@ -162,7 +205,7 @@ public class PracticeDecisionManager : MonoBehaviour
         UpdateEffortSprite();
         EnableButtons();
 
-        // Additional logging
+        // Log current trial details
         PracticeManager.PracticeTrial currentTrial = practiceManager.GetCurrentPracticeTrial();
         if (currentTrial != null)
         {
@@ -174,27 +217,9 @@ public class PracticeDecisionManager : MonoBehaviour
         {
             Debug.LogError("No current practice trial found!");
         }
-
-        // StartTimer();
-
-        // // Removed timer start
-        //     if (timerText != null)
-        //     {
-        //         timerText.text = ""; // Clear timer text
-        //     }
     }
 
-    // private void StartTimer()
-    // {
-    //     currentTimer = decisionTimeLimit;
-    //     isTimerRunning = true;
-    //     if (timerText != null)
-    //     {
-    //         timerText.text = $"Time: {currentTimer:F0}";
-    //     }
-    // }
-
-    public void UpdateEffortSprite()
+        public void UpdateEffortSprite()
     {
         if (practiceManager == null)
         {
@@ -206,15 +231,13 @@ public class PracticeDecisionManager : MonoBehaviour
         if (currentTrial == null)
         {
             Debug.LogError($"No current practice trial found at index {practiceManager.GetCurrentPracticeTrialIndex()}!");
-
-            // Attempt to handle the error or reset the practice mode
             practiceManager.StartPracticeMode();
             return;
         }
 
         Sprite effortSprite = practiceManager.GetCurrentPracticeTrialSprite();
         int effortLevel = practiceManager.GetCurrentTrialEffortLevel();
-        int pressesRequired = effortLevel;
+        int pressesRequired = GetPracticePressesByEffortLevel(effortLevel);
 
         if (effortSprite == null)
         {
@@ -231,7 +254,7 @@ public class PracticeDecisionManager : MonoBehaviour
         UpdateUITexts(effortLevel, pressesRequired);
     }
 
-    private void UpdateUITexts(int effortLevel, int pressesRequired)
+        private void UpdateUITexts(int effortLevel, int pressesRequired)
     {
         if (practiceManager == null)
         {
@@ -242,33 +265,25 @@ public class PracticeDecisionManager : MonoBehaviour
         PracticeManager.PracticeTrial currentTrial = practiceManager.GetCurrentPracticeTrial();
         if (currentTrial != null)
         {
-            effortLevel = currentTrial.effortLevel;
-            pressesRequired = GetPracticePressesByEffortLevel(effortLevel);
-            // pressesRequired = effortLevel; // Directly map effort level to presses required
+            if (effortLevelText != null)
+            {
+                effortLevelText.text = $"Effort Level: {effortLevel} ({GetEffortLevelDescription(effortLevel)})";
+                Debug.Log($"Setting Effort Level Text to: {effortLevelText.text}");
+            }
+
+            if (pressesRequiredText != null)
+            {
+                pressesRequiredText.text = $"Presses Required: {pressesRequired}";
+                Debug.Log($"Setting Presses Required Text to: {pressesRequiredText.text}");
+            }
         }
         else
         {
             Debug.LogError("No current practice trial found!");
-            return;
-        }
-
-        if (effortLevelText != null)
-        {
-            // Explicitly show the effort level mapping
-            effortLevelText.text = $"Effort Level: {effortLevel} ({GetEffortLevelDescription(effortLevel)})";
-
-            // effortLevelText.text = $"Effort Level: {effortLevel}";
-            Debug.Log($"Setting Effort Level Text to: {effortLevelText.text}");
-        }
-
-        if (pressesRequiredText != null)
-        {
-            pressesRequiredText.text = $"Presses Required: {pressesRequired}";
-            Debug.Log($"Setting Presses Required Text to: {pressesRequiredText.text}");
         }
     }
 
-    private string GetEffortLevelDescription(int effortLevel)
+        private string GetEffortLevelDescription(int effortLevel)
     {
         switch (effortLevel)
         {
@@ -294,36 +309,6 @@ public class PracticeDecisionManager : MonoBehaviour
         }
     }
 
-    // private int GetPracticePressesByEffortLevel(int effortLevel)
-    // {
-    //     // Directly return the effort level, matching the PracticeManager's logic
-    //     switch (effortLevel)
-    //     {
-    //         case 1: return 1; // 1 press per step
-    //         case 3: return 3; // 3 presses per step
-    //         case 5: return 5; // 5 presses per step
-    //         default: 
-    //             Debug.LogWarning($"Unexpected effort level: {effortLevel}. Defaulting to 1.");
-    //             return 1;
-    //     }
-    // }
-
-    private void EnableButtons()
-    {
-        if (workButton != null)
-        {
-            workButton.interactable = true;
-            // isWorkButtonSelected = true;
-            // UpdateButtonSelection();
-        }
-        if (skipButton != null) skipButton.interactable = true;
-    }
-
-    private void DisableButtons()
-    {
-        if (workButton != null) workButton.interactable = false;
-        if (skipButton != null) skipButton.interactable = false;
-    }
     private void OnDecisionMade(bool workDecision)
     {
         // Reset the trial processing flag
@@ -351,16 +336,19 @@ public class PracticeDecisionManager : MonoBehaviour
 
         if (workDecision)
         {
-            // Load GridWorld for working
-            SceneManager.LoadScene("GetReadyEveryTrialPractice");
+            StartCoroutine(DelayedSceneTransition("GetReadyEveryTrialPractice", 0.1f));
             PlayerPrefs.SetInt("SkippedTrial", 0);
         }
         else
         {
-            // Directly handle trial completion through PracticeManager
-            // practiceManager.HandlePracticeTrialCompletion(false);
             ActivateSkipDelay();
         }
+    }
+
+    private System.Collections.IEnumerator DelayedSceneTransition(string sceneName, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        SceneManager.LoadScene(sceneName);
     }
 
     private void ActivateSkipDelay()
@@ -370,10 +358,12 @@ public class PracticeDecisionManager : MonoBehaviour
 
         if (timerText != null)
         {
-            timerText.text = $"Waiting: {skipDelayTimer:F0}";
+            timerText.text = $"Waiting: {skipDelayTimer:F1}";
         }
-
-        Invoke("CompleteSkipDelay", SKIP_DELAY);
+        else
+        {
+            Debug.LogWarning("Timer Text is not assigned!");
+        }
     }
 
     private void UpdateSkipDelay()
@@ -382,7 +372,7 @@ public class PracticeDecisionManager : MonoBehaviour
 
         if (timerText != null)
         {
-            timerText.text = $"Waiting: {skipDelayTimer:F0}";
+            timerText.text = $"Waiting: {skipDelayTimer:F1}";
         }
 
         if (skipDelayTimer <= 0)
@@ -393,7 +383,6 @@ public class PracticeDecisionManager : MonoBehaviour
 
     private void CompleteSkipDelay()
     {
-        // Prevent multiple trial completions
         if (hasProcessedCurrentTrial)
         {
             Debug.Log("Trial already processed. Skipping duplicate processing.");
@@ -403,44 +392,34 @@ public class PracticeDecisionManager : MonoBehaviour
         isSkipDelayActive = false;
         hasProcessedCurrentTrial = true;
 
-        // Log trial index before completion
+        // Clear timer text
+        if (timerText != null)
+        {
+            timerText.text = "";
+        }
+
         Debug.Log($"CompleteSkipDelay - Current Practice Trial Index BEFORE Completion: {practiceManager.GetCurrentPracticeTrialIndex()}");
-
         practiceManager.HandleGridWorldOutcome(true);
-
-        // Log trial index after completion
         Debug.Log($"CompleteSkipDelay - Current Practice Trial Index AFTER Completion: {practiceManager.GetCurrentPracticeTrialIndex()}");
     }
 
-    // private void UpdateTimer()
-    // {
-    //     currentTimer -= Time.deltaTime;
+    private void EnableButtons()
+    {
+        if (workButton != null)
+        {
+            workButton.interactable = true;
+            isWorkButtonSelected = null;
+            UpdateButtonSelection();
+        }
+        if (skipButton != null) skipButton.interactable = true;
+    }
 
-    //     if (timerText != null)
-    //     {
-    //         timerText.text = $"Time: {currentTimer:F0}";
-    //     }
+    private void DisableButtons()
+    {
+        if (workButton != null) workButton.interactable = false;
+        if (skipButton != null) skipButton.interactable = false;
+    }
 
-    //     if (currentTimer <= 0)
-    //     {
-    //         TimeExpired();
-    //     }
-    // }
-
-    // private void TimeExpired()
-    // {
-    //     isTimerRunning = false;
-    //     DisableButtons();
-
-    //     // Log the time expiration
-    //     LogDecision(false);
-    //     Debug.Log("Decision time expired - Moving to penalty scene");
-
-    //     // Move to penalty scene
-    //     SceneManager.LoadScene("TimePenalty");
-    // }
-
-    // In PracticeDecisionManager.cs
     private void LogDecision(bool workDecision)
     {
         string trialType = "Practice";

@@ -45,6 +45,11 @@ public class PlayerController : MonoBehaviour
     {
         SetupSingleton();
         SetupComponents();
+
+        // Initialize movement state
+        isMoving = false;
+        isTrialRunning = false;
+        ResetCounters();
     }
 
     private void SetupSingleton()
@@ -59,10 +64,11 @@ public class PlayerController : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
     void Start()
     {
         PlayerController.Instance.OnMovementRecorded += HandleMovementRecorded;
-        UpdatePressesPerStep();
+        UpdatePressesPerStep(); // Ensure pressesPerStep is set correctly at the start
     }
 
 
@@ -158,29 +164,64 @@ public class PlayerController : MonoBehaviour
             IncrementCounter(3, Vector2.right);
     }
 
+    // private void IncrementCounter(int index, Vector2 direction)
+    // {
+    //     Debug.Log($"IncrementCounter called - isTrialRunning: {isTrialRunning}, isMoving: {isMoving}, pressesPerStep: {pressesPerStep}");
+
+    //     if (!isTrialRunning) return;  // Additional safety check
+
+    //     directionCounters[index]++;
+    //     totalButtonPresses++;
+
+    //     Debug.Log($"Counter incremented. Total presses: {totalButtonPresses}, Presses needed: {pressesPerStep}");
+
+    //     if (directionCounters[index] >= pressesPerStep && !isMoving)
+    //     {
+    //         isMoving = true;  // Set moving state before attempting move
+    //         AttemptMove(direction);
+    //         ResetCounters();
+    //         isMoving = false;  // Reset moving state after move is complete
+    //     }
+    //         else
+    // {
+    //     // If the number of key presses is insufficient, only update the direction without moving
+    //     UpdateFacingDirection(direction);
+    // }
+    // }
+
     private void IncrementCounter(int index, Vector2 direction)
     {
-        Debug.Log($"IncrementCounter called - isTrialRunning: {isTrialRunning}, isMoving: {isMoving}, pressesPerStep: {pressesPerStep}");
+        if (!isTrialRunning)
+        {
+            Debug.Log("IncrementCounter - Trial not running, ignoring input");
+            return;
+        }
 
-        if (!isTrialRunning) return;  // Additional safety check
+        if (isMoving)
+        {
+            Debug.Log("IncrementCounter - Currently moving, ignoring input");
+            return;
+        }
 
         directionCounters[index]++;
         totalButtonPresses++;
 
-        Debug.Log($"Counter incremented. Total presses: {totalButtonPresses}, Presses needed: {pressesPerStep}");
+        Debug.Log($"Button press {totalButtonPresses} in direction {direction}, " +
+                  $"Current count: {directionCounters[index]}, Required: {pressesPerStep}");
 
-        if (directionCounters[index] >= pressesPerStep && !isMoving)
+        // Check if we've reached the required number of presses
+        if (directionCounters[index] >= pressesPerStep)
         {
-            isMoving = true;  // Set moving state before attempting move
+            isMoving = true;
             AttemptMove(direction);
             ResetCounters();
-            isMoving = false;  // Reset moving state after move is complete
+            isMoving = false;
         }
-            else
-    {
-        // If the number of key presses is insufficient, only update the direction without moving
-        UpdateFacingDirection(direction);
-    }
+        else
+        {
+            // Update facing direction even when not moving
+            UpdateFacingDirection(direction);
+        }
     }
 
     private void AttemptMove(Vector2 direction)
@@ -379,25 +420,55 @@ public class PlayerController : MonoBehaviour
         Debug.Log($"PlayerController: Final presses per step value: {pressesPerStep}");
     }
 
+    // public void EnableMovement()
+    // {
+    //     Debug.Log($"EnableMovement - pressesPerStep: {pressesPerStep}, isMoving: {isMoving}");
+
+    //     isMoving = false; // Ensure we start in a non-moving state
+    //     totalButtonPresses = 0;
+    //     ResetCounters();  // Reset counters when enabling movement
+
+    //     UpdatePressesPerStep();
+
+    //     isTrialRunning = true;
+
+    //     // moveStartTime = 0f;
+    //     moveStartTime = Time.time;  // Initialize moveStartTime when movement is enabled 
+
+    //     if (playerRigidbody != null)
+    //     {
+    //         playerRigidbody.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionZ;
+    //     }
+    //     Debug.Log("Player movement enabled");
+    // }
+
     public void EnableMovement()
     {
-        Debug.Log($"EnableMovement - pressesPerStep: {pressesPerStep}, isMoving: {isMoving}");
-        
-        isMoving = false; // Ensure we start in a non-moving state
+        Debug.Log("EnableMovement called - Starting initialization sequence");
+
+        // Ensure clean initial state
+        isMoving = false;
+        isTrialRunning = false;
         totalButtonPresses = 0;
+        ResetCounters();
 
+        // Update presses per step
         UpdatePressesPerStep();
-        ResetCounters();  // Reset counters when enabling movement
-        isTrialRunning = true;
-        
-        // moveStartTime = 0f;
-        moveStartTime = Time.time;  // Initialize moveStartTime when movement is enabled 
 
+        // Reset movement timing
+        moveStartTime = Time.time;
+
+        // Enable physics if needed
         if (playerRigidbody != null)
         {
             playerRigidbody.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionZ;
+            playerRigidbody.linearVelocity = Vector3.zero;
         }
-        Debug.Log("Player movement enabled");
+
+        // Important: Enable trial LAST, after all setup is complete
+        isTrialRunning = true;
+
+        Debug.Log($"Movement fully enabled - Presses per step: {pressesPerStep}, Moving: {isMoving}, Trial Running: {isTrialRunning}");
     }
 
     public void DisableMovement()

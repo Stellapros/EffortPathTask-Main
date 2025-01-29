@@ -564,9 +564,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11dd89b9a292c4ec39cf550f2483a59f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  continueButton: {fileID: 969980811}
-  nextSceneName: GetReadyPractise
-  buttonClickSound: {fileID: 8300000, guid: eea496a1404bd450181a09bc7b6f7b1c, type: 3}
 --- !u!1 &1193662797
 GameObject:
   m_ObjectHideFlags: 0
@@ -624,7 +621,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "Next, you will have the opportunity to complete three practice trials. 
+  m_text: "Next, you will have the opportunity to complete several practice trials. 
     After that, the experiment will begin. \n\nGood luck!"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8887514be60924b0ba1319bd10d63d0f, type: 2}

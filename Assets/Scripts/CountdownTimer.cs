@@ -3,38 +3,31 @@ using UnityEngine;
 using TMPro;
 using Debug = UnityEngine.Debug;
 
-
 public class CountdownTimer : MonoBehaviour
 {
     public bool IsInitialized { get; private set; }
 
-    [SerializeField] private TextMeshProUGUI timerText; // Reference to the UI text component
-    [SerializeField] private float totalTime = 5.0f; // Default time set to 5 seconds
+    [SerializeField] private TextMeshProUGUI timerText;
+    [SerializeField] private float totalTime = 5.0f;
+    [SerializeField] private Color warningColor = new Color(0.6f, 0.2f, 0.2f); // 调暗的红色
+    [SerializeField] private Color normalColor = new Color(0.584f, 0.761f, 0.749f); // #95C2BF
+    
     private float timeLeft;
     private bool isRunning = false;
-
-    // Event that can be subscribed to for when the timer reaches zero
+    private bool isInWarningPhase = false;
     public event System.Action OnTimerExpired;
-
-    // Public property to access remaining time
     public float TimeLeft => timeLeft;
     private Stopwatch stopwatch;
 
-
-
     private void Start()
     {
-        // ResetTimer();
         stopwatch = new Stopwatch();
     }
 
     public void Initialize()
     {
-
-        // Initialize any necessary timer components here
         IsInitialized = true;
 
-        // Ensure all necessary components are set up
         if (timerText == null)
         {
             timerText = GetComponentInChildren<TMPro.TextMeshProUGUI>();
@@ -47,12 +40,10 @@ public class CountdownTimer : MonoBehaviour
             }
         }
 
-        // Reset timer state
         isRunning = false;
         timeLeft = 0f;
-        // startTime = 0f;
-
-        // Update display
+        isInWarningPhase = false;
+        timerText.color = normalColor;
         UpdateTimerUI();
     }
 
@@ -60,88 +51,71 @@ public class CountdownTimer : MonoBehaviour
     {
         if (isRunning)
         {
-            // Calculate elapsed time using Stopwatch for more accuracy
             float elapsedTime = stopwatch.ElapsedMilliseconds / 1000f;
             timeLeft = Mathf.Max(totalTime - elapsedTime, 0);
-            // timeLeft -= Time.deltaTime;
+
+            // 检查是否进入警告阶段（3秒）
+            if (timeLeft <= 3f && !isInWarningPhase)
+            {
+                isInWarningPhase = true;
+                timerText.color = warningColor;
+            }
 
             UpdateTimerUI();
 
-            // Check if time has run out
             if (timeLeft <= 0)
             {
-                UnityEngine.Debug.Log("Timer reached zero. Stopping timer and invoking OnTimerExpired.");
-                // isRunning = false;
-                // timeLeft = 0;
                 StopTimer();
-                OnTimerExpired?.Invoke(); // Trigger the event
+                OnTimerExpired?.Invoke();
             }
-            // UpdateTimerUI();
-            UnityEngine.Debug.Log($"Timer Update: timeLeft = {timeLeft:F2}s");
         }
 
-        if (Time.frameCount % 60 == 0) // Log every 60 frames to reduce spam
+        if (Time.frameCount % 60 == 0)
         {
-            UnityEngine.Debug.Log($"Timer Update: timeLeft = {timeLeft:F2}s, isRunning = {isRunning}, totalTime = {totalTime}");
+            Debug.Log($"Timer Update: timeLeft = {timeLeft:F2}s, isRunning = {isRunning}, totalTime = {totalTime}");
         }
     }
 
-    // Starts the timer with a specified duration
-    // public void StartTimer(float duration)
-    // {
-    //     UnityEngine.Debug.Log($"StartTimer called with duration: {duration}");
-    //     totalTime = duration;
-    //     timeLeft = totalTime;
-    //     isRunning = true;
-    //     // startTime = Time.time;
-    //     stopwatch.Restart();
-    //     UpdateTimerUI();
-    //     UnityEngine.Debug.Log($"Timer started at {Time.realtimeSinceStartup}. totalTime: {totalTime}, timeLeft: {timeLeft}, isRunning: {isRunning}");
-    // }
-
-    // after change the total duration to 5s.
     public void StartTimer(float duration)
     {
         totalTime = duration;
         timeLeft = totalTime;
         isRunning = true;
+        isInWarningPhase = false;
+        timerText.color = normalColor;
         stopwatch.Restart();
         UpdateTimerUI();
-        UnityEngine.Debug.Log($"Timer started with duration: {duration}s");
+        Debug.Log($"Timer started with duration: {duration}s");
+
+        PlayerController.Instance?.EnableMovement();
     }
 
-
-    // Stops the timer
     public void StopTimer()
     {
         isRunning = false;
-        // timeLeft = totalTime;
         stopwatch.Stop();
+        isInWarningPhase = false;
+        timerText.color = normalColor;
         UpdateTimerUI();
-        UnityEngine.Debug.Log($"Timer stopped at {Time.realtimeSinceStartup}. Elapsed time: {stopwatch.ElapsedMilliseconds / 1000f}s");
+        Debug.Log($"Timer stopped at {Time.realtimeSinceStartup}. Elapsed time: {stopwatch.ElapsedMilliseconds / 1000f}s");
     }
 
-    // Resets the timer to the total time
     public void ResetTimer()
     {
         isRunning = false;
         timeLeft = totalTime;
         stopwatch.Reset();
+        isInWarningPhase = false;
+        timerText.color = normalColor;
         UpdateTimerUI();
-        UnityEngine.Debug.Log($"Timer reset at {Time.time}");
+        Debug.Log($"Timer reset at {Time.time}");
     }
 
-    /// <summary>
-    /// Sets the total duration for the timer.
-    /// If the timer is running, it will be reset with the new duration.
-    /// </summary>
-    /// <param name="duration">The new duration in seconds</param>
     public void SetDuration(float duration)
     {
-        UnityEngine.Debug.Log($"SetDuration called with duration: {duration}");
-        totalTime = Mathf.Max(0, duration); // Ensure duration is not negative
+        Debug.Log($"SetDuration called with duration: {duration}");
+        totalTime = Mathf.Max(0, duration);
 
-        // If timer is running, restart it with new duration
         if (isRunning)
         {
             StopTimer();
@@ -149,15 +123,13 @@ public class CountdownTimer : MonoBehaviour
         }
         else
         {
-            // If timer is not running, just update the time left
             timeLeft = totalTime;
             UpdateTimerUI();
         }
 
-        UnityEngine.Debug.Log($"Timer duration set to {totalTime}s. Current state - timeLeft: {timeLeft}, isRunning: {isRunning}");
+        Debug.Log($"Timer duration set to {totalTime}s. Current state - timeLeft: {timeLeft}, isRunning: {isRunning}");
     }
 
-    // Updates the UI text with the current time left
     private void UpdateTimerUI()
     {
         if (timerText != null)
@@ -166,19 +138,17 @@ public class CountdownTimer : MonoBehaviour
         }
     }
 
-    // Method to check timer accuracy (useful for debugging)
     public void CheckTimerAccuracy()
     {
         if (isRunning)
         {
-            // float actualTime = Time.time - startTime;
             float actualTime = stopwatch.ElapsedMilliseconds / 1000f;
             float timerTime = totalTime - timeLeft;
-            UnityEngine.Debug.Log($"Actual time passed: {actualTime:F2}s, Timer time: {timerTime:F2}s, Difference: {(actualTime - timerTime):F2}s");
+            Debug.Log($"Actual time passed: {actualTime:F2}s, Timer time: {timerTime:F2}s, Difference: {(actualTime - timerTime):F2}s");
         }
         else
         {
-            UnityEngine.Debug.Log("Timer is not running.");
+            Debug.Log("Timer is not running.");
         }
     }
 }

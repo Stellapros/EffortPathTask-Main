@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 /// <summary>
 /// Manages the spawning and despawning of the player in the GridWorld scene.
@@ -36,7 +37,6 @@ public class PlayerSpawner : MonoBehaviour
     /// <summary>
     /// Spawns the player at the given position.
     /// </summary>
-    /// <param name="playerPosition">The position to spawn the player.</param>
     /// <returns>The spawned player GameObject, or null if spawning failed.</returns>
     public GameObject SpawnPlayer()
     {
@@ -58,49 +58,31 @@ public class PlayerSpawner : MonoBehaviour
             return null;
         }
 
-        if (spawnedPlayer != null)
+        PlayerController controller = spawnedPlayer.GetComponent<PlayerController>();
+        if (controller != null)
         {
-            PlayerController controller = spawnedPlayer.GetComponent<PlayerController>();
-            if (controller != null)
-            {
-                controller.EnableMovement();
-            }
-            else
-            {
-                Debug.LogError("PlayerController component not found on spawned player!");
-            }
+            // Give a small delay to ensure all components are properly initialized
+            StartCoroutine(EnablePlayerMovementAfterDelay(controller));
+        }
+        else
+        {
+            Debug.LogError("PlayerController component not found on spawned player!");
         }
 
         return spawnedPlayer;
     }
-    // public (GameObject player, Vector2 spawnPosition) SpawnPlayer()
-    // {
-    //     if (playerPrefab == null)
-    //     {
-    //         Debug.LogError("Cannot spawn player: Player prefab is not assigned.");
-    //         return (null, Vector2.zero);
-    //     }
 
-    //     Vector2 spawnPosition = GetRandomSpawnPosition();
-    //     Vector3 spawnPosition3D = new Vector3(spawnPosition.x, spawnPosition.y, 0f);
-    //     GameObject spawnedPlayer = Instantiate(playerPrefab, spawnPosition3D, Quaternion.identity);
-
-    //     if (spawnedPlayer != null)
-    //     {
-    //         PlayerController controller = spawnedPlayer.GetComponent<PlayerController>();
-    //         if (controller != null)
-    //         {
-    //             controller.EnableMovement();
-    //         }
-    //         else
-    //         {
-    //             Debug.LogError("PlayerController component not found on spawned player!");
-    //         }
-    //     }
-
-    //     return (spawnedPlayer, spawnPosition);
-    // }
-
+private IEnumerator EnablePlayerMovementAfterDelay(PlayerController controller)
+{
+    // Wait for one frame to ensure all components are initialized
+    yield return null;
+    
+    Debug.Log("Updating presses per step before enabling movement");
+    controller.UpdatePressesPerStep(); // Ensure pressesPerStep is set correctly
+    
+    Debug.Log("Enabling player movement after initialization");
+    controller.EnableMovement();
+}
 
     /// <summary>
     /// Gets a random spawn position from the grid manager.

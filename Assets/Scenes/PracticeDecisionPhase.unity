@@ -1575,11 +1575,13 @@ MonoBehaviour:
   effortSpriteImage: {fileID: 278677199}
   effortLevelText: {fileID: 1843307044}
   pressesRequiredText: {fileID: 1564659566}
+  timerText: {fileID: 1722307064}
   workButton: {fileID: 2120224740}
   skipButton: {fileID: 143948657}
   workButtonSound: {fileID: 8300000, guid: cf53646b57a144aa98287660968747ed, type: 3}
   skipButtonSound: {fileID: 8300000, guid: 28021a3fda56841ebaefd17b2583ff46, type: 3}
-  timerText: {fileID: 1722307064}
+  normalColor: {r: 0.67, g: 0.87, b: 0.86, a: 1}
+  selectedColor: {r: 0.87, g: 0.86, b: 0.67, a: 1}
 --- !u!4 &1116900033
 Transform:
   m_ObjectHideFlags: 0
@@ -2117,7 +2119,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1564659565
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2619,7 +2621,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1722307064
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2838,7 +2840,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1843307042
 RectTransform:
   m_ObjectHideFlags: 0

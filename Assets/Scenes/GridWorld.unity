@@ -758,7 +758,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 210, y: -50}
+  m_AnchoredPosition: {x: 250, y: -50}
   m_SizeDelta: {x: 400, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1002826858
@@ -1372,15 +1372,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c2a55679c876416cb60c5851778b8b6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxTrialDuration: 10
-  startTrialDelay: 0.5
-  endTrialDelay: 0.5
-  pressesPerEffortLevel: 010000000200000003000000
   experimentManager: {fileID: 3507179296321619295, guid: 082b8600c17df4d43939728b5144dd10,
     type: 3}
   gridWorldManager: {fileID: -8690266444773239620, guid: 96d776e8ee130440d8b6e04107cc91e0,
     type: 3}
   practiceManager: {fileID: 0}
+  maxTrialDuration: 10
+  startTrialDelay: 0.5
+  endTrialDelay: 0.5
+  pressesPerEffortLevel: 010000000200000003000000
 --- !u!1001 &1065090123916010027
 PrefabInstance:
   m_ObjectHideFlags: 0
