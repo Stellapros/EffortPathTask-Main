@@ -8,8 +8,9 @@ public class TitlePage : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI titleText;
     [SerializeField] private TextMeshProUGUI subtitleText;
+    [SerializeField] private TextMeshProUGUI instructionText;
     [SerializeField] private Button startButton;
-    [SerializeField] private string nextSceneName = "BeforeStartingScreen"; // Name of the scene to load
+    [SerializeField] private string nextSceneName = "BeforeStartingScreen";
 
     private void Start()
     {
@@ -23,10 +24,42 @@ public class TitlePage : MonoBehaviour
         // Set up the subtitle
         subtitleText.text = "The Motivation Expedition";
 
-        // Set up the start button
-        startButton.GetComponentInChildren<TextMeshProUGUI>().text = "Start Journey";
-        startButton.onClick.AddListener(StartJourney);
-        StartCoroutine(BounceButton(startButton.gameObject));
+        // Set up the instruction text
+        instructionText.text = "Press any key to begin your journey";
+        StartCoroutine(PulseInstructionText());
+
+        // // Set up the start button
+        // startButton.GetComponentInChildren<TextMeshProUGUI>().text = "Start Journey";
+        // startButton.onClick.AddListener(StartJourney);
+        // StartCoroutine(BounceButton(startButton.gameObject));
+    }
+
+    private IEnumerator PulseInstructionText()
+    {
+        while (true)
+        {
+            // Fade out
+            yield return StartCoroutine(FadeText(1f, 0.3f, 1f));
+            // Fade in
+            yield return StartCoroutine(FadeText(0.3f, 1f, 1f));
+        }
+    }
+
+    private IEnumerator FadeText(float startAlpha, float endAlpha, float duration)
+    {
+        float elapsedTime = 0f;
+        Color startColor = instructionText.color;
+        Color endColor = startColor;
+        startColor.a = startAlpha;
+        endColor.a = endAlpha;
+
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = elapsedTime / duration;
+            instructionText.color = Color.Lerp(startColor, endColor, t);
+            yield return null;
+        }
     }
 
     private IEnumerator BounceButton(GameObject button)
@@ -50,6 +83,15 @@ public class TitlePage : MonoBehaviour
             yield return null;
         }
         button.transform.position = endPos;
+    }
+
+    private void Update()
+    {
+        // Check for any key press
+        if (Input.anyKeyDown)
+        {
+            StartJourney();
+        }
     }
 
     private void StartJourney()

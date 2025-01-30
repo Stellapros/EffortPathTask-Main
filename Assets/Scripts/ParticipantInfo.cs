@@ -11,11 +11,13 @@ public class ParticipantInfo : MonoBehaviour
     [SerializeField] private TMP_Dropdown genderDropdown;
     [SerializeField] private Button submitButton;
     [SerializeField] public AudioClip buttonClickSound;
+    [SerializeField] private TextMeshProUGUI instructionsText; // New field for instructions
     private AudioSource audioSource;
 
     private void Start()
     {
         SetupGenderDropdown();
+        SetupInstructions();
         submitButton.onClick.AddListener(SaveParticipantInfo);
 
         ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
@@ -23,6 +25,18 @@ public class ParticipantInfo : MonoBehaviour
         navigationController.AddElement(ageInput);
         navigationController.AddElement(genderDropdown);
         navigationController.AddElement(submitButton);
+    }
+
+    private void SetupInstructions()
+    {
+        if (instructionsText != null)
+        {
+            instructionsText.text = "Use ↑ ↓ to choose from dropdown; Press Space or Enter to select/confirm\n";
+        }
+        else
+        {
+            Debug.LogWarning("Instructions text component not assigned!");
+        }
     }
 
     private void SetupGenderDropdown()
@@ -52,9 +66,9 @@ public class ParticipantInfo : MonoBehaviour
         }
 
         // Check age range
-        if (age < 10 || age > 100)
+        if (age < 18 || age > 85)
         {
-            Debug.LogError($"Age must be between 10 and 100 (got {age})");
+            Debug.LogError($"Age must be between 18 and 85 (got {age})");
             return;
         }
 

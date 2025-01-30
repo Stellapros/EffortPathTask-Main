@@ -60,7 +60,10 @@ public class CheckManager3 : MonoBehaviour
     public Button buttonC;
     public TextMeshProUGUI attemptText;
     public TextMeshProUGUI debugText;
-
+    public TextMeshProUGUI trialIndexText; // New text component for trial index
+    public TextMeshProUGUI buttonInstructionText; // New text for button instructions
+    [SerializeField] private Color normalColor = new Color(0.67f, 0.87f, 0.86f);
+    [SerializeField] private Color disabledColor = new Color(0.7f, 0.7f, 0.7f);
     private int currentQuestionIndex = 0;
     private int comprehensionScore = 0;
 
@@ -113,14 +116,14 @@ public class CheckManager3 : MonoBehaviour
                              $"Check 2 Score (Max 3): {check2Score}\n" +
                              $"Comprehension Score (Max 4): {currentComprehensionScore}\n" +
                              $"Current Total Score: {totalScore}\n" +
-                             $"Remaining Attempts: {2 - failedAttempts}";
+                             $"Remaining Attempts: {1 - failedAttempts}";
 
             Debug.Log($"Debug Information:\n" +
                              $"Check 1 Score (Max 6): {check1Score}\n" +
                              $"Check 2 Score (Max 3): {check2Score}\n" +
                              $"Comprehension Score (Max 4): {currentComprehensionScore}\n" +
                              $"Current Total Score: {totalScore}\n" +
-                             $"Remaining Attempts: {2 - failedAttempts}");
+                             $"Remaining Attempts: {1 - failedAttempts}");
         }
     }
 
@@ -128,17 +131,26 @@ public class CheckManager3 : MonoBehaviour
     {
         if (attemptText != null)
         {
-            attemptText.text = $"Remaining Attempts: {2 - failedAttempts}";
+            attemptText.text = $"Remaining Attempts: {1 - failedAttempts}";
         }
     }
 
     void DisplayCurrentQuestion()
     {
         Question currentQuestion = questions[currentQuestionIndex];
-        questionText.text = $"Question {currentQuestionIndex + 1}/4:\n{currentQuestion.questionText}";
+        // questionText.text = $"Question {currentQuestionIndex + 1}/4:\n{currentQuestion.questionText}";
+        questionText.text = $"Question {currentQuestionIndex + 1}:\n{currentQuestion.questionText}";
         optionAText.text = $"A. {currentQuestion.optionA}";
         optionBText.text = $"B. {currentQuestion.optionB}";
         optionCText.text = $"C. {currentQuestion.optionC}";
+
+        // Update trial index text
+        if (trialIndexText != null)
+        {
+            trialIndexText.text = $"Question: {currentQuestionIndex + 1}/4";
+        }
+
+        buttonInstructionText.text = "Use ↑ ↓ to choose; Press Space or Enter to select/confirm\n";
     }
 
     void OnAnswerSelected(char answer)
@@ -153,6 +165,18 @@ public class CheckManager3 : MonoBehaviour
         buttonA.interactable = false;
         buttonB.interactable = false;
         buttonC.interactable = false;
+
+        // Change button colors to grey
+        buttonA.GetComponent<Image>().color = disabledColor;
+        buttonB.GetComponent<Image>().color = disabledColor;
+        buttonC.GetComponent<Image>().color = disabledColor;
+
+        var navigationController = GetComponent<ButtonNavigationController>();
+        if (navigationController != null)
+        {
+            navigationController.isProcessing = true;
+            navigationController.DisableAllButtons();
+        }
 
         // Check answer
         if (answer == questions[currentQuestionIndex].correctAnswer)
@@ -175,9 +199,9 @@ public class CheckManager3 : MonoBehaviour
         Invoke("ProcessQuestionProgression", 0.5f);
     }
 
+
     void ProcessQuestionProgression()
     {
-        // Move to next question
         currentQuestionIndex++;
 
         // Re-enable buttons
@@ -185,7 +209,20 @@ public class CheckManager3 : MonoBehaviour
         buttonB.interactable = true;
         buttonC.interactable = true;
 
-        // Reset processing flag
+        // Reset button colors to normal
+        buttonA.GetComponent<Image>().color = normalColor;
+        buttonB.GetComponent<Image>().color = normalColor;
+        buttonC.GetComponent<Image>().color = normalColor;
+
+        // Re-enable navigation but clear default selection
+        var navigationController = GetComponent<ButtonNavigationController>();
+        if (navigationController != null)
+        {
+            navigationController.isProcessing = false;
+            navigationController.EnableAllButtons();
+            navigationController.ResetSelection(); // Clear previous selection
+        }
+
         isProcessing = false;
 
         if (currentQuestionIndex < questions.Length)
