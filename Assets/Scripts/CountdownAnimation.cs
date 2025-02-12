@@ -2,14 +2,20 @@ using UnityEngine;
 using TMPro;
 using DG.Tweening;
 
+/// Source: Produced by Claude
+/// Date: 28/01/2025
+/// For the countdown timer warning
+/// Edited by ML
+
 public class CountdownAnimationManager : MonoBehaviour
 {
     [Header("Warning Animation Settings")]
     [SerializeField] private float pulseDuration = 0.5f;
     [SerializeField] private float maxScale = 1.4f;
-    [SerializeField] private Color warningColor = new Color(1f, 0.3f, 0.3f); // 红色警告色
+    // [SerializeField] private Color warningColor = new Color(1f, 0.3f, 0.3f); // red
+    [SerializeField] private Color warningColor = new Color(1f, 1f, 0f); // bright yellow 
     [SerializeField] private Color normalColor = Color.white;
-    
+
     private TextMeshProUGUI timerText;
     private Vector3 originalScale;
     private Sequence currentAnimation;
@@ -26,7 +32,7 @@ public class CountdownAnimationManager : MonoBehaviour
         StopCurrentAnimation();
 
         currentAnimation = DOTween.Sequence();
-        
+
         // 创建一个循环的动画序列
         currentAnimation
             // 放大和颜色变化
@@ -46,7 +52,7 @@ public class CountdownAnimationManager : MonoBehaviour
         StopCurrentAnimation();
 
         currentAnimation = DOTween.Sequence();
-        
+
         // 为每个数字创建特殊的动画
         currentAnimation
             // 快速放大并变色
@@ -69,7 +75,6 @@ public class CountdownAnimationManager : MonoBehaviour
             currentAnimation = null;
         }
 
-        // 确保文本恢复到初始状态
         if (timerText != null)
         {
             timerText.transform.localScale = originalScale;

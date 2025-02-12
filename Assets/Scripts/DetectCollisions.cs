@@ -8,7 +8,7 @@ public class DetectCollisions : MonoBehaviour
     [SerializeField] private GameController gameController;
     [SerializeField] private GridWorldManager gridWorldManager;
     private PlayerController playerController;
-    private RewardSpawner rewardSpawner; // Add reference to RewardSpawner
+    private RewardSpawner rewardSpawner;
     private bool hasCollectedReward = false;
 
     private void Start()
@@ -35,13 +35,6 @@ public class DetectCollisions : MonoBehaviour
             Debug.LogWarning("GridWorldManager not found in the scene!");
     }
 
-    // private void OnTriggerEnter(Collider other)
-    // {
-    //     if (other.CompareTag("Reward") && other.TryGetComponent<Reward>(out var reward))
-    //     {
-    //         HandleRewardCollision(reward, other.gameObject);
-    //     }
-    // }
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!hasCollectedReward && other.CompareTag("Reward") && other.TryGetComponent<Reward>(out var reward))
@@ -72,21 +65,4 @@ public class DetectCollisions : MonoBehaviour
         }
     }
 
-    public void ResetCollisionState()
-    {
-        hasCollectedReward = false;
-    }
-
-    /// <summary>
-    /// Ends the current trial and updates the game state.
-    /// </summary>
-    /// <param name="rewardCollected">Whether a reward was collected during the trial.</param>
-    private void EndTrial(bool rewardCollected)
-    {
-        // End the trial in GridWorldManager
-        gridWorldManager.EndTrial(rewardCollected);
-
-        // Notify GameController that the trial has ended
-        gameController.EndTrial(rewardCollected);
-    }
 }

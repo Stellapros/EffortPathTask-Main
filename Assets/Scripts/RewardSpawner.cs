@@ -22,7 +22,7 @@ public class RewardSpawner : MonoBehaviour
     // Always use exactly 5 cells distance
     // Player (Start)  1st Cell  2nd Cell  3rd Cell  4th Cell  5th Cell  Reward (End)
     // 0             1         2         3         4         5         6
-    private const int FIXED_DISTANCE = 2; // creating a path that crosses 5 intermediate cells
+    private const int FIXED_DISTANCE = 5; // creating a path that crosses 5 intermediate cells
 
     private void Awake()
     {
@@ -137,8 +137,15 @@ public class RewardSpawner : MonoBehaviour
     /// </summary>
     public GameObject SpawnReward(Vector2 playerPosition, int blockIndex, int trialIndex, int pressesRequired, int scoreValue)
     {
+
+
         // Add more detailed logging
-        Debug.Log($"SpawnReward - Input Player Position: {playerPosition}");
+        Debug.Log($"SpawnReward called with parameters: " +
+                  $"playerPosition={playerPosition}, " +
+                  $"blockIndex={blockIndex}, " +
+                  $"trialIndex={trialIndex}, " +
+                  $"pressesRequired={pressesRequired}, " +
+                  $"scoreValue={scoreValue}");
 
         // Retrieve sprite from PlayerPrefs if not already set
         if (currentRewardSprite == null)
@@ -186,7 +193,11 @@ public class RewardSpawner : MonoBehaviour
 
         // First, try to find the player GameObject
         GameObject player = GameObject.FindGameObjectWithTag("Player");
-
+        if (player == null)
+        {
+            Debug.LogError("No player found in scene!");
+            return null;
+        }
         if (player != null)
         {
             // Convert player's transform position to Vector2
@@ -318,6 +329,25 @@ public class RewardSpawner : MonoBehaviour
     //     return gridManager.GetRandomAvailablePosition();
     // }
 
+    // public Vector2 GetSpawnPositionAtDistance(Vector2 playerPosition, float distance)
+    // {
+    //     if (gridManager == null)
+    //     {
+    //         Debug.LogError("GridManager not set in RewardSpawner!");
+    //         return Vector2.zero;
+    //     }
+
+    //     // Ensure exactly 5 grid cells away
+    //     Vector2 rewardPosition = gridManager.GetPositionAtDistance(playerPosition, FIXED_DISTANCE);
+
+    //     Debug.Log($"Spawn Position Details: " +
+    //               $"Player Position: {playerPosition}, " +
+    //               $"Reward Position: {rewardPosition}, " +
+    //               $"Distance: {Vector2.Distance(playerPosition, rewardPosition)} cells");
+
+    //     return rewardPosition;
+    // }
+
     public Vector2 GetSpawnPositionAtDistance(Vector2 playerPosition, float distance)
     {
         if (gridManager == null)
@@ -326,21 +356,135 @@ public class RewardSpawner : MonoBehaviour
             return Vector2.zero;
         }
 
-        // Ensure exactly 5 grid cells away
-        Vector2 rewardPosition = gridManager.GetPositionAtDistance(playerPosition, FIXED_DISTANCE);
+        // Convert player world position to grid position
+        Vector2Int playerGridPos = gridManager.WorldToGridPosition(playerPosition);
+        Vector2 rewardPosition = Vector2.zero;
 
-        Debug.Log($"Spawn Position Details: " +
-                  $"Player Position: {playerPosition}, " +
-                  $"Reward Position: {rewardPosition}, " +
-                  $"Distance: {Vector2.Distance(playerPosition, rewardPosition)} cells");
+        // Get grid dimensions
+        int gridWidth = gridManager.GridWidth;
+        int gridHeight = gridManager.GridHeight;
+
+        // Create lists for possible horizontal and vertical positions
+        List<Vector2Int> horizontalPositions = new List<Vector2Int>();
+        List<Vector2Int> verticalPositions = new List<Vector2Int>();
+
+        // Check horizontal positions (left and right)
+        Vector2Int rightPos = new Vector2Int(playerGridPos.x + (int)distance, playerGridPos.y);
+        Vector2Int leftPos = new Vector2Int(playerGridPos.x - (int)distance, playerGridPos.y);
+
+        // Add valid horizontal positions
+        if (IsValidGridPosition(rightPos, gridWidth, gridHeight) &&
+            gridManager.IsValidPosition(gridManager.GridToWorldPosition(rightPos)))
+        {
+            horizontalPositions.Add(rightPos);
+        }
+        if (IsValidGridPosition(leftPos, gridWidth, gridHeight) &&
+            gridManager.IsValidPosition(gridManager.GridToWorldPosition(leftPos)))
+        {
+            horizontalPositions.Add(leftPos);
+        }
+
+        // Check vertical positions (up and down)
+        Vector2Int upPos = new Vector2Int(playerGridPos.x, playerGridPos.y + (int)distance);
+        Vector2Int downPos = new Vector2Int(playerGridPos.x, playerGridPos.y - (int)distance);
+
+        // Add valid vertical positions
+        if (IsValidGridPosition(upPos, gridWidth, gridHeight) &&
+            gridManager.IsValidPosition(gridManager.GridToWorldPosition(upPos)))
+        {
+            verticalPositions.Add(upPos);
+        }
+        if (IsValidGridPosition(downPos, gridWidth, gridHeight) &&
+            gridManager.IsValidPosition(gridManager.GridToWorldPosition(downPos)))
+        {
+            verticalPositions.Add(downPos);
+        }
+
+        // First try the preferred orientation if there are valid positions
+        Vector2Int selectedPos;
+        if (horizontalPositions.Count > 0)
+        {
+            selectedPos = horizontalPositions[UnityEngine.Random.Range(0, horizontalPositions.Count)];
+            rewardPosition = gridManager.GridToWorldPosition(selectedPos);
+        }
+        // If no horizontal positions are valid, try vertical
+        else if (verticalPositions.Count > 0)
+        {
+            selectedPos = verticalPositions[UnityEngine.Random.Range(0, verticalPositions.Count)];
+            rewardPosition = gridManager.GridToWorldPosition(selectedPos);
+        }
+        // If no aligned positions are valid, try diagonal positions
+        else
+        {
+            // Try diagonal positions as a last resort
+            List<Vector2Int> diagonalPositions = new List<Vector2Int>
+        {
+            new Vector2Int(playerGridPos.x + (int)(distance * 0.7f), playerGridPos.y + (int)(distance * 0.7f)),
+            new Vector2Int(playerGridPos.x + (int)(distance * 0.7f), playerGridPos.y - (int)(distance * 0.7f)),
+            new Vector2Int(playerGridPos.x - (int)(distance * 0.7f), playerGridPos.y + (int)(distance * 0.7f)),
+            new Vector2Int(playerGridPos.x - (int)(distance * 0.7f), playerGridPos.y - (int)(distance * 0.7f))
+        };
+
+            foreach (var diagPos in diagonalPositions)
+            {
+                if (IsValidGridPosition(diagPos, gridWidth, gridHeight) &&
+                    gridManager.IsValidPosition(gridManager.GridToWorldPosition(diagPos)))
+                {
+                    rewardPosition = gridManager.GridToWorldPosition(diagPos);
+                    Debug.LogWarning("Using diagonal position as fallback for reward spawn");
+                    break;
+                }
+            }
+        }
+
+        // If we still couldn't find a position, log error
+        if (rewardPosition == Vector2.zero)
+        {
+            Debug.LogError("Could not find any valid position for reward spawn!");
+            return playerPosition; // Return player position as absolute fallback
+        }
+
+        // Update player facing direction
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            PlayerController controller = player.GetComponent<PlayerController>();
+            if (controller != null)
+            {
+                Vector2 direction = ((Vector2)rewardPosition - playerPosition).normalized;
+                controller.UpdateFacingDirection(direction);
+            }
+        }
 
         return rewardPosition;
+    }
+
+    private bool IsValidGridPosition(Vector2Int pos, int gridWidth, int gridHeight)
+    {
+        return pos.x >= 0 && pos.x < gridWidth &&
+               pos.y >= 0 && pos.y < gridHeight;
     }
 
     /// <summary>
     /// Clears the current reward from the scene.
     /// </summary>
-    public void ClearReward()
+    // public void ClearReward()
+    // {
+    //     if (currentReward != null)
+    //     {
+    //         Debug.Log("Clearing current reward");
+    //         if (gridManager != null)
+    //         {
+    //             gridManager.ReleasePosition(currentReward.transform.position);
+    //         }
+    //         Destroy(currentReward);
+    //         currentReward = null;
+    //     }
+
+    //     StartCoroutine(FinalRewardCheck());
+    // }
+
+    public IEnumerator ClearRewardCoroutine()
     {
         if (currentReward != null)
         {
@@ -351,9 +495,24 @@ public class RewardSpawner : MonoBehaviour
             }
             Destroy(currentReward);
             currentReward = null;
-        }
 
-        StartCoroutine(FinalRewardCheck());
+            // Wait for the destruction to complete
+            yield return new WaitForEndOfFrame();
+
+            // Double-check for any remaining rewards
+            GameObject[] remainingRewards = GameObject.FindGameObjectsWithTag("Reward");
+            foreach (var reward in remainingRewards)
+            {
+                Destroy(reward);
+            }
+
+            yield return new WaitForEndOfFrame();
+        }
+    }
+
+    public void ClearReward()
+    {
+        StartCoroutine(ClearRewardCoroutine());
     }
 
     /// <summary>
@@ -390,7 +549,6 @@ public class RewardSpawner : MonoBehaviour
     /// <summary>
     /// Spawns the reward synchronized with the player for the current trial.
     /// </summary>
-
     public IEnumerator SpawnPlayerAndRewardSynchronized(
                 Vector2 playerInitialPosition,
             int blockIndex,

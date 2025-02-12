@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
+using System.Collections.Generic;
 
 public class CheckManager3 : MonoBehaviour
 {
@@ -70,9 +71,13 @@ public class CheckManager3 : MonoBehaviour
     // Static variables to track total score and attempts across scene reloads
     private static int failedAttempts = 0;
     private bool isProcessing = false;
-
+    private float questionStartTime;
+    private float phaseStartTime;
     void Start()
     {
+        phaseStartTime = Time.time;
+        questionStartTime = Time.time;
+
         // Add click listeners to buttons
         buttonA.onClick.AddListener(() => OnAnswerSelected('A'));
         buttonB.onClick.AddListener(() => OnAnswerSelected('B'));
@@ -137,6 +142,8 @@ public class CheckManager3 : MonoBehaviour
 
     void DisplayCurrentQuestion()
     {
+        questionStartTime = Time.time;
+
         Question currentQuestion = questions[currentQuestionIndex];
         // questionText.text = $"Question {currentQuestionIndex + 1}/4:\n{currentQuestion.questionText}";
         questionText.text = $"Question {currentQuestionIndex + 1}:\n{currentQuestion.questionText}";
@@ -160,6 +167,47 @@ public class CheckManager3 : MonoBehaviour
 
         // Synchronization flag
         isProcessing = true;
+
+        float responseTime = Time.time - questionStartTime;
+        Question currentQuestion = questions[currentQuestionIndex];
+        bool isCorrect = answer == currentQuestion.correctAnswer;
+
+        // Enhanced logging
+        LogManager.Instance.LogCheckQuestionResponse(
+            trialNumber: currentQuestionIndex,
+            checkPhase: 3,
+            questionNumber: currentQuestionIndex + 1,
+            questionType: "ComprehensionQuiz",
+            questionText: currentQuestion.questionText,
+            selectedAnswer: answer.ToString(),
+            correctAnswer: currentQuestion.correctAnswer.ToString(),
+            isCorrect: isCorrect,
+            responseTime: responseTime,
+            new Dictionary<string, string>
+            {
+            {"QuestionCategory", "Comprehension"},
+            {"TotalQuestions", questions.Length.ToString()},
+            {"CurrentScore", comprehensionScore.ToString()}
+            }
+        );
+
+        if (currentQuestionIndex == questions.Length - 1)
+        {
+            // Log phase completion
+            LogManager.Instance.LogCheckPhaseComplete(
+                checkPhase: 3,
+                totalQuestions: questions.Length,
+                correctAnswers: comprehensionScore,
+                completionTime: Time.time - phaseStartTime,
+                phaseType: "ComprehensionCheck",
+                new Dictionary<string, string>
+                {
+                {"AverageResponseTime", ((Time.time - phaseStartTime) / questions.Length).ToString("F2")},
+                {"CompletionStatus", failedAttempts >= 1 ? "Failed" : "Passed"},
+                {"FailedAttempts", failedAttempts.ToString()}
+                }
+            );
+        }
 
         // Disable all buttons during processing
         buttonA.interactable = false;
@@ -250,8 +298,7 @@ public class CheckManager3 : MonoBehaviour
                                   $"Check 2 (Max 3): {check2Score}\n" +
                                   $"Comprehension (Max 4): {comprehensionScore}\n" +
                                   $"Total Score: {totalScore}";
-
-                Debug.Log($"\n\nFinal Detailed Scores:\n" +
+                Debug.Log($"Final Detailed Scores:\n" +
                                   $"Check 1 (Max 6): {check1Score}\n" +
                                   $"Check 2 (Max 3): {check2Score}\n" +
                                   $"Comprehension (Max 4): {comprehensionScore}\n" +
@@ -263,36 +310,40 @@ public class CheckManager3 : MonoBehaviour
         }
     }
 
-    void CalculateScoreAndProceed(int totalScore)
+    public void CalculateScoreAndProceed(int totalScore)
     {
-        // Log detailed score information
         Debug.Log($"Total Score: {totalScore}, Failed Attempts: {failedAttempts}");
 
-        // Check if total score meets the threshold
         if (totalScore >= 11)
         {
-            // Reset failed attempts on success
             failedAttempts = 0;
+            PlayerPrefs.DeleteKey("PracticeAttempts"); // Clear practice attempts on success
             SceneManager.LoadScene("GetReadyFormal");
         }
         else
         {
             failedAttempts++;
 
-            if (debugText != null)
-            {
-                debugText.text += $"\n\nScore is below 11. Failed Attempts: {failedAttempts}";
-            }
-
             if (failedAttempts >= 2)
             {
-                // Load the EndExperiment scene on second failure
                 SceneManager.LoadScene("EndExperiment");
             }
             else
             {
-                // Go back to practice phase on first failure
-                SceneManager.LoadScene("GetReadyPractice");
+                // Set flags for practice retry
+                PlayerPrefs.SetInt("NeedsPracticeRetry", 1);
+                PlayerPrefs.SetInt("PracticeAttempts", failedAttempts);
+                PlayerPrefs.Save();
+
+                Debug.Log("Failed checks, returning to practice");
+                // Important: Reset practice state before loading the scene
+                var practiceManager = FindAnyObjectByType<PracticeManager>();
+                if (practiceManager != null)
+                {
+                    practiceManager.ResetPracticeForNewAttempt();
+                }
+                // SceneManager.LoadScene("GetReadyPractice");
+                SceneManager.LoadScene("PracticePhase");
             }
         }
     }

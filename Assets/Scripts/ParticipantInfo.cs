@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 using System.Collections.Generic;
+using UnityEngine.EventSystems;
 
 public class ParticipantInfo : MonoBehaviour
 {
@@ -11,8 +12,21 @@ public class ParticipantInfo : MonoBehaviour
     [SerializeField] private TMP_Dropdown genderDropdown;
     [SerializeField] private Button submitButton;
     [SerializeField] public AudioClip buttonClickSound;
-    [SerializeField] private TextMeshProUGUI instructionsText; // New field for instructions
+    [SerializeField] private TextMeshProUGUI instructionsText;
     private AudioSource audioSource;
+    private ButtonNavigationController navigationController;
+
+    private void Awake()
+    {
+        // Show cursor for this form scene
+        ShowCursor();
+    }
+
+    private void OnDestroy()
+    {
+        // Hide cursor when leaving this scene
+        HideCursor();
+    }
 
     private void Start()
     {
@@ -20,22 +34,36 @@ public class ParticipantInfo : MonoBehaviour
         SetupInstructions();
         submitButton.onClick.AddListener(SaveParticipantInfo);
 
-        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+        navigationController = gameObject.AddComponent<ButtonNavigationController>();
+        
+        // Add navigation elements
         navigationController.AddElement(idInput);
         navigationController.AddElement(ageInput);
         navigationController.AddElement(genderDropdown);
         navigationController.AddElement(submitButton);
+
+        // Make sure input fields are interactable
+        idInput.interactable = true;
+        ageInput.interactable = true;
+    }
+
+    private void ShowCursor()
+    {
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+    }
+
+    private void HideCursor()
+    {
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
     private void SetupInstructions()
     {
         if (instructionsText != null)
         {
-            instructionsText.text = "Use ↑ ↓ to choose from dropdown; Press Space or Enter to select/confirm\n";
-        }
-        else
-        {
-            Debug.LogWarning("Instructions text component not assigned!");
+            instructionsText.text = "Click or use arrow keys to navigate. Click or press Space/Enter to select.";
         }
     }
 
@@ -44,6 +72,7 @@ public class ParticipantInfo : MonoBehaviour
         genderDropdown.ClearOptions();
         List<string> options = new List<string> { "Prefer not to say", "Male", "Female", "Other" };
         genderDropdown.AddOptions(options);
+        genderDropdown.interactable = true;
     }
 
     private void SaveParticipantInfo()
@@ -88,6 +117,9 @@ public class ParticipantInfo : MonoBehaviour
         PlayerPrefs.Save();
 
         Debug.Log($"Participant info saved: ID={id}, Age={age}, Gender={gender}");
+
+        // Hide cursor before loading next scene
+        HideCursor();
 
         int nextSceneIndex = SceneManager.GetActiveScene().buildIndex + 1;
         if (SceneManager.sceneCountInBuildSettings > nextSceneIndex)

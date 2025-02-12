@@ -1,20 +1,36 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
 using System.Collections;
 using System.Linq;
-using Unity.Collections;
 
 public class ArrowKeyCounter : MonoBehaviour
 {
+    [Header("UI References")]
     public TextMeshProUGUI counterText;
     public TextMeshProUGUI timerText;
     public TextMeshProUGUI instructionText;
-    public GameObject previousButton; // New reference to the previous button
-    private int counter = 0;
-    private float elapsedTime = 0f;
+    public GameObject previousButton;
+    public Image progressBarFill;
+
+    [Header("Loggings")]
+    private LogManager logManager;
+    // private int calibrationPhaseNumber = 0;
+    private float lastKeyPressTime;
+    private System.Collections.Generic.List<float> interKeyIntervals = new System.Collections.Generic.List<float>();
+
+    [Header("Calibration Settings")]
     private float calibrationTime = 5f;
-    private float breakTime = 5f; // Duration of the break between phases
+    private float breakTime = 5f;
+
+    // For slower filling, use a smaller number (e.g., 0.01f means 100 presses)
+    // For faster filling, use a larger number (e.g., 0.02f means 50 presses)
+    private int targetPresses = 60;  // Target number of presses to fill the bar
+    // private float progressIncrement = 0.01667f;  // 0.0125f means it takes 80 presses to fill (1/0.0125 = 80)
+    private int counter = 0;
+    private float currentProgress = 0f;
+    private float elapsedTime = 0f;
     private bool calibrationInProgress = false;
     private bool isInBreak = false;
     private int currentPhase = 0;
@@ -22,30 +38,29 @@ public class ArrowKeyCounter : MonoBehaviour
     private int[] phaseResults;
     private bool phaseStarted = false;
     private string nextSceneName = "TourGame";
-    private string previousSceneName = "StartScreen"; // New variable for previous scene
+    private string previousSceneName = "StartScreen";
 
-
-    // private string[] instructions = new string[]
-    // {
-    //     "Before you embark on your adventure, we need to calibrate your explorer's energy levels. Press the direction buttons (↑ or ↓ or ← or →) as quickly as you can within 5 seconds. Keep this up - think of it as a warm-up exercise! This calibration ensures the game is perfectly tuned to your personal button-pressing speed and stamina.",
-    //     "Great! Now TRY AND BEAT YOUR SCORE! Start pressing when you are ready.",
-    //     "LAST CHANCE to beat your score!"
-    // };
     private string[] instructions = new string[]
     {
-        "Before you embark on your adventure, let's calibrate your explorer's energy levels! For the next 5 seconds, press the direction buttons (↑, ↓, ←, or →) as quickly as you can. Think of it as your warm-up exercise! This calibration helps us fine-tune the game to match your personal speed and stamina.",
-        "Now, TRY TO BEAT YOUR SCORE! Get ready and start pressing when you’re prepared.",
-        "This is your LAST CHANCE to beat your score! Give it your all, explorer!"
+        "Before you embark on your adventure, let's calibrate your explorer's energy levels! For the next 5 seconds, press the RIGHT direction button (→) using your RIGHT hand as fast as you can. The more you press, the more your progress bar fills. Push it to the max!",
+        "Great effort! But can you go even faster? Now, TRY TO BEAT YOUR SCORE and push the bar even HIGHER! Get ready... and start pressing when you're prepared.",
+        "This is your LAST CHANCE to reach the top! Give it your all. Every tap counts! GO! Explorer!"
     };
 
     private void Start()
     {
+        logManager = LogManager.Instance;
+        if (logManager == null)
+        {
+            Debug.LogError("LogManager not found!");
+        }
+
         phaseResults = new int[totalPhases];
         UpdateCounterText();
         UpdateTimerText();
         ShowCurrentInstruction();
+        ResetProgressBar();
 
-        // Set up the previous button listener
         if (previousButton != null)
         {
             previousButton.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(GoToPreviousScene);
@@ -56,14 +71,14 @@ public class ArrowKeyCounter : MonoBehaviour
     {
         if (isInBreak)
         {
-            // Do nothing during break, wait for coroutine to finish
             return;
         }
 
+        bool keyPressed = Input.GetKeyDown(KeyCode.RightArrow);
+
         if (!calibrationInProgress)
         {
-            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.DownArrow) ||
-                Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow))
+            if (keyPressed)
             {
                 StartCalibration();
             }
@@ -72,8 +87,7 @@ public class ArrowKeyCounter : MonoBehaviour
         {
             if (!phaseStarted)
             {
-                if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.DownArrow) ||
-                    Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow))
+                if (keyPressed)
                 {
                     phaseStarted = true;
                     elapsedTime = 0f;
@@ -85,10 +99,10 @@ public class ArrowKeyCounter : MonoBehaviour
                 elapsedTime += Time.deltaTime;
                 UpdateTimerText();
 
-                if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.DownArrow) ||
-                    Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow))
+                if (keyPressed)
                 {
                     IncrementCounter();
+                    UpdateProgressBar();
                 }
 
                 if (elapsedTime >= calibrationTime)
@@ -99,10 +113,39 @@ public class ArrowKeyCounter : MonoBehaviour
         }
     }
 
-    // New method to handle going back to the previous scene
     private void GoToPreviousScene()
     {
         SceneManager.LoadScene(previousSceneName);
+    }
+
+
+    // private void UpdateProgressBar()
+    // {
+    //     if (progressBarFill != null)
+    //     {
+    //         // Update based on number of presses relative to target
+    //         float progress = (float)counter / targetPresses;
+    //         progressBarFill.fillAmount = Mathf.Clamp01(progress);
+    //     }
+    // }
+
+    private void UpdateProgressBar()
+{
+    if (progressBarFill != null)
+    {
+        currentProgress = (float)counter / targetPresses;
+        progressBarFill.fillAmount = Mathf.Clamp01(currentProgress);
+    }
+}
+
+
+    private void ResetProgressBar()
+    {
+        if (progressBarFill != null)
+        {
+            currentProgress = 0f;
+            progressBarFill.fillAmount = 0f;
+        }
     }
 
     private void StartCalibration()
@@ -111,14 +154,31 @@ public class ArrowKeyCounter : MonoBehaviour
         phaseStarted = false;
         counter = 0;
         elapsedTime = 0f;
+        interKeyIntervals.Clear();
+        lastKeyPressTime = Time.time;
+        ResetProgressBar();
         UpdateCounterText();
         UpdateTimerText();
-        Debug.Log($"Calibration phase {currentPhase + 1} ready to start");
+
+        // Log phase start
+        // logManager?.LogCalibrationPhaseStart(calibrationPhaseNumber + 1, calibrationTime);
+        // Debug.Log($"Calibration phase {currentPhase + 1} ready to start");
     }
 
     private void IncrementCounter()
     {
         counter++;
+        float currentTime = Time.time;
+        float interval = currentTime - lastKeyPressTime;
+        lastKeyPressTime = currentTime;
+
+        if (counter > 1) // Don't log first interval
+        {
+            interKeyIntervals.Add(interval);
+        }
+
+        // Log each keypress
+        // logManager?.LogCalibrationKeyPress(calibrationPhaseNumber + 1, counter, interval, elapsedTime);
         UpdateCounterText();
     }
 
@@ -143,6 +203,10 @@ public class ArrowKeyCounter : MonoBehaviour
         calibrationInProgress = false;
         phaseStarted = false;
         phaseResults[currentPhase] = counter;
+
+        // Log individual phase result
+        logManager?.LogCalibrationPhase(currentPhase + 1, counter, calibrationTime);
+
         Debug.Log($"Calibration phase {currentPhase + 1} ended. Key presses: {counter}");
 
         currentPhase++;
@@ -154,6 +218,27 @@ public class ArrowKeyCounter : MonoBehaviour
         {
             CalculateFinalResultsAndProceed();
         }
+    }
+
+    private void CalculateFinalResultsAndProceed()
+    {
+        int averageKeyPresses = Mathf.RoundToInt((float)phaseResults.Average());
+        PlayerPrefs.SetInt("totalKeyPresses", averageKeyPresses);
+
+        CalculateAndSetPressesPerEffortLevel(averageKeyPresses);
+
+        // Log final calibration results
+        logManager?.LogCalibrationResults(
+            phaseResults[0],
+            phaseResults[1],
+            phaseResults[2],
+            averageKeyPresses,
+            PlayerPrefs.GetInt("PressesPerEffortLevel_0"),
+            PlayerPrefs.GetInt("PressesPerEffortLevel_1"),
+            PlayerPrefs.GetInt("PressesPerEffortLevel_2")
+        );
+
+        SceneManager.LoadScene(nextSceneName);
     }
 
     private IEnumerator BreakBetweenPhases()
@@ -173,27 +258,15 @@ public class ArrowKeyCounter : MonoBehaviour
         ShowCurrentInstruction();
     }
 
-    private void CalculateFinalResultsAndProceed()
-    {
-        int averageKeyPresses = Mathf.RoundToInt((float)phaseResults.Average());
-        PlayerPrefs.SetInt("totalKeyPresses", averageKeyPresses);
-        Debug.Log($"All calibration phases completed. Average key presses: {averageKeyPresses}");
-
-        // Calculate presses per effort level
-        CalculateAndSetPressesPerEffortLevel(averageKeyPresses);
-
-        // Load the next scene or start the experiment
-        SceneManager.LoadScene(nextSceneName);
-    }
 
     private void CalculateAndSetPressesPerEffortLevel(int averageKeyPresses)
     {
         float pressRate = (float)averageKeyPresses / calibrationTime;
         int[] pressesPerEffortLevel = new int[3];
 
-        pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressRate * 0.5f));  // Easy
-        pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressRate * 0.7f));  // Medium
-        pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressRate * 0.9f));  // Hard
+        pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressRate * 0.1f));
+        pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressRate * 0.3f));
+        pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressRate * 0.5f));
 
         for (int i = 1; i < pressesPerEffortLevel.Length; i++)
         {

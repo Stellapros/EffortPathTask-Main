@@ -45,16 +45,6 @@ public class GetReadyEveryTrialManager : MonoBehaviour
         }
     }
 
-    // private void UpdateTrialCounter()
-    // {
-    //     if (trialCounterText != null && experimentManager != null)
-    //     {
-    //         int currentTrialInBlock = experimentManager.GetCurrentTrialInBlock();
-    //         int totalTrialsInBlock = experimentManager.GetTotalTrialsInBlock();
-
-    //         trialCounterText.text = $"Trial {currentTrialInBlock} of {totalTrialsInBlock}";
-    //     }
-    // }
 
     private void UpdateTrialCounter()
     {
@@ -67,14 +57,6 @@ public class GetReadyEveryTrialManager : MonoBehaviour
         }
     }
 
-    // private void UpdateBlockCounter()
-    // {
-    //     if (blockCounterText != null && experimentManager != null)
-    //     {
-    //         int currentBlock = experimentManager.GetCurrentBlockNumber();
-    //         blockCounterText.text = $"Block {currentBlock + 1}";
-    //     }
-    // }
 
     private void UpdateBlockCounter()
     {
@@ -97,42 +79,5 @@ public class GetReadyEveryTrialManager : MonoBehaviour
     {
         // Move to GridWorld scene
         SceneManager.LoadScene("PracticeGridWorld");
-    }
-
-    // Optional: Add a method to manually skip (for testing)
-    public void SkipToNextScene()
-    {
-        MoveToNextScene();
-    }
-
-    // Optional additional debug information
-    // private void LogTrialDetails()
-    // {
-    //     if (experimentManager != null)
-    //     {
-    //         Debug.Log($"Current Block: {experimentManager.GetCurrentBlockNumber()}");
-    //         Debug.Log($"Current Trial in Block: {experimentManager.GetCurrentTrialInBlock()}");
-
-    //         Vector2 playerPos = experimentManager.GetCurrentTrialPlayerPosition();
-    //         Vector2 rewardPos = experimentManager.GetCurrentTrialRewardPosition();
-    //         int rewardValue = experimentManager.GetCurrentTrialRewardValue();
-
-    //         Debug.Log($"Player Position: {playerPos}");
-    //         Debug.Log($"Reward Position: {rewardPos}");
-    //         Debug.Log($"Reward Value: {rewardValue}");
-    //     }
-    // }
-
-    // Optional additional debug information
-    private void LogPracticeTrialDetails()
-    {
-        if (practiceManager != null)
-        {
-            var currentTrial = practiceManager.GetCurrentPracticeTrial();
-
-            Debug.Log($"Current Practice Trial Index: {practiceManager.GetCurrentPracticeTrialIndex()}");
-            Debug.Log($"Current Trial Effort Level: {currentTrial?.effortLevel}");
-            Debug.Log($"Current Trial Reward Value: {currentTrial?.rewardValue}");
-        }
     }
 }

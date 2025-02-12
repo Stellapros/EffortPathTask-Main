@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 /// LightingManager.Instance.SetIntensity(1.5f);
 /// LightingManager.Instance.SetColor(Color.yellow);
 /// </summary>
+
 public class LightingManager : MonoBehaviour
 {
     public static LightingManager Instance { get; private set; }

@@ -15,7 +15,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private AudioClip rewardSound;
     [SerializeField] private AudioClip stepSound; //step sound
     [SerializeField] private GridManager gridManager;
-    [SerializeField] private PracticeManager practiceManager; // Add SerializeField to allow setting in inspector
+    [SerializeField] private PracticeManager practiceManager;
     private Vector2 lastMoveDirection = Vector2.right; // Initialize facing right
     private Vector2 lastNonZeroMovement = Vector2.right; // Initialize facing right
     private SpriteRenderer spriteRenderer;
@@ -30,7 +30,6 @@ public class PlayerController : MonoBehaviour
 
     private Vector2 initialPosition;
     private Vector2 currentPosition;
-
 
     private Rigidbody playerRigidbody;
     private AudioSource audioSource;
@@ -149,45 +148,37 @@ public class PlayerController : MonoBehaviour
         // HandleMovement(); // Add this line to handle movement and facing direction
     }
 
+    // private void HandleInput()
+    // {
+    //     // Only process input if we're not currently moving
+    //     if (isMoving) return;
+
+    //     if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
+    //         IncrementCounter(0, Vector2.up);
+    //     else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+    //         IncrementCounter(1, Vector2.down);
+    //     else if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
+    //         IncrementCounter(2, Vector2.left);
+    //     else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
+    //         IncrementCounter(3, Vector2.right);
+    // }
+
+
+    // Kept only arrow key controls (UpArrow, DownArrow, LeftArrow, RightArrow)
     private void HandleInput()
     {
         // Only process input if we're not currently moving
         if (isMoving) return;
 
-        if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
+        if (Input.GetKeyDown(KeyCode.UpArrow))
             IncrementCounter(0, Vector2.up);
-        else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+        else if (Input.GetKeyDown(KeyCode.DownArrow))
             IncrementCounter(1, Vector2.down);
-        else if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
+        else if (Input.GetKeyDown(KeyCode.LeftArrow))
             IncrementCounter(2, Vector2.left);
-        else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
+        else if (Input.GetKeyDown(KeyCode.RightArrow))
             IncrementCounter(3, Vector2.right);
     }
-
-    // private void IncrementCounter(int index, Vector2 direction)
-    // {
-    //     Debug.Log($"IncrementCounter called - isTrialRunning: {isTrialRunning}, isMoving: {isMoving}, pressesPerStep: {pressesPerStep}");
-
-    //     if (!isTrialRunning) return;  // Additional safety check
-
-    //     directionCounters[index]++;
-    //     totalButtonPresses++;
-
-    //     Debug.Log($"Counter incremented. Total presses: {totalButtonPresses}, Presses needed: {pressesPerStep}");
-
-    //     if (directionCounters[index] >= pressesPerStep && !isMoving)
-    //     {
-    //         isMoving = true;  // Set moving state before attempting move
-    //         AttemptMove(direction);
-    //         ResetCounters();
-    //         isMoving = false;  // Reset moving state after move is complete
-    //     }
-    //         else
-    // {
-    //     // If the number of key presses is insufficient, only update the direction without moving
-    //     UpdateFacingDirection(direction);
-    // }
-    // }
 
     private void IncrementCounter(int index, Vector2 direction)
     {
@@ -311,7 +302,8 @@ public class PlayerController : MonoBehaviour
         Debug.Log($"Player position reset to: {position}, Total button presses reset to 0");
     }
 
-    private void UpdateFacingDirection(Vector2 direction)
+
+    public void UpdateFacingDirection(Vector2 direction)
     {
         // Only update for horizontal movement
         if (direction.x != 0)
@@ -334,21 +326,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // private void UpdateSpriteDirection(Vector2 direction)
-    // {
-    //     // This method can be used to update sprite animations or states based on direction
-    //     // For example:
-    //     // if (direction.y > 0) SetAnimationState("FacingUp");
-    //     // else if (direction.y < 0) SetAnimationState("FacingDown");
-    //     // else if (direction.x != 0) SetAnimationState("FacingSide");
-
-    //     // If you're using a sprite renderer, you might flip the sprite here
-    //     SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
-    //     if (spriteRenderer != null)
-    //     {
-    //         spriteRenderer.flipX = direction.x < 0;
-    //     }
-    // }
     public Vector2 GetInitialPosition() => initialPosition;
     public Vector2 GetCurrentPosition() => currentPosition;
     public int GetButtonPressCount() => totalButtonPresses;
@@ -361,18 +338,6 @@ public class PlayerController : MonoBehaviour
         Debug.Log($"PlayerController: Presses per step set to {pressesPerStep}");
     }
 
-    // public void UpdatePressesPerStep()
-    // {
-    //     if (ExperimentManager.Instance != null)
-    //     {
-    //         pressesPerStep = ExperimentManager.Instance.GetCurrentTrialEV();
-    //         Debug.Log($"PlayerController: Updated presses per step to {pressesPerStep}");
-    //     }
-    //     else
-    //     {
-    //         Debug.LogError("ExperimentManager.Instance is null in PlayerController.UpdatePressesPerStep");
-    //     }
-    // }
     public void UpdatePressesPerStep()
     {
         Debug.Log("UpdatePressesPerStep called with details:");
@@ -419,28 +384,6 @@ public class PlayerController : MonoBehaviour
 
         Debug.Log($"PlayerController: Final presses per step value: {pressesPerStep}");
     }
-
-    // public void EnableMovement()
-    // {
-    //     Debug.Log($"EnableMovement - pressesPerStep: {pressesPerStep}, isMoving: {isMoving}");
-
-    //     isMoving = false; // Ensure we start in a non-moving state
-    //     totalButtonPresses = 0;
-    //     ResetCounters();  // Reset counters when enabling movement
-
-    //     UpdatePressesPerStep();
-
-    //     isTrialRunning = true;
-
-    //     // moveStartTime = 0f;
-    //     moveStartTime = Time.time;  // Initialize moveStartTime when movement is enabled 
-
-    //     if (playerRigidbody != null)
-    //     {
-    //         playerRigidbody.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionZ;
-    //     }
-    //     Debug.Log("Player movement enabled");
-    // }
 
     public void EnableMovement()
     {

@@ -1,11 +1,10 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // Important: Make sure you have TextMeshPro imported
+using TMPro;
 using System;
 
 public class UniversalTimerOverlay : MonoBehaviour
 {
-    // Singleton instance
     public static UniversalTimerOverlay Instance { get; private set; }
 
     // Timer UI elements
@@ -130,28 +129,6 @@ public class UniversalTimerOverlay : MonoBehaviour
             timePlayed.Milliseconds,
             currentTime);
     }
-
-    // private void UpdateTimerDisplay(float time)
-    // {
-    //     // Format time as hours:minutes:seconds with milliseconds
-    //     TimeSpan timePlayed = TimeSpan.FromSeconds(time);
-
-    //     // Get current system time
-    //     DateTime currentTime = DateTime.Now;
-
-    //     // Combine elapsed game time and current system time with more spacing
-    //     timerText.text = string.Format(
-    //         "<b>Game Time:</b>\n" +
-    //         "{0:D2}:{1:D2}:{2:D2}.<size=50%>{3:D3}</size>\n\n" +
-    //         "<b>Current Time:</b>\n" +
-    //         "{4:HH}:{4:mm}:{4:ss}", 
-    //         timePlayed.Hours, 
-    //         timePlayed.Minutes, 
-    //         timePlayed.Seconds,
-    //         timePlayed.Milliseconds,
-    //         currentTime);
-    // }
-
 
     // Additional utility methods
     public void PauseTimer()

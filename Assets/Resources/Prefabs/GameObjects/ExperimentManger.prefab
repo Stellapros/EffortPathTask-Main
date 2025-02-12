@@ -44,12 +44,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c50b06d2d146945deaaedd43f152efe0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  level1Sprite: {fileID: 21300016, guid: c2ce07b4cfe39e340b8238f75e7a21d2, type: 3}
-  level2Sprite: {fileID: 21300008, guid: c2ce07b4cfe39e340b8238f75e7a21d2, type: 3}
-  level3Sprite: {fileID: 21300020, guid: c2ce07b4cfe39e340b8238f75e7a21d2, type: 3}
+  currentBlockType: 0
+  randomizedBlockOrder: 
+  level1Sprite: {fileID: 21300000, guid: 2945052746d394c94ae9e68752db3dcc, type: 2}
+  level2Sprite: {fileID: 21300000, guid: 9536f1e2213a947b1b4491f7992da821, type: 2}
+  level3Sprite: {fileID: 21300000, guid: 4a06e3efba4ee4d0e8e597cf1657bc07, type: 2}
   currentTrialSprite: {fileID: 21300002, guid: c2ce07b4cfe39e340b8238f75e7a21d2, type: 3}
-  block1InstructionScene: Block1_Instructions
-  block2InstructionScene: Block2_Instructions
   decisionPhaseScene: DecisionPhase
   gridWorldScene: GridWorld
   restBreakScene: RestBreak

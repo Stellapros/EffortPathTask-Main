@@ -72,17 +72,17 @@ public class PlayerSpawner : MonoBehaviour
         return spawnedPlayer;
     }
 
-private IEnumerator EnablePlayerMovementAfterDelay(PlayerController controller)
-{
-    // Wait for one frame to ensure all components are initialized
-    yield return null;
-    
-    Debug.Log("Updating presses per step before enabling movement");
-    controller.UpdatePressesPerStep(); // Ensure pressesPerStep is set correctly
-    
-    Debug.Log("Enabling player movement after initialization");
-    controller.EnableMovement();
-}
+    private IEnumerator EnablePlayerMovementAfterDelay(PlayerController controller)
+    {
+        // Wait for one frame to ensure all components are initialized
+        yield return null;
+
+        Debug.Log("Updating presses per step before enabling movement");
+        controller.UpdatePressesPerStep(); // Ensure pressesPerStep is set correctly
+
+        Debug.Log("Enabling player movement after initialization");
+        controller.EnableMovement();
+    }
 
     /// <summary>
     /// Gets a random spawn position from the grid manager.

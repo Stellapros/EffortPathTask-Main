@@ -3,24 +3,20 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
+using System.Collections.Generic;
 
 public class DecisionManager : MonoBehaviour
 {
     [SerializeField] private Image effortSpriteImage;
     [SerializeField] private TextMeshProUGUI effortLevelText;
     [SerializeField] private TextMeshProUGUI pressesRequiredText;
+    [SerializeField] private TextMeshProUGUI instructionText;
     [SerializeField] private Button workButton;
     [SerializeField] private Button skipButton;
     private AudioSource audioSource;
     [SerializeField] private AudioClip workButtonSound;
     [SerializeField] private AudioClip skipButtonSound;
     private ExperimentManager experimentManager;
-    // private PracticeManager practiceManager;
-    // private RewardSpawner rewardSpawner;
-
-    // Practice trial specific variables
-    // private const int TOTAL_PRACTICE_TRIALS = 3;
-    // private bool isPracticeTrial = false;
 
     // Added for keyboard navigation
     private bool? isWorkButtonSelected = true;
@@ -34,7 +30,10 @@ public class DecisionManager : MonoBehaviour
     private bool isTimerRunning;
 
     // Skip delay constant
+    private const int SKIP_SCORE = 0;
+    private const int NO_DECISION_SCORE = 0;
     private const float SKIP_DELAY = 3f;
+    private const float NO_DECISION_PENALTY = 5f;
     private bool isSkipDelayActive = false;
     private float skipDelayTimer;
 
@@ -106,17 +105,34 @@ public class DecisionManager : MonoBehaviour
         }
     }
 
+    // private void HandleInput()
+    // {
+    //     // Handle left arrow key press for Work
+    //     if (Input.GetKeyDown(KeyCode.LeftArrow))
+    //     {
+    //         isWorkButtonSelected = true;
+    //         UpdateButtonSelection();
+    //         OnDecisionMade(true); // Confirm Work decision immediately
+    //     }
+    //     // Handle right arrow key press for Skip
+    //     else if (Input.GetKeyDown(KeyCode.RightArrow))
+    //     {
+    //         isWorkButtonSelected = false;
+    //         UpdateButtonSelection();
+    //         OnDecisionMade(false); // Confirm Skip decision immediately
+    //     }
+    // }
     private void HandleInput()
     {
-        // Handle left arrow key press for Work
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        // Handle 'A' key press for Work
+        if (Input.GetKeyDown(KeyCode.A))
         {
             isWorkButtonSelected = true;
             UpdateButtonSelection();
             OnDecisionMade(true); // Confirm Work decision immediately
         }
-        // Handle right arrow key press for Skip
-        else if (Input.GetKeyDown(KeyCode.RightArrow))
+        // Handle 'D' key press for Skip
+        else if (Input.GetKeyDown(KeyCode.D))
         {
             isWorkButtonSelected = false;
             UpdateButtonSelection();
@@ -124,8 +140,11 @@ public class DecisionManager : MonoBehaviour
         }
     }
 
+
     private void UpdateSkipDelay()
     {
+        if (!isSkipDelayActive) return;
+
         skipDelayTimer -= Time.deltaTime;
 
         if (timerText != null)
@@ -139,13 +158,6 @@ public class DecisionManager : MonoBehaviour
         }
     }
 
-    private void CompleteSkipDelay()
-    {
-        isSkipDelayActive = false;
-
-        // Reset for the next decision
-        SetupDecisionPhase();
-    }
 
     private void UpdateTimer()
     {
@@ -162,14 +174,17 @@ public class DecisionManager : MonoBehaviour
         }
     }
 
+
     private void TimeExpired()
     {
         isTimerRunning = false;
         DisableButtons();
 
-        // Important: Count this as a trial and log it
-        experimentManager.MoveToNextTrial(); // Advance to next trial
-        LogDecision(false, true); // Log as a "no decision" trial
+        // Get current block number
+        int currentBlock = experimentManager.GetCurrentBlockNumber();
+
+        // Log as a "no decision" trial with the updated signature
+        LogDecision(false, true, currentBlock);
 
         // Store current trial data before moving to penalty scene
         if (effortSpriteImage != null && effortSpriteImage.sprite != null)
@@ -177,9 +192,19 @@ public class DecisionManager : MonoBehaviour
             PlayerPrefs.SetString("CurrentRewardSpriteName", effortSpriteImage.sprite.name);
         }
 
+        experimentManager.MoveToNextTrial(); // Advance to next trial
+
+        // Add 0 points for no decision
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.AddScore(NO_DECISION_SCORE, !experimentManager.IsCurrentTrialPractice());
+            Debug.Log("Time expired: No points awarded");
+        }
+
         // Move to penalty scene
         SceneManager.LoadScene("TimePenalty");
     }
+
 
     // New method to update button visual state
     private void UpdateButtonSelection()
@@ -290,6 +315,12 @@ public class DecisionManager : MonoBehaviour
         EnableButtons();
         UpdateEffortSprite();
         StartTimer();
+
+        // Set instruction text
+        if (instructionText != null)
+        {
+            instructionText.text = "A for Work / D for Skip";
+        }
 
         // Reset selection state to ensure no default selection
         isWorkButtonSelected = null;
@@ -405,6 +436,7 @@ public class DecisionManager : MonoBehaviour
     {
         if (!isTimerRunning) return;
 
+        Debug.Log($"OnDecisionMade called - workDecision: {workDecision}");
         isTimerRunning = false;
         DisableButtons();
 
@@ -422,30 +454,37 @@ public class DecisionManager : MonoBehaviour
         if (effortSpriteImage != null && effortSpriteImage.sprite != null)
         {
             PlayerPrefs.SetString("CurrentRewardSpriteName", effortSpriteImage.sprite.name);
-            PlayerPrefs.Save(); // Ensure the value is saved immediately
+            PlayerPrefs.Save();
         }
 
-        // Log the decision
-        LogDecision(workDecision, false);
+        // Get current block number from ExperimentManager
+        int currentBlock = experimentManager.GetCurrentBlockNumber();
+
+        // Log the decision with all required parameters including BlockNumber
+        LogDecision(workDecision, false, currentBlock);
 
         // Handle the decision through ExperimentManager first
         if (experimentManager != null)
         {
+            Debug.Log("Calling OnDecisionMade.HandleDecision");
             experimentManager.HandleDecision(workDecision);
-        }
-        else
-        {
-            Debug.LogError("ExperimentManager is null when handling decision!");
-            return;
         }
 
         if (workDecision)
         {
-            // Add a small delay before scene transition to ensure everything is processed
+            Debug.Log("Work decision - transitioning to GridWorld");
             StartCoroutine(DelayedSceneTransition("GridWorld", 0.1f));
         }
         else
         {
+            Debug.Log("Skip decision - handling skip logic");
+            // Add skip score immediately
+            if (ScoreManager.Instance != null)
+            {
+                Debug.Log($"Adding skip score: {SKIP_SCORE} points");
+                ScoreManager.Instance.AddScore(SKIP_SCORE, !experimentManager.IsCurrentTrialPractice());
+            }
+            // Then activate skip delay
             ActivateSkipDelay();
         }
     }
@@ -473,22 +512,9 @@ public class DecisionManager : MonoBehaviour
         }
     }
 
-    // private void ActivateSkipDelay()
-    // {
-    //     isSkipDelayActive = true;
-    //     skipDelayTimer = SKIP_DELAY;
-
-    //     if (timerText != null)
-    //     {
-    //         timerText.text = $"Waiting: {skipDelayTimer:F0}";
-    //     }
-
-    //     // Ensure the scene stays the same during skip delay
-    //     Invoke("CompleteSkipDelay", SKIP_DELAY);
-    // }
-
     private void ActivateSkipDelay()
     {
+        Debug.Log("ActivateSkipDelay called");
         isSkipDelayActive = true;
         skipDelayTimer = SKIP_DELAY;
 
@@ -498,19 +524,55 @@ public class DecisionManager : MonoBehaviour
         }
     }
 
-    // Modify LogDecision to include more detailed practice trial logging
-    private void LogDecision(bool workDecision, bool isTimeExpired)
+    private void CompleteSkipDelay()
     {
-        string decision = isTimeExpired
-            ? "No Decision (Time Expired)"
-            : (workDecision ? "Work" : "Skip");
+        Debug.Log("CompleteSkipDelay called");
+        isSkipDelayActive = false;
 
-        string logEntry = $"{System.DateTime.Now}," +
-            $"Trial:{experimentManager.GetCurrentTrialIndex()}," +
-            $"Decision:{decision}," +
-            $"Block:{experimentManager.GetCurrentBlockNumber()}";
+        if (experimentManager != null)
+        {
+            experimentManager.MoveToNextTrial();
+        }
 
-        System.IO.File.AppendAllText("decision_log.csv", logEntry + System.Environment.NewLine);
-        Debug.Log(logEntry);
+        // Reset for the next decision
+        SetupDecisionPhase();
+    }
+
+    // Modify LogDecision to include more detailed practice trial logging
+    private void LogDecision(bool workDecision, bool isTimeExpired, int blockNumber)
+    {
+        if (experimentManager == null) return;
+
+        string decisionType = isTimeExpired ? "NoDecision" : (workDecision ? "Work" : "Skip");
+        float decisionTime = decisionTimeLimit - currentTimer;
+        int currentTrial = experimentManager.GetCurrentTrialIndex();
+
+        // Log to LogManager
+        LogManager.Instance?.LogDecisionPhaseStart(currentTrial);
+
+        var parameters = new Dictionary<string, string>
+    {
+        {"TrialNumber", currentTrial.ToString()},
+        {"BlockNumber", blockNumber.ToString()},  // Now included in all decision logs
+        {"DecisionType", decisionType},
+        {"DecisionTime", decisionTime.ToString("F3")},
+        {"EffortLevel", experimentManager.GetCurrentTrialEffortLevel().ToString()},
+        {"RequiredPresses", experimentManager.GetCurrentTrialEV().ToString()}
+    };
+
+        if (isTimeExpired)
+        {
+            LogManager.Instance?.LogEvent("Decision", parameters);
+            LogManager.Instance?.LogPenaltyApplied(currentTrial, "NoDecision", NO_DECISION_PENALTY);
+        }
+        else if (!workDecision)
+        {
+            LogManager.Instance?.LogSkipDecision(currentTrial, decisionTime);
+            LogManager.Instance?.LogPenaltyApplied(currentTrial, "Skip", SKIP_DELAY);
+        }
+        else
+        {
+            LogManager.Instance?.LogWorkDecision(currentTrial, decisionTime);
+        }
     }
 }

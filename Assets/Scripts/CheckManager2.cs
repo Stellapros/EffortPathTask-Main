@@ -22,6 +22,10 @@ public class CheckManager2 : MonoBehaviour
     [SerializeField] private TextMeshProUGUI trialIndexText;
     [SerializeField] private TextMeshProUGUI buttonInstructionText;
 
+    // Time tracking variables
+    private float questionStartTime;
+    private float phaseStartTime;
+
     private GameObject currentFruit;
     private readonly Dictionary<string, Dictionary<int, int>> choiceRecords = new Dictionary<string, Dictionary<int, int>>();
     private readonly List<GameObject> fruitPrefabs = new List<GameObject>();
@@ -40,6 +44,9 @@ public class CheckManager2 : MonoBehaviour
 
     private void Start()
     {
+        // Initialize phase start time when the check phase begins
+        phaseStartTime = Time.time;
+
         InitializeChoiceRecords();
         SetupButtons();
         fruitPrefabs.AddRange(new[] { applePrefab, grapesPrefab, watermelonPrefab });
@@ -75,11 +82,23 @@ public class CheckManager2 : MonoBehaviour
 
     private void SetupButtons()
     {
-        choice50Button.onClick.AddListener(() => RecordChoice(50));
-        choice70Button.onClick.AddListener(() => RecordChoice(70));
-        choice90Button.onClick.AddListener(() => RecordChoice(90));
+        Debug.Log("Setting up choice buttons");
+        choice50Button.onClick.AddListener(() =>
+        {
+            Debug.Log("50 button clicked");
+            RecordChoice(50);
+        });
+        choice70Button.onClick.AddListener(() =>
+        {
+            Debug.Log("70 button clicked");
+            RecordChoice(70);
+        });
+        choice90Button.onClick.AddListener(() =>
+        {
+            Debug.Log("90 button clicked");
+            RecordChoice(90);
+        });
     }
-
     private void DisableAllButtons()
     {
         choice50Button.interactable = false;
@@ -111,6 +130,9 @@ public class CheckManager2 : MonoBehaviour
             Destroy(currentFruit.gameObject);
         }
 
+        // Set question start time when spawning a new fruit
+        questionStartTime = Time.time;
+
         int randomIndex = Random.Range(0, fruitPrefabs.Count);
         GameObject selectedFruit = fruitPrefabs[randomIndex];
         currentFruit = Instantiate(selectedFruit, Vector3.zero, Quaternion.identity);
@@ -123,8 +145,8 @@ public class CheckManager2 : MonoBehaviour
 
         string fruitName = selectedFruit.name.Replace("(Clone)", "").Replace("Reward_", "");
         questionText.text = $"How often did you see this {fruitName}?";
-        buttonInstructionText.text = "Use ← → to choose; Press Space or Enter to confirm";
-        
+        buttonInstructionText.text = "Use ←/→ to choose; Press Space or Enter to confirm";
+
         fruitPrefabs.RemoveAt(randomIndex);
         trialCount++;
 
@@ -151,51 +173,81 @@ public class CheckManager2 : MonoBehaviour
         if (currentFruit == null || isProcessing) return;
         isProcessing = true;
 
-        // Disable all buttons and update their visual state
         DisableAllButtons();
 
-        // Disable navigation controller
-        var navigationController = GetComponent<ButtonNavigationController>();
-        if (navigationController != null)
-        {
-            navigationController.isProcessing = true;
-            navigationController.DisableAllButtons();
-        }
-
         string currentFruitName = currentFruit.name.Replace("(Clone)", "").Replace("Reward_", "");
+        float responseTime = Time.time - questionStartTime;
 
-        if (choiceRecords.ContainsKey("Reward_" + currentFruitName))
+        bool isCorrect = false;
+        string correctThreshold = "";
+
+        switch (currentFruitName)
         {
-            choiceRecords["Reward_" + currentFruitName][threshold]++;
-            LogManager.Instance.LogCheckQuestionResponse(currentTrialIndex + 1, 1, "TODO", "TODO", threshold.ToString(), true);
-
-            bool correctChoice = false;
-            if (currentFruitName == "Apple" && threshold == 40)
-                correctChoice = true;
-            else if (currentFruitName == "Grapes" && threshold == 30)
-                correctChoice = true;
-            else if (currentFruitName == "Watermelon" && threshold == 25)
-                correctChoice = true;
-
-            if (correctChoice)
-            {
-                correctChoiceScore++;
-                debugText.text += $"\nCorrect choice: +1 (Total: {correctChoiceScore})";
-            }
-            else
-            {
-                debugText.text += $"\nIncorrect choice (Total: {correctChoiceScore})";
-            }
-
-            PlayerPrefs.SetInt("Check2Score", Mathf.Min(correctChoiceScore, 3));
-            PlayerPrefs.Save();
-
-            Invoke("ProcessNextTrial", 0.5f);
+            case "Apple":
+                isCorrect = threshold == 90;
+                correctThreshold = "90";
+                break;
+            case "Grapes":
+                isCorrect = threshold == 70;
+                correctThreshold = "70";
+                break;
+            case "Watermelon":
+                isCorrect = threshold == 50;
+                correctThreshold = "50";
+                break;
         }
+
+        // Log the question response with additional context
+        LogManager.Instance.LogCheckQuestionResponse(
+            trialNumber: currentTrialIndex,
+            checkPhase: 2,
+            questionNumber: currentTrialIndex + 1,
+            questionType: "FruitFrequency",
+            questionText: questionText.text,
+            selectedAnswer: threshold.ToString(),
+            correctAnswer: correctThreshold,
+            isCorrect: isCorrect,
+            responseTime: responseTime,
+            new Dictionary<string, string>
+            {
+            {"FruitType", currentFruitName},
+            {"TotalTrials", totalTrials.ToString()},
+            {"CurrentScore", correctChoiceScore.ToString()}
+            }
+        );
+
+        if (isCorrect)
+        {
+            correctChoiceScore++;
+        }
+
+        PlayerPrefs.SetInt("Check2Score", Mathf.Min(correctChoiceScore, 3));
+        PlayerPrefs.Save();
+
+        // If this was the last question, log the phase completion
+        if (currentTrialIndex == totalTrials - 1)
+        {
+            float averageResponseTime = (Time.time - phaseStartTime) / totalTrials;
+            LogManager.Instance.LogCheckPhaseComplete(
+                checkPhase: 2,
+                totalQuestions: totalTrials,
+                correctAnswers: correctChoiceScore,
+                completionTime: Time.time - phaseStartTime,
+                phaseType: "FrequencyCheck",
+                new Dictionary<string, string>
+                {
+                {"AverageResponseTime", averageResponseTime.ToString("F2")},
+                {"CompletionStatus", "Finished"}
+                }
+            );
+        }
+
+        Invoke("ProcessNextTrial", 0.5f);
     }
 
     private void ProcessNextTrial()
     {
+        Debug.Log("ProcessNextTrial called. Current trial index: " + currentTrialIndex);
         currentTrialIndex++;
         isProcessing = false;
 
@@ -209,10 +261,14 @@ public class CheckManager2 : MonoBehaviour
 
         if (currentTrialIndex < totalTrials)
         {
+            Debug.Log("Starting next trial");
             SpawnRandomFruit();
         }
         else
         {
+            Debug.Log("All trials completed, loading next scene");
+            // Ensure clean transition
+            // StopAllCoroutines();
             LogManager.Instance.LogExperimentEnd();
             LoadNextScene();
         }
@@ -245,6 +301,7 @@ public class CheckManager2 : MonoBehaviour
 
     private void LoadNextScene()
     {
+        Debug.Log("LoadNextScene called. Loading scene: Check3_ComprehensionQuiz");
         UnityEngine.SceneManagement.SceneManager.LoadScene("Check3_ComprehensionQuiz");
     }
 

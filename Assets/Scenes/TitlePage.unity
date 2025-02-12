@@ -866,7 +866,7 @@ MonoBehaviour:
   subtitleText: {fileID: 597628993}
   instructionText: {fileID: 1836331178}
   startButton: {fileID: 1960094768}
-  nextSceneName: Check1_Preference
+  nextSceneName: BeforeStartingScreen
 --- !u!1 &1245946311
 GameObject:
   m_ObjectHideFlags: 0

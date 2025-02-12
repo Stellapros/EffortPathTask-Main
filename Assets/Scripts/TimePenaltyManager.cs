@@ -23,7 +23,7 @@ public class TimePenaltyManager : MonoBehaviour
             enabled = false;
             return;
         }
-        
+
         // Ensure we only initialize once
         if (!isInitialized)
         {
@@ -46,7 +46,7 @@ public class TimePenaltyManager : MonoBehaviour
         if (currentPenaltyTime > 0)
         {
             currentPenaltyTime -= Time.deltaTime;
-            
+
             if (Time.time - lastUpdateTime >= TEXT_UPDATE_INTERVAL)
             {
                 UpdatePenaltyText();
@@ -84,7 +84,7 @@ public class TimePenaltyManager : MonoBehaviour
 
         string penaltyReason = penaltyDuration > 3f ? "No decision made!" : "Trial skipped!";
         string newMessage = $"{penaltyReason}\nWait {Mathf.Max(0, currentPenaltyTime):F1} seconds before the next chance...";
-        
+
         if (newMessage != cachedPenaltyMessage)
         {
             cachedPenaltyMessage = newMessage;

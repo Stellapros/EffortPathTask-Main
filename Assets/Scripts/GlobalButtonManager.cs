@@ -31,6 +31,19 @@ public class ButtonNavigationController : MonoBehaviour
 
     private void Start()
     {
+        // Ensure EventSystem exists
+        if (EventSystem.current == null)
+        {
+            var eventSystem = FindAnyObjectByType<EventSystem>();
+            if (eventSystem == null)
+            {
+                Debug.LogWarning("No EventSystem found in scene. Creating one...");
+                var eventSystemGO = new GameObject("EventSystem");
+                eventSystem = eventSystemGO.AddComponent<EventSystem>();
+                eventSystemGO.AddComponent<StandaloneInputModule>();
+            }
+        }
+
         audioSource = gameObject.AddComponent<AudioSource>();
         CleanupNullElements();
         InitializeElementImages();
@@ -90,6 +103,9 @@ public class ButtonNavigationController : MonoBehaviour
             if (navigationElements.Count == 0) return;
         }
 
+        // Handle mouse input
+        HandleMouseInput();
+
         if (!isDropdownExpanded)
         {
             HandleMainNavigation();
@@ -100,6 +116,98 @@ public class ButtonNavigationController : MonoBehaviour
         }
 
         UpdateVisualFeedback();
+    }
+
+    private void HandleMouseInput()
+    {
+        if (Input.GetMouseButtonDown(0)) // Left click
+        {
+            PointerEventData eventData = new PointerEventData(EventSystem.current);
+            eventData.position = Input.mousePosition;
+            List<RaycastResult> results = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(eventData, results);
+
+            foreach (RaycastResult result in results)
+            {
+                // Handle TMP_InputField clicks
+                TMP_InputField inputField = result.gameObject.GetComponent<TMP_InputField>();
+                if (inputField != null && navigationElements.Contains(inputField))
+                {
+                    inputField.Select();
+                    inputField.ActivateInputField();
+                    SetCurrentElement(inputField);
+                    return;
+                }
+
+                // Handle dropdown clicks
+                TMP_Dropdown dropdown = result.gameObject.GetComponent<TMP_Dropdown>();
+                if (dropdown != null && navigationElements.Contains(dropdown))
+                {
+                    HandleDropdownActivation(dropdown);
+                    SetCurrentElement(dropdown);
+                    return;
+                }
+
+                // Handle dropdown options
+                if (isDropdownExpanded && activeDropdown != null)
+                {
+                    var itemText = result.gameObject.GetComponent<TMP_Text>();
+                    if (itemText != null)
+                    {
+                        string clickedText = itemText.text;
+                        int optionIndex = activeDropdown.options.FindIndex(option => option.text == clickedText);
+                        if (optionIndex != -1)
+                        {
+                            activeDropdown.value = optionIndex;
+                            ExitDropdownMode(true);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void SetCurrentElement(Component element)
+    {
+        currentSelectedElement = element;
+        currentElementIndex = navigationElements.IndexOf(element);
+        EventSystem.current.SetSelectedGameObject(element.gameObject);
+    }
+
+    private void HandleDropdownActivation(TMP_Dropdown dropdown)
+    {
+        if (!isDropdownExpanded)
+        {
+            isDropdownExpanded = true;
+            activeDropdown = dropdown;
+            savedDropdownValue = dropdown.value;
+            dropdown.Show();
+        }
+    }
+
+    private GameObject GetClickedObject()
+    {
+        PointerEventData eventData = new PointerEventData(EventSystem.current);
+        eventData.position = Input.mousePosition;
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, results);
+
+        return results.Count > 0 ? results[0].gameObject : null;
+    }
+
+    private TMP_Dropdown.OptionData GetClickedDropdownOption(GameObject clickedObject)
+    {
+        TMP_Dropdown.OptionData clickedOption = null;
+        var itemText = clickedObject.GetComponent<TMP_Text>();
+
+        if (itemText != null && activeDropdown != null)
+        {
+            clickedOption = activeDropdown.options.FirstOrDefault(option =>
+                option.text == itemText.text);
+        }
+
+        return clickedOption;
     }
 
     private void HandleMainNavigation()
@@ -115,40 +223,6 @@ public class ButtonNavigationController : MonoBehaviour
 
         HandleSelectionInput();
     }
-
-    // private void HandleTwoButtonNavigation()
-    // {
-    //     if (Input.GetKeyDown(KeyCode.LeftArrow))
-    //     {
-    //         UpdateSelectedElement(0);
-    //     }
-    //     else if (Input.GetKeyDown(KeyCode.RightArrow))
-    //     {
-    //         UpdateSelectedElement(1);
-    //     }
-    // }
-
-    // private void HandleTwoButtonNavigation()
-    // {
-    //     if (Input.GetKeyDown(KeyCode.LeftArrow))
-    //     {
-    //         UpdateSelectedElement(0);
-    //         // Immediately trigger the button press
-    //         if (navigationElements[0] is Button button)
-    //         {
-    //             HandleButtonPress(button);
-    //         }
-    //     }
-    //     else if (Input.GetKeyDown(KeyCode.RightArrow))
-    //     {
-    //         UpdateSelectedElement(1);
-    //         // Immediately trigger the button press
-    //         if (navigationElements[1] is Button button)
-    //         {
-    //             HandleButtonPress(button);
-    //         }
-    //     }
-    // }
 
     private void HandleTwoButtonNavigation()
     {
@@ -170,52 +244,6 @@ public class ButtonNavigationController : MonoBehaviour
         }
     }
 
-    // private void HandleTwoButtonNavigation()
-    // {
-    //     if (Input.GetKeyDown(KeyCode.LeftArrow))
-    //     {
-    //         UpdateSelectedElement(0);
-    //         // Immediately disable both buttons and set to grey
-    //         foreach (var navElement in navigationElements)
-    //         {
-    //             if (navElement is Button currentButton)
-    //             {
-    //                 currentButton.interactable = false;
-    //                 if (elementImages.TryGetValue(navElement, out Image image))
-    //                 {
-    //                     image.color = disabledColor;
-    //                 }
-    //             }
-    //         }
-    //         // Trigger the button press
-    //         if (navigationElements[0] is Button targetButton)
-    //         {
-    //             HandleButtonPress(targetButton);
-    //         }
-    //     }
-    //     else if (Input.GetKeyDown(KeyCode.RightArrow))
-    //     {
-    //         UpdateSelectedElement(1);
-    //         // Immediately disable both buttons and set to grey
-    //         foreach (var navElement in navigationElements)
-    //         {
-    //             if (navElement is Button currentButton)
-    //             {
-    //                 currentButton.interactable = false;
-    //                 if (elementImages.TryGetValue(navElement, out Image image))
-    //                 {
-    //                     image.color = disabledColor;
-    //                 }
-    //             }
-    //         }
-    //         // Trigger the button press
-    //         if (navigationElements[1] is Button targetButton)
-    //         {
-    //             HandleButtonPress(targetButton);
-    //         }
-    //     }
-    // }
-
     private void HandleStandardNavigation()
     {
         if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
@@ -228,7 +256,7 @@ public class ButtonNavigationController : MonoBehaviour
         }
     }
 
-    private void UpdateSelectedElement(int newIndex)
+    public void UpdateSelectedElement(int newIndex)
     {
         if (newIndex >= 0 && newIndex < navigationElements.Count)
         {
@@ -272,6 +300,7 @@ public class ButtonNavigationController : MonoBehaviour
         isProcessing = true;
         button.onClick.Invoke();
     }
+
     public void DisableAllButtons(int selectedIndex = -1)
     {
         isProcessing = true;
@@ -325,9 +354,17 @@ public class ButtonNavigationController : MonoBehaviour
     {
         currentElementIndex = -1;
         currentSelectedElement = null;
-        EventSystem.current.SetSelectedGameObject(null);
-    }
 
+        // Add null check for EventSystem
+        if (EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+        }
+        else
+        {
+            Debug.LogWarning("EventSystem.current is null in ClearSelection()");
+        }
+    }
     private void ResetButtonColors()
     {
         foreach (var elementPair in elementImages)
@@ -340,18 +377,6 @@ public class ButtonNavigationController : MonoBehaviour
         }
     }
 
-    private IEnumerator ResetButtonState(Button button)
-    {
-        yield return new WaitForSeconds(0.2f);
-        if (button != null && !button.Equals(null))
-        {
-            button.interactable = true;
-        }
-        isProcessing = false;
-        ResetSelection();
-    }
-
-
     // Public methods for managing navigation elements
     public void AddElement(Component element)
     {
@@ -362,19 +387,6 @@ public class ButtonNavigationController : MonoBehaviour
             {
                 elementImages[element] = image;
                 image.color = normalColor;
-            }
-        }
-    }
-
-    public void RemoveElement(Component element)
-    {
-        if (element != null)
-        {
-            navigationElements.Remove(element);
-            elementImages.Remove(element);
-            if (currentSelectedElement == element)
-            {
-                ResetSelection();
             }
         }
     }
@@ -400,13 +412,6 @@ public class ButtonNavigationController : MonoBehaviour
         isProcessing = false;
     }
 
-    private void HandleDropdownActivation(TMP_Dropdown dropdown)
-    {
-        isDropdownExpanded = true;
-        activeDropdown = dropdown;
-        savedDropdownValue = dropdown.value;
-        dropdown.Show();
-    }
 
     private void HandleDropdownNavigation()
     {

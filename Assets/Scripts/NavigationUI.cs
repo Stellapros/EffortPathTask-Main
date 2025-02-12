@@ -4,7 +4,6 @@ using UnityEngine.SceneManagement;
 
 public class ExperimentNavigationController : MonoBehaviour
 {
-    // Singleton instance
     public static ExperimentNavigationController Instance { get; private set; }
 
     // Current active scene type

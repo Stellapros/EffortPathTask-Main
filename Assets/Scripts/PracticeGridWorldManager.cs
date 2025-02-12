@@ -23,7 +23,6 @@ public class PracticeGridWorldManager : MonoBehaviour
     [SerializeField] private PlayerController playerController;
     [SerializeField] private RewardSpawner rewardSpawner;
     [SerializeField] private GridManager gridManager;
-    [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private CountdownTimer countdownTimer;
     [SerializeField] private LogManager logManager;
     [SerializeField] private ExperimentManager experimentManager;
@@ -86,33 +85,6 @@ public class PracticeGridWorldManager : MonoBehaviour
         Debug.Log($"Reward Spawner initialized: {rewardSpawner != null}");
     }
 
-    // private void SetupPracticeGridWorld()
-    // {
-    //     Debug.Log("SetupPracticeGridWorld called");
-
-    //     if (!practiceManager.IsPracticeTrial())
-    //     {
-    //         Debug.LogError("Attempting to load GridWorld without a practice trial flag!");
-    //         SceneManager.LoadScene("GetReadyCheck");
-    //         return;
-    //     }
-
-    //     // Log current trial details
-    //     int currentTrialIndex = practiceManager.GetCurrentPracticeTrialIndex();
-    //     PracticeManager.PracticeTrial currentTrial = practiceManager.GetCurrentPracticeTrial();
-
-    //     Debug.Log($"Current Practice Trial Index: {currentTrialIndex}");
-
-    //     if (currentTrial != null)
-    //     {
-    //         Debug.Log($"Current Trial Details:");
-    //         Debug.Log($"  Effort Level: {currentTrial.effortLevel}");
-    //         Debug.Log($"  Reward Value: {currentTrial.rewardValue}");
-    //     }
-
-    //     SetRewardSpriteFromDecisionPhase();
-    // }
-
     private void SetupTrialGridWorld()
     {
         // Get the sprite from the current practice trial
@@ -173,45 +145,6 @@ public class PracticeGridWorldManager : MonoBehaviour
         EndTrial(false);
     }
 
-
-    //     public void EndPracticeGridWorldTrial(bool rewardCollected)
-    //     {
-    //         Debug.Log($"EndPracticeGridWorldTrial called:");
-    //         Debug.Log($"Reward Collected: {rewardCollected}");
-
-    //         PlayerPrefs.SetInt("IsPracticeTrial", 1);
-
-    //         // Stop the countdown timer and unsubscribe
-    //         if (countdownTimer != null)
-    //         {
-    //             countdownTimer.StopTimer();
-    //             countdownTimer.OnTimerExpired -= HandleTimerExpired;
-    //         }
-
-    //         // Always handle trial completion and progress to next trial when in GridWorld
-    //         OnTrialEnded?.Invoke(rewardCollected);
-    //         gameController.EndTrial(rewardCollected);
-
-    //         // Always pass true when from GridWorld
-    //         // practiceManager.HandlePracticeTrialCompletion(fromGridWorld: true);
-
-    //         if (practiceManager != null)
-    //         {
-    //             Debug.Log("Calling HandlePracticeTrialCompletion on PracticeManager");
-    //             practiceManager.HandleGridWorldOutcome(true);
-    //         }
-    //         else
-    //         {
-    //             Debug.LogError("Practice Manager is NULL when ending GridWorld Trial!");
-    //         }
-
-    //         // Disable player movement
-    //         if (playerController != null)
-    //         {
-    //             playerController.DisableMovement();
-    //         }
-    //     }
-
     public void EndTrial(bool rewardCollected)
     {
         Debug.Log($"Practice GridWorld EndTrial called. Reward Collected: {rewardCollected}");
@@ -262,6 +195,12 @@ public class PracticeGridWorldManager : MonoBehaviour
         else
         {
             Debug.LogError("PracticeManager is null when ending Practice GridWorld Trial!");
+        }
+
+        // Ensure score persists
+        if (PracticeScoreManager.Instance != null)
+        {
+            Debug.Log($"Current Practice Score at EndTrial: {PracticeScoreManager.Instance.GetCurrentScore()}");
         }
     }
 }

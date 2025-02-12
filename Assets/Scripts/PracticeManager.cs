@@ -19,6 +19,8 @@ public class PracticeManager : MonoBehaviour
     [Header("UI Elements")]
     [SerializeField] private Button startPracticeButton;
     [SerializeField] private Button skipButton;
+    [SerializeField] private TextMeshProUGUI instructionText;
+    private bool buttonsInitialized = false;
 
     [Header("Sprite Configuration")]
     [SerializeField] private Sprite appleSprite; // Sprite for effort level 1
@@ -62,36 +64,190 @@ public class PracticeManager : MonoBehaviour
     private int currentPracticeTrialIndex = -1;
     // private PracticeTrialState currentTrialState = PracticeTrialState.DecisionPhase;
 
+    // Track practice attempts
+    private int practiceAttempts = 0;
+    private const int MaxPracticeAttempts = 2;
+
     public event Action OnPracticeCompleted;
 
     private void Awake()
     {
-        // Ensure sprites are assigned
-        ValidateSprites();
-
-        // Prepare trial difficulties with specific sprites
-        PrepareDifficulties();
-
-        // Rest of the singleton and initialization logic remains the same
         if (Instance == null)
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
-            // Always initialize button listeners
-            InitializeButtonListeners();
+            // Check if we're returning from a failed check
+            bool needsRetry = PlayerPrefs.GetInt("NeedsPracticeRetry", 0) == 1;
+            if (needsRetry)
+            {
+                Debug.Log("Detected failed check, preparing for retry");
+                practiceAttempts = PlayerPrefs.GetInt("PracticeAttempts", 0);
+                // Reset the retry flag immediately
+                PlayerPrefs.SetInt("NeedsPracticeRetry", 0);
+                PlayerPrefs.Save();
+            }
+            else
+            {
+                // Fresh start
+                practiceAttempts = 0;
+                PlayerPrefs.SetInt("PracticeAttempts", 0);
+                PlayerPrefs.Save();
+            }
+
+            ValidateSprites();
+            PrepareDifficulties();
             GeneratePracticeTrials();
 
-            ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-            navigationController.AddElement(startPracticeButton);
-            navigationController.AddElement(skipButton);
+            // Subscribe to scene loading event
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
         else
         {
-            // If another instance exists, reinitialize buttons to ensure functionality
-            InitializeButtonListeners();
             Destroy(gameObject);
         }
+    }
+
+        private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space) && buttonsInitialized)
+        {
+            StartPracticeMode();
+        }
+    }
+    
+    private void OnDisable()
+    {
+        // Remove scene loading event listener
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        
+        // Clean up button listeners and clear references
+        CleanupButtonListeners();
+    }
+
+    private void CleanupButtonListeners()
+    {
+        if (startPracticeButton != null)
+        {
+            startPracticeButton.onClick.RemoveAllListeners();
+            startPracticeButton = null;
+        }
+        if (skipButton != null)
+        {
+            skipButton.onClick.RemoveAllListeners();
+            skipButton = null;
+        }
+        
+        // Reset initialization flags
+        buttonsInitialized = false;
+
+        // Remove any existing navigation controller
+        ButtonNavigationController navigationController = GetComponent<ButtonNavigationController>();
+        if (navigationController != null)
+        {
+            navigationController.ClearElements();
+            Destroy(navigationController);
+        }
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log($"Scene loaded: {scene.name}");
+
+        // Only initialize buttons if we're in the PracticePhase scene
+        if (scene.name == "PracticePhase")
+        {
+            Debug.Log("PracticePhase scene loaded - Initializing buttons");
+            CleanupButtonListeners(); // Clean up any existing listeners first
+            StartCoroutine(InitializeButtonsAfterSceneLoad());
+        }
+        else
+        {
+            // If we're not in PracticePhase, ensure all listeners are cleaned up
+            CleanupButtonListeners();
+        }
+    }
+
+    private IEnumerator InitializeButtonsAfterSceneLoad()
+    {
+        Debug.Log("Starting button initialization...");
+        yield return new WaitForSeconds(0.2f);
+
+        int retryAttempts = 0;
+        const int maxRetryAttempts = 5;
+
+        while (!buttonsInitialized && retryAttempts < maxRetryAttempts)
+        {
+            startPracticeButton = GameObject.Find("StartPracticeButton")?.GetComponent<Button>();
+            skipButton = GameObject.Find("SkipButton")?.GetComponent<Button>();
+            instructionText = GameObject.Find("InstructionText")?.GetComponent<TextMeshProUGUI>();
+
+            if (startPracticeButton != null && skipButton != null && instructionText != null)
+            {
+                startPracticeButton.gameObject.SetActive(true);
+                skipButton.gameObject.SetActive(true);
+                instructionText.text = "Press 'Space' to continue";
+
+                // Clear any existing listeners
+                startPracticeButton.onClick.RemoveAllListeners();
+                skipButton.onClick.RemoveAllListeners();
+
+                // Add new listeners
+                startPracticeButton.onClick.AddListener(() => StartPracticeMode());
+                skipButton.onClick.AddListener(() => GoToGetReadyCheck());
+
+                SetupButtonNavigation();
+                buttonsInitialized = true;
+                break;
+            }
+
+            retryAttempts++;
+            yield return new WaitForSeconds(0.2f);
+        }
+
+        if (!buttonsInitialized)
+        {
+            Debug.LogError("Failed to initialize buttons after multiple attempts!");
+        }
+    }
+
+    private void SetupButtonNavigation()
+    {
+        // Remove any existing navigation controller
+        ButtonNavigationController existingController = GetComponent<ButtonNavigationController>();
+        if (existingController != null)
+        {
+            Destroy(existingController);
+        }
+
+        // Add new navigation controller
+        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
+        if (startPracticeButton != null) navigationController.AddElement(startPracticeButton);
+        if (skipButton != null) navigationController.AddElement(skipButton);
+    }
+
+    public void ResetPracticeForNewAttempt()
+    {
+        Debug.Log("Resetting practice for new attempt");
+
+        // Reset trial tracking
+        currentPracticeTrialIndex = -1;
+        practiceTrials.Clear();
+        GeneratePracticeTrials();
+
+        // Reset PlayerPrefs for practice state
+        PlayerPrefs.SetInt("IsPracticeTrial", 0);
+        PlayerPrefs.DeleteKey("CurrentPracticeTrialIndex");
+        PlayerPrefs.DeleteKey("CurrentPracticeEffortLevel");
+        PlayerPrefs.Save();
+
+        // Reset button state
+        buttonsInitialized = false;
+        startPracticeButton = null;
+        skipButton = null;
+
+        // Load PracticePhase scene
+        SceneManager.LoadScene("PracticePhase");
     }
 
     public void ReinitializeButtons()
@@ -124,7 +280,8 @@ public class PracticeManager : MonoBehaviour
         // Create trial difficulties with specific sprites for each effort level
         trialDifficulties = new List<TrialDifficulty>
         {
-            // Effortlevel 1: 5 trials with Apple sprite
+            // Effortlevel 1: 6 trials with Apple sprite
+            new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite },
             new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite },
             new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite },
             new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite },
@@ -137,10 +294,9 @@ public class PracticeManager : MonoBehaviour
             new TrialDifficulty { effortLevel = 3, rewardValue = 10f, rewardSprite = grapesSprite },
             new TrialDifficulty { effortLevel = 3, rewardValue = 10f, rewardSprite = grapesSprite },
 
-            // Effortlevel 5: 3 trials with Watermelon sprite
+            // Effortlevel 5: 2 trials with Watermelon sprite
             new TrialDifficulty { effortLevel = 5, rewardValue = 10f, rewardSprite = watermelonSprite },
             new TrialDifficulty { effortLevel = 5, rewardValue = 10f, rewardSprite = watermelonSprite },
-            new TrialDifficulty { effortLevel = 5, rewardValue = 10f, rewardSprite = watermelonSprite }
         };
     }
 
@@ -207,37 +363,102 @@ public class PracticeManager : MonoBehaviour
 
     private void InitializeButtonListeners()
     {
-        // Clear existing listeners first
+        Debug.Log("Initializing button listeners");
+
         if (startPracticeButton != null)
         {
+            // Remove all previous listeners before adding new ones
             startPracticeButton.onClick.RemoveAllListeners();
-            startPracticeButton.onClick.AddListener(StartPracticeMode);
+            startPracticeButton.onClick.AddListener(() =>
+            {
+                Debug.Log("Start Practice button clicked");
+                StartPracticeMode();
+            });
+        }
+        else
+        {
+            Debug.LogError("StartPracticeButton is null during listener initialization!");
         }
 
         if (skipButton != null)
         {
+            // Remove all previous listeners before adding new ones
             skipButton.onClick.RemoveAllListeners();
-            skipButton.onClick.AddListener(GoToGetReadyCheck);
+            skipButton.onClick.AddListener(() =>
+            {
+                Debug.Log("Skip button clicked");
+                GoToGetReadyCheck();
+            });
+        }
+        else
+        {
+            Debug.LogError("SkipButton is null during listener initialization!");
         }
     }
 
     public void StartPracticeMode()
     {
-        Debug.Log("StartPracticeMode called!");
+        Debug.Log($"StartPracticeMode called! Practice attempts: {practiceAttempts}");
 
+        // Reset score at the start of practice mode
+        PracticeScoreManager.Instance?.ResetScore();
+
+        Debug.Log($"StartPracticeMode - Score Reset. Current Score: {PracticeScoreManager.Instance?.GetCurrentScore()}");
+
+        if (practiceAttempts >= MaxPracticeAttempts)
+        {
+            Debug.Log("Maximum practice attempts reached. Ending experiment.");
+            SceneManager.LoadScene("EndExperiment");
+            return;
+        }
+
+        // Initialize practice state
         currentPracticeTrialIndex = 0;
-        // currentTrialState = PracticeTrialState.DecisionPhase;
-
-        // Set practice mode flags
         PlayerPrefs.SetInt("IsPracticeTrial", 1);
         PlayerPrefs.SetInt("CurrentPracticeTrialIndex", currentPracticeTrialIndex);
+        PlayerPrefs.Save();
 
-        Debug.Log($"Loading scene: {decisionPhaseScene}");
+        Debug.Log($"Starting practice attempt {practiceAttempts + 1}");
         SceneManager.LoadScene(decisionPhaseScene);
     }
 
+    public void HandleChecksFailed()
+    {
+        Debug.Log("Checks failed, handling retry...");
+        practiceAttempts++;
+        PlayerPrefs.SetInt("PracticeAttempts", practiceAttempts);
+        PlayerPrefs.Save();
+
+        if (practiceAttempts < MaxPracticeAttempts)
+        {
+            Debug.Log($"Starting practice attempt {practiceAttempts + 1}");
+            ResetPracticeForNewAttempt();
+        }
+        else
+        {
+            Debug.Log("Maximum practice attempts reached");
+            SceneManager.LoadScene("EndExperiment");
+        }
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        CleanupButtonListeners();
+
+        // Clean up all practice-related PlayerPrefs
+        PlayerPrefs.DeleteKey("PracticeAttempts");
+        PlayerPrefs.DeleteKey("NeedsPracticeRetry");
+        PlayerPrefs.DeleteKey("IsPracticeTrial");
+        PlayerPrefs.DeleteKey("CurrentPracticeTrialIndex");
+        PlayerPrefs.DeleteKey("CurrentPracticeEffortLevel");
+    }
+    
     public void HandleDecisionPhaseOutcome(bool isWorking)
     {
+        Debug.Log($"HandleDecisionPhaseOutcome called. isWorking: {isWorking}. Current Score: {PracticeScoreManager.Instance?.GetCurrentScore()}");
+
+
         if (currentPracticeTrialIndex < 0 || currentPracticeTrialIndex >= practiceTrials.Count)
         {
             Debug.LogError("Invalid practice trial index");
@@ -250,6 +471,7 @@ public class PracticeManager : MonoBehaviour
         if (!isWorking)
         {
             // Trial was skipped
+            // PracticeScoreManager.Instance?.AddScore(1);
             currentTrial.wasSkipped = true;
             AdvanceToNextTrial();
             return;
@@ -302,16 +524,19 @@ public class PracticeManager : MonoBehaviour
     public void EndPracticeMode()
     {
         currentPracticeTrialIndex = -1;
-        // currentTrialState = PracticeTrialState.Completed;
 
         PlayerPrefs.SetInt("IsPracticeTrial", 0);
         PlayerPrefs.DeleteKey("CurrentPracticeTrialIndex");
         PlayerPrefs.DeleteKey("CurrentPracticeEffortLevel");
 
+        // Clean up listeners before transitioning
+        CleanupButtonListeners();
+
         OnPracticeCompleted?.Invoke();
         SceneManager.LoadScene(getReadyCheckScene);
         RestoreExperimentControllers();
     }
+
 
     // Getters for current trial information
     public Sprite GetCurrentPracticeTrialSprite()

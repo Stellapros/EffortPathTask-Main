@@ -10,6 +10,7 @@ public class PracticeDecisionManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI effortLevelText;
     [SerializeField] private TextMeshProUGUI pressesRequiredText;
     [SerializeField] private TextMeshProUGUI timerText; // Added timer text
+    [SerializeField] private TextMeshProUGUI instructionText;
 
     [SerializeField] private Button workButton;
     [SerializeField] private Button skipButton;
@@ -24,6 +25,7 @@ public class PracticeDecisionManager : MonoBehaviour
     [SerializeField] private Color selectedColor = new Color(0.87f, 0.86f, 0.67f);
 
     // Skip delay constant
+    private const int SKIP_SCORE = 0;
     private const float SKIP_DELAY = 3f;
     private bool isSkipDelayActive = false;
     private float skipDelayTimer;
@@ -77,17 +79,35 @@ public class PracticeDecisionManager : MonoBehaviour
         }
     }
 
+    // private void HandleInput()
+    // {
+    //     // Handle left arrow key press for Work
+    //     if (Input.GetKeyDown(KeyCode.LeftArrow))
+    //     {
+    //         isWorkButtonSelected = true;
+    //         UpdateButtonSelection();
+    //         OnDecisionMade(true);
+    //     }
+    //     // Handle right arrow key press for Skip
+    //     else if (Input.GetKeyDown(KeyCode.RightArrow))
+    //     {
+    //         isWorkButtonSelected = false;
+    //         UpdateButtonSelection();
+    //         OnDecisionMade(false);
+    //     }
+    // }
+
     private void HandleInput()
     {
-        // Handle left arrow key press for Work
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        // Handle 'A' key press for Work
+        if (Input.GetKeyDown(KeyCode.A))
         {
             isWorkButtonSelected = true;
             UpdateButtonSelection();
             OnDecisionMade(true);
         }
-        // Handle right arrow key press for Skip
-        else if (Input.GetKeyDown(KeyCode.RightArrow))
+        // Handle 'D' key press for Skip
+        else if (Input.GetKeyDown(KeyCode.D))
         {
             isWorkButtonSelected = false;
             UpdateButtonSelection();
@@ -205,13 +225,19 @@ public class PracticeDecisionManager : MonoBehaviour
         UpdateEffortSprite();
         EnableButtons();
 
+        // Set instruction text
+        if (instructionText != null)
+        {
+            instructionText.text = "A for Work / D for Skip";
+        }
+
         // Log current trial details
         PracticeManager.PracticeTrial currentTrial = practiceManager.GetCurrentPracticeTrial();
         if (currentTrial != null)
         {
             Debug.Log($"Current Trial Details in SetupDecisionPhase:");
-            Debug.Log($"  Effort Level: {currentTrial.effortLevel}");
-            Debug.Log($"  Reward Value: {currentTrial.rewardValue}");
+            Debug.Log($"- Effort Level: {currentTrial.effortLevel}");
+            Debug.Log($"- Reward Value: {currentTrial.rewardValue}");
         }
         else
         {
@@ -219,7 +245,7 @@ public class PracticeDecisionManager : MonoBehaviour
         }
     }
 
-        public void UpdateEffortSprite()
+    public void UpdateEffortSprite()
     {
         if (practiceManager == null)
         {
@@ -254,7 +280,7 @@ public class PracticeDecisionManager : MonoBehaviour
         UpdateUITexts(effortLevel, pressesRequired);
     }
 
-        private void UpdateUITexts(int effortLevel, int pressesRequired)
+    private void UpdateUITexts(int effortLevel, int pressesRequired)
     {
         if (practiceManager == null)
         {
@@ -283,7 +309,7 @@ public class PracticeDecisionManager : MonoBehaviour
         }
     }
 
-        private string GetEffortLevelDescription(int effortLevel)
+    private string GetEffortLevelDescription(int effortLevel)
     {
         switch (effortLevel)
         {
@@ -330,19 +356,26 @@ public class PracticeDecisionManager : MonoBehaviour
         // Log the decision
         LogDecision(workDecision);
 
-        // Store the sprite for cross-scene use
-        PlayerPrefs.SetString("CurrentRewardSpriteName", effortSpriteImage.sprite.name);
-        PlayerPrefs.SetInt("IsPracticeTrial", 1);
+        // Add these debug lines
+        Debug.Log($"OnDecisionMade called. WorkDecision: {workDecision}");
+        Debug.Log($"Current Score Before Adding: {PracticeScoreManager.Instance?.GetCurrentScore()}");
 
         if (workDecision)
         {
             StartCoroutine(DelayedSceneTransition("GetReadyEveryTrialPractice", 0.1f));
-            PlayerPrefs.SetInt("SkippedTrial", 0);
+            // // Flag to indicate that the trial was not skipped,
+            // PlayerPrefs.SetInt("SkippedTrial", 0);
         }
         else
         {
+            // Only add score here if absolutely necessary
+            Debug.Log("Skip decision - adding 1 point");
+            PracticeScoreManager.Instance?.AddScore(SKIP_SCORE);
+
+
             ActivateSkipDelay();
         }
+        Debug.Log($"Current Score After Adding: {PracticeScoreManager.Instance?.GetCurrentScore()}");
     }
 
     private System.Collections.IEnumerator DelayedSceneTransition(string sceneName, float delay)
@@ -425,7 +458,7 @@ public class PracticeDecisionManager : MonoBehaviour
         string trialType = "Practice";
         int currentTrialIndex = practiceManager.GetCurrentPracticeTrialIndex();
 
-        string logEntry = $"{System.DateTime.Now}: {trialType} Trial {currentTrialIndex} - Player decided to {(workDecision ? "Work" : "Skip")}";
+        string logEntry = $"{System.DateTime.Now}: {trialType} Trial {currentTrialIndex + 1} - Player decided to {(workDecision ? "Work" : "Skip")}";
         System.IO.File.AppendAllText("practice_decision_log.txt", logEntry + System.Environment.NewLine);
         Debug.Log(logEntry);
     }

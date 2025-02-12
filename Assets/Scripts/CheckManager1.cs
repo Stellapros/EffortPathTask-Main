@@ -5,6 +5,8 @@ using UnityEngine.SceneManagement;
 using System.Linq;
 using TMPro;
 
+
+
 public class CheckManager1 : MonoBehaviour
 {
     [Header("Fruit Prefabs")]
@@ -39,9 +41,14 @@ public class CheckManager1 : MonoBehaviour
 
     private List<(GameObject, GameObject)> fruitPairs = new List<(GameObject, GameObject)>();
     private int correctChoiceScore = 0;
+    private float questionStartTime;
+    private float phaseStartTime;
+
 
     void Start()
     {
+        phaseStartTime = Time.time;
+
         fruitPool = new List<GameObject> { applePrefab, grapesPrefab, watermelonPrefab };
         SetupUI();
         GenerateFruitPairs();
@@ -173,7 +180,7 @@ public class CheckManager1 : MonoBehaviour
 
     void ProcessChoice(string choice)
     {
-        Debug.Log($"Processing Choice: Current Trial {currentTrialNumber}, Total Pairs {fruitPairs.Count}");
+        Debug.Log($"Processing Choice: Current Trial {currentTrialNumber + 1}, Total Pairs {fruitPairs.Count}");
 
         if (currentTrialNumber >= fruitPairs.Count)
         {
@@ -181,6 +188,7 @@ public class CheckManager1 : MonoBehaviour
             return;
         }
 
+        float responseTime = Time.time - questionStartTime;
         var currentPair = fruitPairs[currentTrialNumber];
         Debug.Log($"Current Pair: {currentPair.Item1.name} vs {currentPair.Item2.name}");
 
@@ -217,30 +225,77 @@ public class CheckManager1 : MonoBehaviour
                             (rightFruit.name.Contains("Grapes") && choice == "Right");
         }
 
-        currentTrialNumber++;
         if (correctChoice)
         {
             correctChoiceScore++;
         }
 
         checkQuestionsCompleted++;
-
         UpdateProgressText();
         debugText.text += $"\nCorrect choice: {correctChoice} (Total: {correctChoiceScore})";
 
+        // LogManager.Instance.LogCheckQuestionResponse(
+        //     currentTrialNumber - 1,
+        //     checkQuestionsCompleted,
+        //     leftFruit ? leftFruit.name : "Unknown",
+        //     rightFruit ? rightFruit.name : "Unknown",
+        //     choice,
+        //     correctChoice
+        // );
+
+        // Enhanced logging
         LogManager.Instance.LogCheckQuestionResponse(
-            currentTrialNumber - 1,
-            checkQuestionsCompleted,
-            leftFruit ? leftFruit.name : "Unknown",
-            rightFruit ? rightFruit.name : "Unknown",
-            choice,
-            correctChoice
+            trialNumber: currentTrialNumber,
+            checkPhase: 1,
+            questionNumber: currentTrialNumber + 1,
+            questionType: "FruitPreference",
+            questionText: instructionText.text,
+            selectedAnswer: choice,
+            correctAnswer: DetermineCorrectAnswer(currentPair),
+            isCorrect: correctChoice,
+            responseTime: responseTime,
+            new Dictionary<string, string>
+            {
+            {"LeftFruit", leftFruit.name},
+            {"RightFruit", rightFruit.name},
+            {"TotalTrials", numberOfCheckQuestions.ToString()},
+            {"CurrentScore", correctChoiceScore.ToString()}
+            }
         );
+
+
+        if (checkQuestionsCompleted >= numberOfCheckQuestions)
+        {
+            // Log phase completion
+            LogManager.Instance.LogCheckPhaseComplete(
+                checkPhase: 1,
+                totalQuestions: numberOfCheckQuestions,
+                correctAnswers: correctChoiceScore,
+                completionTime: Time.time - phaseStartTime,
+                phaseType: "PreferenceCheck",
+                new Dictionary<string, string>
+                {
+                {"AverageResponseTime", ((Time.time - phaseStartTime) / numberOfCheckQuestions).ToString("F2")},
+                {"CompletionStatus", "Finished"}
+                }
+            );
+        }
 
         PlayerPrefs.SetInt("Check1Score", Mathf.Min(correctChoiceScore, 6));
         PlayerPrefs.Save();
 
+        currentTrialNumber++;
         Invoke("SetupNewTrial", 1.5f);
+    }
+
+    // Helper method for determining correct answer
+    private string DetermineCorrectAnswer((GameObject, GameObject) pair)
+    {
+        if (pair.Item1.name.Contains("Apple") || pair.Item2.name.Contains("Apple"))
+            return "Apple";
+        if (pair.Item1.name.Contains("Grapes") || pair.Item2.name.Contains("Grapes"))
+            return "Grapes";
+        return "Watermelon";
     }
 
     void SetupNewTrial()
@@ -264,7 +319,9 @@ public class CheckManager1 : MonoBehaviour
             return;
         }
 
+        questionStartTime = Time.time; // Add time tracking for each trial
         var currentPair = fruitPairs[currentTrialNumber];
+
 
         if (leftFruit != null) Destroy(leftFruit);
         if (rightFruit != null) Destroy(rightFruit);
@@ -296,13 +353,12 @@ public class CheckManager1 : MonoBehaviour
 
         instructionText.text = "In order to save energy, which fruit would you perfer to choose?";
         // buttonInstructionText.text = "Use ← → to choose; Press Space or Enter to confirm";
-        buttonInstructionText.text = "Use ← → to choose";
+        buttonInstructionText.text = "Use ←/→ to choose";
 
         debugText.text = $"Trial {currentTrialNumber + 1} of {fruitPairs.Count}: {leftFruit.name} vs {rightFruit.name}";
         UpdateProgressText();
     }
 
-    // Rest of the methods remain unchanged...
 
     void GenerateFruitPairs()
     {
@@ -319,51 +375,124 @@ public class CheckManager1 : MonoBehaviour
         fruitPairs.Add((watermelonPrefab, grapesPrefab)); // Showing Grapes preference
     }
 
+    // void ShufflePairs()
+    // {
+    //     var shuffledPairs = new List<(GameObject, GameObject)>();
+    //     var tempPairs = new List<(GameObject, GameObject)>(fruitPairs);
+
+    //     // Start with a random pair
+    //     int randomIndex = Random.Range(0, tempPairs.Count);
+    //     shuffledPairs.Add(tempPairs[randomIndex]);
+    //     tempPairs.RemoveAt(randomIndex);
+
+    //     // For each subsequent position
+    //     while (tempPairs.Count > 0)
+    //     {
+    //         // Get the last added pair for comparison
+    //         var lastPair = shuffledPairs[shuffledPairs.Count - 1];
+
+    //         // Find valid pairs that don't share fruits with the last pair
+    //         var validPairs = tempPairs.Where(p =>
+    //             !SharesFruits(p, lastPair)).ToList();
+
+    //         // If no valid pairs exist, just take any remaining pair
+    //         if (validPairs.Count == 0)
+    //         {
+    //             validPairs = tempPairs;
+    //         }
+
+    //         // Select a random pair from valid options
+    //         randomIndex = Random.Range(0, validPairs.Count);
+    //         shuffledPairs.Add(validPairs[randomIndex]);
+    //         tempPairs.Remove(validPairs[randomIndex]);
+    //     }
+
+    //     fruitPairs = shuffledPairs;
+    // }
+
+
     void ShufflePairs()
     {
         var shuffledPairs = new List<(GameObject, GameObject)>();
-        var tempPairs = new List<(GameObject, GameObject)>(fruitPairs);
+        var remainingPairs = new List<(GameObject, GameObject)>(fruitPairs);
 
-        // Start with a random pair
-        int randomIndex = Random.Range(0, tempPairs.Count);
-        shuffledPairs.Add(tempPairs[randomIndex]);
-        tempPairs.RemoveAt(randomIndex);
+        // Create groups of non-overlapping pairs
+        var groups = new List<List<(GameObject, GameObject)>>();
 
-        // For each subsequent position
-        while (tempPairs.Count > 0)
+        while (remainingPairs.Count > 0)
         {
-            // Get the last added pair for comparison
-            var lastPair = shuffledPairs[shuffledPairs.Count - 1];
+            var currentGroup = new List<(GameObject, GameObject)>();
+            var pairsToRemove = new List<(GameObject, GameObject)>();
 
-            // Find valid pairs that don't share fruits with the last pair
-            var validPairs = tempPairs.Where(p =>
-                !SharesFruits(p, lastPair)).ToList();
-
-            // If no valid pairs exist, just take any remaining pair
-            if (validPairs.Count == 0)
+            // Try to add each remaining pair to the current group
+            foreach (var pair in remainingPairs)
             {
-                validPairs = tempPairs;
+                bool canAddToGroup = true;
+                foreach (var groupPair in currentGroup)
+                {
+                    if (SharesFruits(pair, groupPair))
+                    {
+                        canAddToGroup = false;
+                        break;
+                    }
+                }
+
+                if (canAddToGroup)
+                {
+                    currentGroup.Add(pair);
+                    pairsToRemove.Add(pair);
+                }
             }
 
-            // Select a random pair from valid options
-            randomIndex = Random.Range(0, validPairs.Count);
-            shuffledPairs.Add(validPairs[randomIndex]);
-            tempPairs.Remove(validPairs[randomIndex]);
+            // Remove used pairs and add the group
+            foreach (var pair in pairsToRemove)
+            {
+                remainingPairs.Remove(pair);
+            }
+
+            if (currentGroup.Count > 0)
+            {
+                groups.Add(currentGroup);
+            }
+        }
+
+        // Shuffle pairs within each group
+        foreach (var group in groups)
+        {
+            for (int i = group.Count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                var temp = group[i];
+                group[i] = group[j];
+                group[j] = temp;
+            }
+        }
+
+        // Shuffle the groups themselves
+        for (int i = groups.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            var temp = groups[i];
+            groups[i] = groups[j];
+            groups[j] = temp;
+        }
+
+        // Combine all pairs from the shuffled groups
+        foreach (var group in groups)
+        {
+            shuffledPairs.AddRange(group);
         }
 
         fruitPairs = shuffledPairs;
     }
 
-    private bool SharesFruits(
-        (GameObject, GameObject) pair1,
-        (GameObject, GameObject) pair2)
+    private bool SharesFruits((GameObject, GameObject) pair1, (GameObject, GameObject) pair2)
     {
         return pair1.Item1.name == pair2.Item1.name ||
                pair1.Item1.name == pair2.Item2.name ||
                pair1.Item2.name == pair2.Item1.name ||
                pair1.Item2.name == pair2.Item2.name;
     }
-
     void StartCheckQuestions()
     {
         checkQuestionsCompleted = 0;
@@ -378,6 +507,7 @@ public class CheckManager1 : MonoBehaviour
     {
         LogManager.Instance.LogExperimentEnd();
         SceneManager.LoadScene("Check2_Recognition");
+        // SceneManager.LoadScene("Check3_ComprehensionQuiz");
     }
 
     void UpdateProgressText()
@@ -385,7 +515,7 @@ public class CheckManager1 : MonoBehaviour
         progressText.text = $"Check Questions Completed: {checkQuestionsCompleted}/{numberOfCheckQuestions}";
         if (trialIndexText != null)
         {
-            trialIndexText.text = $"Question: {checkQuestionsCompleted}/{fruitPairs.Count}";
+            trialIndexText.text = $"Question: {currentTrialNumber + 1}/{fruitPairs.Count}";
         }
     }
 }

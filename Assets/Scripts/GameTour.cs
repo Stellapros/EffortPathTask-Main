@@ -2,9 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections;
-using System.Linq;
 using TMPro;
-
 
 public class InstructionManager : MonoBehaviour
 {
@@ -14,260 +12,166 @@ public class InstructionManager : MonoBehaviour
     [SerializeField] private Button previousButton;
     [SerializeField] private Button skipButton;
 
+    //     private string[] instructions = new string[]
+    //      {
+    // "1 Ahoy, brave explorer! You've been chosen for an extraordinary mission across two mysterious islands in The Motivation Expedition.",
+    // "2 Each island presents unique challenges and mouthwatering rewards. Your task? Survive, thrive, and satisfy your fruity cravings!",
+    // "3 Now, let's explore how to play.",
+    // "4 On each island, you'll face different levels of effort to obtain the fruits. Some fruits are the easiest to gather. Others are quite challenging.",
+    // "5 This is the grid-based island. Your character can move around here using the direction buttons (↑, ↓, ←, →) or WASD.",
+    // "6 See that apple on the grid? That's your target! Each fruit you collect is worth 10 points. Your time is LIMITED since the fruit will disappear soon.",
+    // "7 Your time on each island is also LIMITED, so you have to seize the chance. On each island, you'll face many decisions. Let's look at how you make decisions.",
+    // "8 Use the '←' or '→' keys on your keyboard (or mouse) to select 'Work' and enter the island to collect fruit. Once inside, use the arrow keys to move your character. Note: if a fruit is difficult to reach, you may need to press the keys multiple times to take a single step.",
+    // "9 After collecting the fruit, wait for the next opportunity to appear.",
+    // "10 Or, you can choose to 'Skip', rest, and wait for the next opportunity. If you choose to 'Skip', you will earn 1 point for resting as well. Sometimes, this might be a good strategy.",
+    // "11 You will have 2.5 seconds to choose; otherwise, you'll receive 0 point for that trial. Stay focused and don't miss any chances—or you'll have to wait for the next opportunity.",
+    // "12 Your score will accumulate based on the fruits you collect. Each fruit has a base point value. Your total score will be displayed at the top of the screen. Try to maximize your score while managing your energy levels!",
+    // "13 Remember, your goal is to explore the island, collect fruits, and decide which fruits are worth the effort. Your choices and strategies will provide valuable insights into decision-making processes.",
+    // "14 The credits you earn will be converted into a bonus payment at the end. Your choices will remain completely anonymous and confidential.",
+    // "15 If you're unsure about the instructions, feel free to press the 'Previous' button to read them again.",
+    // "16 That's it! You're ready to start the practice trials. Good luck, and may the juiciest fruits be ever in your favor!"
+    //     };
+
+    // private string[] instructions = new string[]
+    // {
+    //     "1 Welcome to the Motivation Expedition, a strategic fruit-collecting adventure across two unique islands!",
+    //     "2 Each island offers different challenges and rewards. Your mission is to navigate, collect fruits, and maximize your score.",
+    //     "3 Now, let's explore how to play.",
+    //     "4 You'll explore a grid-based island using direction buttons (↑, ↓, ←, →) or WASD keys",
+    //     "5 Fruit offers will show up one-by-one, each worth 10 points.",
+    //     "6 See that apple on the grid? That's your target! Time is limited, so act quickly to collect fruits before they disappear.",
+    //     "7 Your time on each island is  LIMITED, so you have to seize the chance. On each island, you'll face many decisions. Let's look at how you make decisions.",
+    //     "8 Use '←' or '→' keys to choose between 'Work' (collect fruit) or 'Skip' (rest). When working, use arrow keys to move your character. Some fruits require multiple steps.",
+    //     "9 After collecting the fruit, wait for the next opportunity to appear.",
+    //     "10 If you 'Skip', you'll earn 1 point for resting. Sometimes, this might be a good strategy.",
+    //     "11 You have 2.5 seconds to make a decision. Delay results in 0 points. Stay focused and don't miss any chances—or you'll have to wait for the next opportunity.",
+    //     "12 Your total score accumulates from fruit collection. Your total score will be displayed at the top of the screen. Try to maximize your score while managing your energy levels!",
+    //     "13 Remember, your goal is to explore the island, collect fruits, and decide which fruits are worth the effort. Your choices and strategies will provide valuable insights into decision-making processes.",
+    //     "14 Collected credits will be converted to a bonus payment. Your choices will remain completely anonymous and confidential.",
+    //     "15 If you're unsure about the instructions, feel free to press the '←' button to read them again.",
+    //     "16 That's it! You're ready to start with some practice. Good luck, and may the juiciest fruits be ever in your favor!"
+    // };
+
     private string[] instructions = new string[]
     {
-        "1Ahoy, brave explorer! You've been chosen for an extraordinary mission across two mysterious islands in The Motivation Expedition.",
-        "2Each island presents unique challenges and mouthwatering rewards. Your task? Survive, thrive, and satisfy your fruity cravings!",
-        "3Now, let's explore how to play.",
-        "4On each island, you'll face different levels of effort to obtain the fruits. Some fruits are the easiest to gather. Others are quite challenging.",
-        "5This is the grid-based island. Your character can move around here using the direction buttons (↑, ↓, ←, →) or WASD.",
-        "6See that apple on the grid? That's your target! Each fruit you collect is worth 10 points. Your time is LIMITED since the fruit will disappear soon.",
-        "7Your time on each island is also LIMITED, so you have to seize the chance. On each island, you'll face many decisions. Let's look at how you make decisions.",
-        "8Use the '←' or '→' keys on your keyboard (or mouse) to select 'Work' and enter the island to collect fruit. Once inside, use the arrow keys to move your character. Note: if a fruit is difficult to reach, you may need to press the keys multiple times to take a single step.",
-        "9After collecting the fruit, wait for the next opportunity to appear.",
-        "10Or, you can choose to 'Skip', rest, and wait for the next opportunity. If you choose to 'Skip', you will earn 1 point for resting. Sometimes, this might be a good strategy.",
-        "11You will have 2.5 seconds to choose; otherwise, you'll receive 0 point for that trial. Stay focused and don't miss any chances—or you'll have to wait for the next opportunity.",
-        "12Your score will accumulate based on the fruits you collect. Each fruit has a base point value. Your total score will be displayed at the top of the screen. Try to maximize your score while managing your energy levels!",
-        "13Remember, your goal is to explore the island, collect fruits, and decide which fruits are worth the effort. Your choices and strategies will provide valuable insights into decision-making processes.",
-        "14The credits you earn will be converted into a bonus payment at the end. Your choices will remain completely anonymous and confidential.",
-        "15If you're unsure about the instructions, feel free to press the 'Previous' button to read them again.",
-        "16That's it! You're ready to start the practice trials. Good luck, and may the juiciest fruits be ever in your favor!"
+        "1 Welcome to the Motivation Expedition, a strategic fruit-collecting adventure across two unique islands!",
+        "2 Each island offers different challenges and rewards. Your mission is to navigate, collect fruits, and maximize your score and minimize the efforts.",
+        "3 Now, let's explore how to play.",
+        "4 You will decide whether to collect fruits. Each Fruit = 10 POINTS.",
+        "5 Use the keyboard: Press 'A' to 'Work' (collect fruit) or 'D' to 'Skip' (rest). You have 2.5 seconds to decide — fail to choose in time, and you'll get 0 points plus a time penalty!",
+        "6 If you choose WORK: See that apple on the grid? That's your target! Time is limited, so act quickly to collect fruits before they disappear.",
+        "7 Use arrow keys to move your character. Some fruits are difficult to reach, you may need to press the keys multiple times to take a single step.",
+        "8 If you choose SKIP: Earn 0 points.",
+        "9 Your time on each island is LIMITED, so sometimes it might be better to SKIP, if the fruit feels hard to reach.",
+        "10 You will have to decide which fruits are worth collecting in this time limit.",
+        "11 You will visit two different islands, with 5 minutes on each island. The islands will differ in how often you see different kinds of fruit.",
+        "12 Remember, your goal is to explore the island, collect fruits, and decide which fruits are worth the effort.",
+        "13 Points will be converted to a bonus payment. Your choices will remain completely anonymous and confidential.",
+        "14 If you're unsure about the instructions, feel free to press the LEFT '←' button to read them again.",
+        "15 That's it! You're ready to start with some practice. Good luck, and may the juiciest fruits be ever in your favor!"
     };
 
     private int currentInstructionIndex = 0;
     private bool isTransitioning = false;
-    private ButtonNavigationController navigationController;
-    private bool isKeyPressed = false;
-    private bool isProcessingInput = false;  //
 
     void Awake()
-    {
-        TryInitializeComponents();
+    {    // Make the InstructionManager persist across scene transitions
         DontDestroyOnLoad(gameObject);
     }
 
-    private void TryInitializeComponents()
-    {
-        // Find instruction text
-        if (instructionText == null)
-        {
-            instructionText = GameObject.Find("InstructionText")?.GetComponent<TextMeshProUGUI>();
-            if (instructionText == null)
-            {
-                instructionText = FindObjectsByType<TextMeshProUGUI>(FindObjectsSortMode.None)
-                    .FirstOrDefault(t => t.gameObject.name.Contains("Instruction"));
-            }
-        }
-
-        // Find welcome text
-        if (welcomeText == null)
-        {
-            welcomeText = GameObject.Find("WelcomeText")?.GetComponent<TextMeshProUGUI>();
-            if (welcomeText == null)
-            {
-                welcomeText = FindObjectsByType<TextMeshProUGUI>(FindObjectsSortMode.None)
-                    .FirstOrDefault(t => t.gameObject.name.Contains("Welcome"));
-            }
-        }
-
-        // Find buttons
-        if (nextButton == null)
-        {
-            nextButton = GameObject.Find("NextButton")?.GetComponent<Button>();
-            if (nextButton == null)
-            {
-                nextButton = FindObjectsByType<Button>(FindObjectsSortMode.None)
-                    .FirstOrDefault(b => b.gameObject.name.Contains("Next"));
-            }
-        }
-
-        if (previousButton == null)
-        {
-            previousButton = GameObject.Find("PreviousButton")?.GetComponent<Button>();
-            if (previousButton == null)
-            {
-                previousButton = FindObjectsByType<Button>(FindObjectsSortMode.None)
-                    .FirstOrDefault(b => b.gameObject.name.Contains("Previous"));
-            }
-        }
-
-        if (skipButton == null)
-        {
-            skipButton = GameObject.Find("SkipButton")?.GetComponent<Button>();
-            if (skipButton == null)
-            {
-                skipButton = FindObjectsByType<Button>(FindObjectsSortMode.None)
-                    .FirstOrDefault(b => b.gameObject.name.Contains("Skip"));
-            }
-        }
-
-        LogComponentStatus();
-    }
-
-
-    private void LogComponentStatus()
-    {
-        if (instructionText == null)
-            Debug.LogWarning("InstructionManager: Could not find InstructionText component!");
-        if (welcomeText == null)
-            Debug.LogWarning("InstructionManager: Could not find WelcomeText component!");
-        if (nextButton == null)
-            Debug.LogWarning("InstructionManager: Could not find NextButton component!");
-        if (previousButton == null)
-            Debug.LogWarning("InstructionManager: Could not find PreviousButton component!");
-        if (skipButton == null)
-            Debug.LogWarning("InstructionManager: Could not find SkipButton component!");
-    }
-
-
     void Start()
     {
-        // Only proceed if we have the minimum required components
-        if (ValidateMinimumRequirements())
-        {
-            SetupButtons();
-            UpdateInstructionDisplay();
-            UpdateButtonStates();
-            SetupNavigation();
-        }
+        // Initialize UI elements with null checks
+        if (nextButton != null) nextButton.onClick.AddListener(ShowNextInstruction);
+        if (previousButton != null) previousButton.onClick.AddListener(ShowPreviousInstruction);
+
+        Debug.Log("LoadScene GetReadyPractice from the GameTour");
+        if (skipButton != null) skipButton.onClick.AddListener(() => LoadScene("GetReadyPractice"));
+
+        // Show first instruction
+        UpdateInstructionDisplay();
+
+        // Hide previous button on first instruction
+        UpdateButtonStates();
     }
 
-    private bool ValidateMinimumRequirements()
+    void Update()
     {
-        // We absolutely need instructionText and nextButton to function
-        if (instructionText == null)
+        // Handle Space key for next instruction
+        if (Input.GetKeyDown(KeyCode.Space))
         {
-            // Debug.LogError("InstructionManager: InstructionText component is required but missing!");
-            enabled = false;
-            return false;
-        }
-
-        if (nextButton == null)
-        {
-            Debug.LogError("InstructionManager: NextButton component is required but missing!");
-            enabled = false;
-            return false;
-        }
-
-        return true;
-    }
-
-    private void SetupButtons()
-    {
-        nextButton.onClick.RemoveAllListeners();
-        nextButton.onClick.AddListener(() =>
-        {
-            if (!isProcessingInput)
+            if (!isTransitioning)
             {
-                ShowNextInstruction();
+                if (currentInstructionIndex < instructions.Length - 1)
+                {
+                    ShowNextInstruction();
+                }
+                else
+                {
+                    EndTourAndLoadScene("GetReadyPractice");
+                }
             }
-        });
+        }
 
-        if (previousButton != null)
+        // Handle Left Arrow key for previous instruction
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            previousButton.onClick.RemoveAllListeners();
-            previousButton.onClick.AddListener(() =>
+            if (!isTransitioning && currentInstructionIndex > 0)
             {
-                if (!isProcessingInput)
-                {
-                    ShowPreviousInstruction();
-                }
-            });
-        }
-
-        if (skipButton != null)
-        {
-            skipButton.onClick.RemoveAllListeners();
-            skipButton.onClick.AddListener(() =>
-            {
-                if (!isProcessingInput)
-                {
-                    LoadScene("GetReadyPractice");
-                }
-            });
+                ShowPreviousInstruction();
+            }
         }
     }
 
-    private void SetupNavigation()
+    private void CleanupListeners()
     {
-        navigationController = gameObject.AddComponent<ButtonNavigationController>();
-        navigationController.useHorizontalNavigation = true;
-        UpdateNavigationElements();
+        if (nextButton != null) nextButton.onClick.RemoveListener(ShowNextInstruction);
+        if (previousButton != null) previousButton.onClick.RemoveListener(ShowPreviousInstruction);
+        if (skipButton != null) skipButton.onClick.RemoveAllListeners();
     }
 
-    private void UpdateNavigationElements()
+    private void EndTourAndLoadScene(string sceneName)
     {
-        if (navigationController == null) return;
+        // Clean up listeners first
+        CleanupListeners();
 
-        navigationController.ClearElements();
-
-        if (currentInstructionIndex == 0)
+        // Remove the ButtonNavigationController if it exists
+        ButtonNavigationController navController = GetComponent<ButtonNavigationController>();
+        if (navController != null)
         {
-            if (skipButton != null) navigationController.AddElement(skipButton);
-            if (nextButton != null) navigationController.AddElement(nextButton);
+            navController.ClearElements();
+            Destroy(navController);
         }
-        else
-        {
-            if (previousButton != null) navigationController.AddElement(previousButton);
-            if (nextButton != null) navigationController.AddElement(nextButton);
-        }
-    }
 
+        // Load the next scene
+        SceneManager.LoadScene(sceneName);
 
-    private void UpdateButtonStates()
-    {
-        if (!enabled) return;
-
-        if (previousButton != null)
-            previousButton.gameObject.SetActive(currentInstructionIndex > 0);
-
-        if (nextButton != null)
-            nextButton.interactable = !isTransitioning;
-
-        if (skipButton != null)
-            skipButton.gameObject.SetActive(currentInstructionIndex == 0);
-
-        // Update navigation elements whenever button states change
-        UpdateNavigationElements();
+        // Destroy this GameObject after scene load
+        Destroy(gameObject);
     }
 
     private void ShowNextInstruction()
     {
-        if (isTransitioning || !enabled || isProcessingInput) return;
-
-        isProcessingInput = true;  // 设置标志表示正在处理输入
+        if (isTransitioning) return;
 
         if (currentInstructionIndex == 4)
         {
-            StartCoroutine(ShowGridWorldDemo());
-        }
-        else if (currentInstructionIndex == 6)
-        {
             StartCoroutine(ShowDecisionPhaseDemo());
+        }
+        else if (currentInstructionIndex == 5)
+        {
+            StartCoroutine(ShowGridWorldDemo());
         }
         else if (currentInstructionIndex < instructions.Length - 1)
         {
-            AdvanceToNextInstruction();
+            currentInstructionIndex++;
+            UpdateInstructionDisplay();
         }
-        else if (currentInstructionIndex == instructions.Length - 1)
+        else
         {
-            LoadScene("GetReadyPractice");
+            EndTourAndLoadScene("GetReadyPractice");
         }
 
-        StartCoroutine(ResetInputFlag());  // 使用协程延迟重置输入标志
-    }
-
-    private IEnumerator ResetInputFlag()
-    {
-        yield return new WaitForSeconds(0.1f);  // 短暂延迟
-        isProcessingInput = false;
-        isKeyPressed = false;
-    }
-
-    private void AdvanceToNextInstruction()
-    {
-        currentInstructionIndex++;
-        UpdateInstructionDisplay();
         UpdateButtonStates();
     }
 
@@ -279,6 +183,30 @@ public class InstructionManager : MonoBehaviour
         UpdateInstructionDisplay();
         UpdateButtonStates();
     }
+
+    private void UpdateButtonStates()
+    {
+        // Add null checks for each button
+        if (previousButton != null && previousButton.gameObject != null)
+        {
+            previousButton.gameObject.SetActive(false);
+        }
+
+        if (nextButton != null && nextButton.gameObject != null)
+        {
+            nextButton.gameObject.SetActive(false);
+            nextButton.interactable = !isTransitioning;
+        }
+
+        if (skipButton != null && skipButton.gameObject != null)
+        {
+            skipButton.gameObject.SetActive(true);
+        }
+    }
+    // private void UpdateInstructionDisplay()
+    // {
+    //     instructionText.text = instructions[currentInstructionIndex];
+    // }
 
 
     private void UpdateInstructionDisplay()
@@ -296,43 +224,67 @@ public class InstructionManager : MonoBehaviour
         }
 
         instructionText.text = instructions[currentInstructionIndex];
-        instructionText.text += "\n\n<size=70%>Use ←/→ to navigate buttons, Space/Enter to confirm</size>";
+
+        // Show different navigation instructions based on whether it's the first instruction
+        if (currentInstructionIndex == 0)
+        {
+            instructionText.text += "\n\n<size=70%>Press 'Space' to continue</size>";
+        }
+        else
+        {
+            // instructionText.text += "\n\n<size=70%>Use ←/→ to navigate buttons, Space/Enter to confirm</size>";
+            // instructionText.text += "\n\n<size=70%>Use ←/→ to navigate</size>";
+            instructionText.text += "\n\n<size=70%>Press 'Space' to continue; ← to go back</size>";
+        }
     }
+
 
     private IEnumerator ShowGridWorldDemo()
     {
         isTransitioning = true;
         UpdateButtonStates();
 
+        // Disable the audio listener in the main scene
         AudioListener mainSceneListener = FindAnyObjectByType<AudioListener>();
         mainSceneListener.enabled = false;
 
-        // Hide UI elements
-        SetUIElementsActive(false);
+        // Hide the canvas elements before loading the demonstration scene
+        welcomeText.gameObject.SetActive(false);
+        instructionText.gameObject.SetActive(false);
+        nextButton.gameObject.SetActive(false);
+        previousButton.gameObject.SetActive(false);
+        skipButton.gameObject.SetActive(false);
 
-        // Load and show demo
+        // Load GridWorld scene
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("TourGridWorld", LoadSceneMode.Additive);
         while (!asyncLoad.isDone)
         {
             yield return null;
         }
 
+        // Wait for 3 seconds
         yield return new WaitForSeconds(3f);
 
-        // Unload demo
+        // Unload GridWorld scene
         asyncLoad = SceneManager.UnloadSceneAsync("TourGridWorld");
         while (!asyncLoad.isDone)
         {
             yield return null;
         }
 
+        // Re-enable the audio listener in the main scene
         mainSceneListener.enabled = true;
 
-        // Show UI elements
-        SetUIElementsActive(true);
+        // Show the canvas elements after unloading the demonstration scene
+        welcomeText.gameObject.SetActive(true);
+        instructionText.gameObject.SetActive(true);
+        nextButton.gameObject.SetActive(true);
+        previousButton.gameObject.SetActive(true);
+        skipButton.gameObject.SetActive(true);
 
-        // Advance to next instruction
-        AdvanceToNextInstruction();
+        // Move to next instruction
+        currentInstructionIndex++;
+        UpdateInstructionDisplay();
 
         isTransitioning = false;
         UpdateButtonStates();
@@ -343,93 +295,54 @@ public class InstructionManager : MonoBehaviour
         isTransitioning = true;
         UpdateButtonStates();
 
+        // Disable the audio listener in the main scene
         AudioListener mainSceneListener = FindAnyObjectByType<AudioListener>();
         mainSceneListener.enabled = false;
 
-        // Hide UI elements
-        SetUIElementsActive(false);
+        // Hide the canvas elements before loading the demonstration scene
+        welcomeText.gameObject.SetActive(false);
+        instructionText.gameObject.SetActive(false);
+        nextButton.gameObject.SetActive(false);
+        previousButton.gameObject.SetActive(false);
+        skipButton.gameObject.SetActive(false);
 
-        // Load and show demo
+        // Load Decision Phase scene
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("TourDecisionPhase", LoadSceneMode.Additive);
         while (!asyncLoad.isDone)
         {
             yield return null;
         }
 
+        // Wait for 3 seconds
         yield return new WaitForSeconds(3f);
 
-        // Unload demo
+        // Unload Decision Phase scene
         asyncLoad = SceneManager.UnloadSceneAsync("TourDecisionPhase");
         while (!asyncLoad.isDone)
         {
             yield return null;
         }
 
+        // Re-enable the audio listener in the main scene
         mainSceneListener.enabled = true;
 
-        // Show UI elements
-        SetUIElementsActive(true);
+        // Show the canvas elements after unloading the demonstration scene
+        welcomeText.gameObject.SetActive(true);
+        instructionText.gameObject.SetActive(true);
+        nextButton.gameObject.SetActive(true);
+        previousButton.gameObject.SetActive(true);
+        skipButton.gameObject.SetActive(true);
 
-        // Advance to next instruction
-        AdvanceToNextInstruction();
+        // Move to next instruction
+        currentInstructionIndex++;
+        UpdateInstructionDisplay();
 
         isTransitioning = false;
         UpdateButtonStates();
     }
 
-    private void SetUIElementsActive(bool active)
-    {
-        if (!enabled) return;
-
-        if (welcomeText != null)
-            welcomeText.gameObject.SetActive(active);
-
-        if (instructionText != null)
-            instructionText.gameObject.SetActive(active);
-
-        if (nextButton != null)
-            nextButton.gameObject.SetActive(active);
-
-        if (previousButton != null)
-            previousButton.gameObject.SetActive(active && currentInstructionIndex > 0);
-
-        if (skipButton != null)
-            skipButton.gameObject.SetActive(active && currentInstructionIndex == 0);
-    }
-
     private void LoadScene(string sceneName)
     {
         SceneManager.LoadScene(sceneName);
-    }
-
-    void Update()
-    {
-        if (!enabled || isProcessingInput) return;
-
-        // 处理键盘输入
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
-        {
-            if (!isKeyPressed && !isTransitioning)
-            {
-                isKeyPressed = true;
-                ShowNextInstruction();
-            }
-        }
-        else if (Input.GetKeyDown(KeyCode.Backspace))
-        {
-            if (!isKeyPressed && !isTransitioning)
-            {
-                isKeyPressed = true;
-                ShowPreviousInstruction();
-            }
-        }
-    }
-
-    void OnDestroy()
-    {
-        // 清理事件监听
-        if (nextButton != null) nextButton.onClick.RemoveAllListeners();
-        if (previousButton != null) previousButton.onClick.RemoveAllListeners();
-        if (skipButton != null) skipButton.onClick.RemoveAllListeners();
     }
 }

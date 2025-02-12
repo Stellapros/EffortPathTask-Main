@@ -10,9 +10,6 @@ using UnityEngine.SceneManagement;
 
 public class GridWorldManager : MonoBehaviour
 {
-    // Singleton instance
-    // public static GridWorldManager Instance { get; private set; }
-
     private static GridWorldManager _instance;
     public static GridWorldManager Instance
     {
@@ -29,7 +26,6 @@ public class GridWorldManager : MonoBehaviour
 
     // Events
     public event System.Action<bool> OnTrialEnded;
-    // public event System.Action<int> OnRewardCollected;
 
     [Header("Core Components")]
     public GameController gameController;
@@ -46,69 +42,61 @@ public class GridWorldManager : MonoBehaviour
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject rewardPrefab;
 
-    // [Header("Practice Settings")]
-    // [SerializeField] private float practiceTrialDuration = 10f;
-    // [SerializeField] private int practiceGridSize = 7;
-    // [SerializeField] private float practiceDurationMultiplier = 1.5f;
-
-    [Header("Experiment Settings")]
-    // [SerializeField] private float defaultTrialDuration = 5.0f;
-    // [SerializeField] private int defaultGridSize = 7;
 
     private bool isTrialActive = false;
     // private bool componentsInitialized = false;
 
-private void Awake()
-{
-    // Proper singleton pattern implementation
-    if (Instance != null && Instance != this)
+    private void Awake()
     {
-        Destroy(gameObject);
-        return;
-    }
-    
-    Instance = this;
-    DontDestroyOnLoad(gameObject);
-    
-    // Always start disabled - will be enabled when needed
-    gameObject.SetActive(false);
-}
+        // Proper singleton pattern implementation
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
 
-private void Start()
-{
-    // Only initialize components if we're in GridWorld scene
-    if (SceneManager.GetActiveScene().name == "GridWorld")
-    {
-        gameObject.SetActive(true);
-        InitializeComponents();
-        SetupTrialGridWorld();
-    }
-}
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
 
-void OnEnable()
-{
-    SceneManager.sceneLoaded += OnSceneLoaded;
-}
-
-void OnDisable()
-{
-    SceneManager.sceneLoaded -= OnSceneLoaded;
-}
-
-void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-{
-    // Only activate and initialize in GridWorld scene
-    if (scene.name == "GridWorld")
-    {
-        gameObject.SetActive(true);
-        InitializeComponents();
-        SetupTrialGridWorld();
-    }
-    else
-    {
+        // Always start disabled - will be enabled when needed
         gameObject.SetActive(false);
     }
-}
+
+    private void Start()
+    {
+        // Only initialize components if we're in GridWorld scene
+        if (SceneManager.GetActiveScene().name == "GridWorld")
+        {
+            gameObject.SetActive(true);
+            InitializeComponents();
+            SetupTrialGridWorld();
+        }
+    }
+
+    void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Only activate and initialize in GridWorld scene
+        if (scene.name == "GridWorld")
+        {
+            gameObject.SetActive(true);
+            InitializeComponents();
+            SetupTrialGridWorld();
+        }
+        else
+        {
+            gameObject.SetActive(false);
+        }
+    }
 
     private void InitializeComponents()
     {

@@ -9,9 +9,10 @@ public class CountdownTimer : MonoBehaviour
 
     [SerializeField] private TextMeshProUGUI timerText;
     [SerializeField] private float totalTime = 5.0f;
-    [SerializeField] private Color warningColor = new Color(0.6f, 0.2f, 0.2f); // 调暗的红色
+    // [SerializeField] private Color warningColor = new Color(0.6f, 0.2f, 0.2f); // dard red
+    [SerializeField] private Color warningColor = new Color(1f, 1f, 0f); // bright yellow 
     [SerializeField] private Color normalColor = new Color(0.584f, 0.761f, 0.749f); // #95C2BF
-    
+
     private float timeLeft;
     private bool isRunning = false;
     private bool isInWarningPhase = false;
@@ -78,6 +79,7 @@ public class CountdownTimer : MonoBehaviour
 
     public void StartTimer(float duration)
     {
+        Debug.Log("StartTimer called"); // Debug log
         totalTime = duration;
         timeLeft = totalTime;
         isRunning = true;
@@ -88,6 +90,17 @@ public class CountdownTimer : MonoBehaviour
         Debug.Log($"Timer started with duration: {duration}s");
 
         PlayerController.Instance?.EnableMovement();
+
+        // Added debug logs for PlayModeIndicator
+        if (PlayModeIndicator.Instance != null)
+        {
+            Debug.Log("Found PlayModeIndicator instance, showing play mode");
+            PlayModeIndicator.Instance.ShowPlayMode();
+        }
+        else
+        {
+            Debug.LogError("PlayModeIndicator.Instance is null!");
+        }
     }
 
     public void StopTimer()
@@ -98,6 +111,12 @@ public class CountdownTimer : MonoBehaviour
         timerText.color = normalColor;
         UpdateTimerUI();
         Debug.Log($"Timer stopped at {Time.realtimeSinceStartup}. Elapsed time: {stopwatch.ElapsedMilliseconds / 1000f}s");
+
+        // Hide play mode indicator when timer stops
+        if (PlayModeIndicator.Instance != null)
+        {
+            PlayModeIndicator.Instance.HidePlayMode();
+        }
     }
 
     public void ResetTimer()

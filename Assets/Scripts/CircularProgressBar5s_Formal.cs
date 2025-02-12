@@ -10,7 +10,7 @@ public class CircularProgressBar5s_Formal : MonoBehaviour
     public TextMeshProUGUI countdownText;
 
     private const float DURATION = 5f;
-    public string nextSceneName = "Block1_Instructions";
+    private string nextSceneName = "Block_PreInstructions";
 
     private void Start()
     {
