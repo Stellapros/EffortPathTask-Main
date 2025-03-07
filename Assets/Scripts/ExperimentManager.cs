@@ -17,7 +17,7 @@ public class ExperimentManager : MonoBehaviour
     #endregion
 
     #region Constants
-    public const float BLOCK_DURATION = 120f; // 2 minutes per block
+    public const float BLOCK_DURATION = 20f; // 2 minutes per block
     private const float MIN_TRIAL_DURATION = 10f; // Minimum time needed for a trial
     private const int TOTAL_BLOCKS = 2; // Total number of blocks
     // private const int TRIALS_PER_BLOCK = 9; // Number of trials in each block
@@ -83,7 +83,7 @@ public class ExperimentManager : MonoBehaviour
     [SerializeField] private string decisionPhaseScene = "DecisionPhase";
     [SerializeField] private string gridWorldScene = "GridWorld";
     [SerializeField] private string restBreakScene = "RestBreak";
-    [SerializeField] private string endExperimentScene = "EndExperiment";
+    // [SerializeField] private string endExperimentScene = "EndExperiment";
     #endregion
 
     #region Scene Flow Configuration
@@ -289,6 +289,7 @@ public class ExperimentManager : MonoBehaviour
             // LogManager.instance.LogEvent("ExperimentStart");
             logManager.LogExperimentStart(true);
         }
+        
         VerifyPlayerPrefs();
 
         if (!hasInitializedFlow)
@@ -308,13 +309,13 @@ public class ExperimentManager : MonoBehaviour
         int effortLevel = GetCurrentTrialEffortLevel();
         int requiredPresses = GetCurrentTrialEV();
 
-        logManager.LogTrialStart(
-            currentTrialIndex,
-            currentBlockNumber,
-            effortLevel,
-            requiredPresses,
-            isPractice
-        );
+        // logManager.LogTrialStart(
+        //     currentTrialIndex,
+        //     currentBlockNumber,
+        //     effortLevel,
+        //     requiredPresses,
+        //     isPractice
+        // );
 
         // Reset the decision type at the start of each trial
         CurrentDecisionType = string.Empty;
@@ -323,17 +324,6 @@ public class ExperimentManager : MonoBehaviour
         decisionStartTime = Time.time;
         trialStartTime = Time.time;
         decisionTimeoutCoroutine = StartCoroutine(DecisionTimeout());
-    }
-
-    void OnRewardPlacement(Vector2 position)
-    {
-        int effortLevel = GetCurrentTrialEffortLevel();
-        logManager.LogRewardPosition(currentTrialIndex, position, effortLevel);
-    }
-
-    void OnDecisionMade(string decisionType, float reactionTime)
-    {
-        logManager.LogDecisionMetrics(currentTrialIndex, currentBlockNumber, decisionType, reactionTime);
     }
 
     private void OnDestroy()
@@ -834,21 +824,6 @@ public class ExperimentManager : MonoBehaviour
                   $"Medium={spriteToEffortMap[level2Sprite]}, Hard={spriteToEffortMap[level3Sprite]}");
     }
 
-
-    // Add method to initialize tracking
-    private void InitializeEffortTracking()
-    {
-        for (int i = 0; i < TOTAL_BLOCKS; i++)
-        {
-            blockEffortCounts[i] = new Dictionary<int, int>
-        {
-            { 1, 0 }, // Level 1 (Orange)
-            { 2, 0 }, // Level 2 (Banana)
-            { 3, 0 }  // Level 3 (Cherry)
-        };
-        }
-    }
-
     // Add method to track effort levels
     private void TrackEffortLevel(int blockIndex, int effortLevel)
     {
@@ -857,24 +832,6 @@ public class ExperimentManager : MonoBehaviour
         {
             blockEffortCounts[blockIndex][effortLevel]++;
         }
-    }
-
-    // Add method to verify ratios periodically
-    private void VerifyBlockRatios(int blockIndex)
-    {
-        if (!blockEffortCounts.ContainsKey(blockIndex)) return;
-
-        var counts = blockEffortCounts[blockIndex];
-        int total = counts.Values.Sum();
-
-        StringBuilder log = new StringBuilder();
-        log.AppendLine($"Block {blockIndex + 1} Distribution:");
-        foreach (var kvp in counts)
-        {
-            float percentage = total > 0 ? (float)kvp.Value / total * 100 : 0;
-            log.AppendLine($"Level {kvp.Key}: {kvp.Value} trials ({percentage:F1}%)");
-        }
-        Debug.Log(log.ToString());
     }
 
 
@@ -914,46 +871,62 @@ public class ExperimentManager : MonoBehaviour
     /// <summary>
     /// Handles the user's decision to work or skip.
     /// </summary>
-    public void HandleDecision(bool workDecision)
+    public void HandleDecision(bool workDecision, float decisionTime)
     {
         if (decisionMade) return;
         decisionMade = true;
 
-        float decisionReactionTime = Time.time - decisionStartTime;
+        // float decisionTime = Time.time - decisionStartTime;
         string decisionType = workDecision ? "Work" : "Skip";
         CurrentDecisionType = decisionType;
 
         // Log decision phase metrics
-        logManager.LogDecisionPhaseStart(currentTrialIndex);
-        logManager.LogDecisionMade(
-            trialNumber: currentTrialIndex,  // Pass the trial number
-            decisionType: decisionType,      // Pass the decision type
-            decisionTime: decisionReactionTime  // Pass the reaction time
-        );
-        logManager.LogDecisionMetrics(currentTrialIndex, currentBlockNumber, decisionType, decisionReactionTime);
+        // logManager.LogDecisionPhaseStart(currentTrialIndex);
+        // logManager.LogDecisionMade(
+        //     trialNumber: currentTrialIndex,  // Pass the trial number
+        //     decisionType: decisionType,      // Pass the decision type
+        //     decisionTime: decisionReactionTime  // Pass the reaction time
+        // );
+        logManager.LogDecisionMetrics(currentTrialIndex, currentBlockNumber, decisionType, decisionTime);
 
         if (workDecision)
         {
+            logManager.LogWorkDecision(currentTrialIndex, decisionTime);
             LoadScene(gridWorldScene);
+            
         }
         else
         {
-            StartCoroutine(HandleSkipPenalty());
+            logManager.LogSkipDecision(currentTrialIndex, decisionTime);
+            StartCoroutine(HandleSkipPenalty(decisionTime));
         }
+
+        // Log the decision outcome
+    logManager.LogDecisionOutcome(
+        currentTrialIndex,
+        currentBlockNumber,
+        decisionType,
+        false, // rewardCollected will be updated in the movement phase
+        decisionTime,
+        0, // movementTime will be updated in the movement phase
+        0, // buttonPresses will be updated in the movement phase
+        GetCurrentTrialEffortLevel(),
+        GetCurrentTrialEV()
+    );
     }
 
-    private IEnumerator HandleSkipPenalty()
+    private IEnumerator HandleSkipPenalty(float decisionTime)
     {
         Debug.Log("HandleSkipPenalty started");
         float penaltyStartTime = Time.time;
 
         logManager.LogPenaltyStart(currentTrialIndex, "Skip", SKIP_DELAY);
         // logManager.LogSkipDecision(currentTrialIndex, "Skip", Time.time - decisionStartTime);
-        logManager.LogSkipDecision(currentTrialIndex);
+        logManager.LogSkipDecision(currentTrialIndex, decisionTime);
 
         yield return new WaitForSeconds(SKIP_DELAY);
 
-        logManager.LogPenaltyEnd(currentTrialIndex, "Skip");
+        // logManager.LogPenaltyEnd(currentTrialIndex, "Skip");
         float totalDuration = Time.time - penaltyStartTime;
 
         // Log trial outcome for skip
@@ -1001,7 +974,7 @@ public class ExperimentManager : MonoBehaviour
         // Wait for the full penalty duration
         yield return new WaitForSeconds(NO_DECISION_PENALTY_DURATION);
 
-        logManager.LogPenaltyEnd(currentTrialIndex, "NoDecision");
+        // logManager.LogPenaltyEnd(currentTrialIndex, "NoDecision");
         float totalDuration = Time.time - penaltyStartTime;
 
         // Process no-decision as a completed trial
@@ -1134,13 +1107,13 @@ public class ExperimentManager : MonoBehaviour
 
         int pressesRequired = GetCurrentTrialEV();
 
-        logManager.LogTrialStart(
-            currentTrialIndex,
-            currentBlockNumber,
-            effortLevel,
-            pressesRequired,
-            isPractice
-        );
+        // logManager.LogTrialStart(
+        //     currentTrialIndex,
+        //     currentBlockNumber,
+        //     effortLevel,
+        //     pressesRequired,
+        //     isPractice
+        // );
     }
 
     // Add helper method to check time constraints
@@ -1203,7 +1176,6 @@ public class ExperimentManager : MonoBehaviour
     /// <summary>
     /// Starts a new block of trials.
     /// </summary>
-    // Update StartNewBlock for time-based tracking
     private void StartNewBlock()
     {
         if (currentBlockNumber >= TOTAL_BLOCKS)
@@ -1233,8 +1205,6 @@ public class ExperimentManager : MonoBehaviour
         }
     }
 
-
-
     /// <summary>
     /// Ends the current block of trials.
     /// </summary>
@@ -1249,19 +1219,21 @@ public class ExperimentManager : MonoBehaviour
 
         Debug.Log($"EndCurrentBlock: Current block {currentBlockNumber + 1} ended");
 
-        // Check if we have more blocks
-        if (currentBlockNumber < TOTAL_BLOCKS - 1)
+        // Check if this is the last block
+        if (currentBlockNumber >= TOTAL_BLOCKS - 1)
         {
-            currentBlockNumber++; // Increment before loading rest break
-            Debug.Log($"Moving to block {currentBlockNumber + 1}, type: {randomizedBlockOrder[currentBlockNumber]}");
-            LoadScene(restBreakScene);
+            Debug.Log("All blocks completed, ending experiment");
+            EndExperiment(); // Directly end the experiment after the last block
         }
         else
         {
-            Debug.Log("All blocks completed, ending experiment");
-            EndExperiment();
+            // Increment block number and load rest break for the next block
+            currentBlockNumber++;
+            Debug.Log($"Moving to block {currentBlockNumber + 1}, type: {randomizedBlockOrder[currentBlockNumber]}");
+            LoadScene(restBreakScene);
         }
     }
+
     /// <summary>
     /// Ends the current trial and logs the result.
     /// </summary>
@@ -1327,7 +1299,8 @@ public class ExperimentManager : MonoBehaviour
     private IEnumerator ForceLoadEndScene()
     {
         yield return new WaitForSeconds(0.5f); // Short delay to ensure cleanup
-        SceneManager.LoadScene(endExperimentScene);
+        SceneManager.LoadScene("TirednessRating");
+        // SceneManager.LoadScene(endExperimentScene);
     }
 
     #endregion
@@ -1458,19 +1431,19 @@ public class ExperimentManager : MonoBehaviour
     public int GetTotalBlocks() => TOTAL_BLOCKS;
     public float GetBlockDuration() => BLOCK_DURATION;
     public BlockType GetNextBlockType() =>
-        currentBlockNumber < TOTAL_BLOCKS ? randomizedBlockOrder[currentBlockNumber] : randomizedBlockOrder[0];
+        currentBlockNumber <= TOTAL_BLOCKS ? randomizedBlockOrder[currentBlockNumber] : randomizedBlockOrder[0];
 
 
     public BlockType GetCurrentBlockType()
     {
-        if (currentBlockNumber >= TOTAL_BLOCKS)
+        if (currentBlockNumber > TOTAL_BLOCKS)
         {
             Debug.LogError("[ExperimentManager] Block index out of range!");
             return BlockType.HighLowRatio;
         }
 
         BlockType type = randomizedBlockOrder[currentBlockNumber];
-        Debug.Log($"[ExperimentManager] Current block type: {type} for block {currentBlockNumber + 1}");
+        // Debug.Log($"[ExperimentManager] Current block type: {type} for block {currentBlockNumber + 1}");
         return type;
     }
 
@@ -1478,8 +1451,14 @@ public class ExperimentManager : MonoBehaviour
     // public int GetCurrentBlockNumber() => currentBlockNumber;
 
     // Update display logic in GetCurrentBlockNumber to use 1-based indexing for display
-    public int GetCurrentBlockNumber() => currentBlockNumber + 1; // Convert 0-based to 1-based indexing for display
-                                                                  // public int GetCurrentBlockNumber() => currentBlockNumber;
+    // public int GetCurrentBlockNumber() => currentBlockNumber + 1; // Convert 0-based to 1-based indexing for display
+    // public int GetCurrentBlockNumber() => currentBlockNumber;
+    public int GetCurrentBlockNumber()
+    {
+        // Ensure the block number does not exceed the total number of blocks
+        // return Mathf.Min(currentBlockNumber + 1, TOTAL_BLOCKS);
+        return Mathf.Min(currentBlockNumber, TOTAL_BLOCKS);
+    }
 
     public int GetCurrentTrialIndex() => currentTrialIndex;
     // public int GetCurrentTrialInBlock() => currentTrialIndex % TRIALS_PER_BLOCK + 1;

@@ -87,6 +87,9 @@ EditorBuildSettings:
     path: Assets/Scenes/RestBreak.unity
     guid: aeef525b77894402f97b7531be261b15
   - enabled: 1
+    path: Assets/Scenes/TirednessRating.unity
+    guid: f0cf7272f81984642924696ead92a487
+  - enabled: 1
     path: Assets/Scenes/EndExperiment.unity
     guid: 063beda456492436ebf54a3355db67f2
   m_configObjects: {}

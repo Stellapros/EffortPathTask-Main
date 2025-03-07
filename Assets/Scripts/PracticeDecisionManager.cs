@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
+using System.Collections.Generic;
 
 public class PracticeDecisionManager : MonoBehaviour
 {
@@ -19,16 +20,20 @@ public class PracticeDecisionManager : MonoBehaviour
     [SerializeField] private AudioClip skipButtonSound;
     private PracticeManager practiceManager;
 
+    private float decisionPhaseStartTime;
+
     // Added for keyboard navigation
     private bool? isWorkButtonSelected = true;
     [SerializeField] private Color normalColor = new Color(0.67f, 0.87f, 0.86f);
     [SerializeField] private Color selectedColor = new Color(0.87f, 0.86f, 0.67f);
+
 
     // Skip delay constant
     private const int SKIP_SCORE = 0;
     private const float SKIP_DELAY = 3f;
     private bool isSkipDelayActive = false;
     private float skipDelayTimer;
+
 
     // New flag to prevent double processing
     private bool hasProcessedCurrentTrial = false;
@@ -195,6 +200,7 @@ public class PracticeDecisionManager : MonoBehaviour
 
     private void OnEnable()
     {
+        decisionPhaseStartTime = Time.time;
         SetupDecisionPhase();
         isWorkButtonSelected = null;
         UpdateButtonSelection();
@@ -337,6 +343,15 @@ public class PracticeDecisionManager : MonoBehaviour
 
     private void OnDecisionMade(bool workDecision)
     {
+        float decisionRT = Time.time - decisionPhaseStartTime;
+        int trialIndex = PracticeManager.Instance.GetCurrentPracticeTrialIndex();
+        LogManager.Instance.LogEvent("DecisionRT", new Dictionary<string, string>
+    {
+         {"TrialNumber", (trialIndex + 1).ToString()}, // Adjust to 1-based index
+        {"DecisionRT", decisionRT.ToString("F3")},
+        {"Decision", workDecision ? "Work" : "Skip"}
+    });
+
         // Reset the trial processing flag
         hasProcessedCurrentTrial = false;
 
@@ -356,6 +371,23 @@ public class PracticeDecisionManager : MonoBehaviour
         // Log the decision
         LogDecision(workDecision);
 
+        // Log the decision outcome
+        int currentTrial = practiceManager.GetCurrentPracticeTrialIndex();
+        int effortLevel = practiceManager.GetCurrentTrialEffortLevel();
+        int requiredPresses = GetPracticePressesByEffortLevel(effortLevel);
+
+        // LogManager.Instance.LogDecisionOutcome(
+        //     currentTrial,
+        //     -1, // Block number is -1 for practice trials
+        //     workDecision ? "Work" : "Skip",
+        //     false, // rewardCollected will be updated in the movement phase
+        //     0, // decisionTime will be updated in the movement phase
+        //     // 0, // movementTime will be updated in the movement phase
+        //     // 0, // buttonPresses will be updated in the movement phase
+        //     effortLevel,
+        //     requiredPresses
+        // );
+
         // Add these debug lines
         Debug.Log($"OnDecisionMade called. WorkDecision: {workDecision}");
         Debug.Log($"Current Score Before Adding: {PracticeScoreManager.Instance?.GetCurrentScore()}");
@@ -371,12 +403,11 @@ public class PracticeDecisionManager : MonoBehaviour
             // Only add score here if absolutely necessary
             Debug.Log("Skip decision - adding 1 point");
             PracticeScoreManager.Instance?.AddScore(SKIP_SCORE);
-
-
             ActivateSkipDelay();
         }
         Debug.Log($"Current Score After Adding: {PracticeScoreManager.Instance?.GetCurrentScore()}");
     }
+
 
     private System.Collections.IEnumerator DelayedSceneTransition(string sceneName, float delay)
     {

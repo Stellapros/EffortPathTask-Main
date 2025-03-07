@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using System.Collections;
 
 /// <summary>
 /// Handles collision detection for the player, particularly with rewards.
@@ -10,6 +14,12 @@ public class DetectCollisions : MonoBehaviour
     private PlayerController playerController;
     private RewardSpawner rewardSpawner;
     private bool hasCollectedReward = false;
+
+    [Header("Celebration")]
+    [SerializeField] private Text celebratoryMessage;
+    [SerializeField] private float celebrationDuration = 2f;
+    [SerializeField] private ParticleSystem celebrationParticles;
+    private Coroutine celebrationCoroutine;
 
     private void Start()
     {
@@ -33,6 +43,10 @@ public class DetectCollisions : MonoBehaviour
             Debug.LogWarning("GameController not found in the scene!");
         if (gridWorldManager == null)
             Debug.LogWarning("GridWorldManager not found in the scene!");
+
+        // Make sure celebratory message is empty at start
+        if (celebratoryMessage != null)
+            celebratoryMessage.text = "";
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -53,6 +67,19 @@ public class DetectCollisions : MonoBehaviour
         hasCollectedReward = true;
         gameController.RewardCollected(true);
 
+        // Start celebration
+        ShowCelebration();
+
+        // Log the reward collection
+        if (LogManager.Instance != null)
+        {
+            LogManager.Instance.LogEvent("RewardCollected", new Dictionary<string, string>
+            {
+                {"RewardCollected", "true"},
+                {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+            });
+        }
+
         // Use RewardSpawner to clear the reward properly
         if (rewardSpawner != null)
         {
@@ -65,4 +92,48 @@ public class DetectCollisions : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Shows celebration message for a limited time
+    /// </summary>
+    private void ShowCelebration()
+    {
+        if (celebratoryMessage != null)
+        {
+            // Stop any existing celebration
+            if (celebrationCoroutine != null)
+                StopCoroutine(celebrationCoroutine);
+
+            // Start new celebration
+            celebrationCoroutine = StartCoroutine(CelebrationRoutine());
+        }
+
+        // Play particle effects if assigned
+        if (celebrationParticles != null)
+        {
+            celebrationParticles.Play();
+        }
+
+        // Play audio if you have an audio source
+        if (TryGetComponent<AudioSource>(out var audioSource) && audioSource.clip != null)
+        {
+            audioSource.Play();
+        }
+    }
+
+    private IEnumerator CelebrationRoutine()
+    {
+        celebratoryMessage.fontSize = 36;
+        celebratoryMessage.color = Color.cyan;
+        celebratoryMessage.text = "Well done!";
+
+        // Optional: add animation or visual effects here
+
+        yield return new WaitForSeconds(celebrationDuration);
+
+        celebratoryMessage.text = "";
+        celebrationCoroutine = null;
+    }
 }
+
+
+

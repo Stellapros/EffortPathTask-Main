@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections;
 using UnityEngine.SceneManagement;
+using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// Manages the overall state and flow of the GridWorld game.
@@ -106,6 +108,10 @@ public class PracticeGridWorldManager : MonoBehaviour
         {
             Debug.LogError("PracticeManager is null when setting up Practice GridWorld");
         }
+
+        // Log trial start
+        int currentTrial = practiceManager?.GetCurrentPracticeTrialIndex() ?? 0;
+        LogTrialStart(currentTrial, true); // Always true for practice trials
     }
 
     public void SetRewardSpriteFromDecisionPhase()
@@ -147,8 +153,36 @@ public class PracticeGridWorldManager : MonoBehaviour
 
     public void EndTrial(bool rewardCollected)
     {
-        Debug.Log($"Practice GridWorld EndTrial called. Reward Collected: {rewardCollected}");
+    Debug.Log($"Practice GridWorld EndTrial called. Reward Collected: {rewardCollected}");
 
+    // Log trial end
+    int currentTrial = practiceManager?.GetCurrentPracticeTrialIndex() ?? 0;
+    LogTrialEnd(currentTrial, rewardCollected);
+
+    // Log outcome type
+    LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
+    {
+        {"TrialNumber", (currentTrial + 1).ToString()},
+        {"OutcomeType", rewardCollected ? "Success" : "Failure"}
+    });
+    
+    if (rewardCollected)
+    {
+        LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
+        {
+            {"TrialNumber", currentTrial.ToString()},
+            {"OutcomeType", "Success"}
+        });
+    }
+    else
+    {
+        LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
+        {
+            {"TrialNumber", currentTrial.ToString()},
+            {"OutcomeType", "Failure"}
+        });
+    }
+    
         // If reward is collected but timer hasn't expired, just mark it
         if (rewardCollected && countdownTimer != null && countdownTimer.TimeLeft > 0)
         {
@@ -203,4 +237,32 @@ public class PracticeGridWorldManager : MonoBehaviour
             Debug.Log($"Current Practice Score at EndTrial: {PracticeScoreManager.Instance.GetCurrentScore()}");
         }
     }
+
+    #region Trial Logging
+    public void LogTrialStart(int trialNumber, bool isPractice)
+    {
+        if (LogManager.Instance != null)
+        {
+            LogManager.Instance.LogEvent("PracticeTrialStart", new Dictionary<string, string>
+        {
+            {"TrialNumber", (trialNumber + 1).ToString()},
+            {"IsPractice", isPractice.ToString()},
+            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
+        }
+    }
+
+    public void LogTrialEnd(int trialNumber, bool rewardCollected)
+    {
+        if (LogManager.Instance != null)
+        {
+            LogManager.Instance.LogEvent("PracticeTrialEnd", new Dictionary<string, string>
+        {
+            {"TrialNumber", trialNumber.ToString()},
+            {"RewardCollected", rewardCollected.ToString()},
+            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
+        }
+    }
+    #endregion
 }

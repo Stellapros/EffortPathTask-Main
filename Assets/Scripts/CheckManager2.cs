@@ -150,10 +150,10 @@ public class CheckManager2 : MonoBehaviour
         fruitPrefabs.RemoveAt(randomIndex);
         trialCount++;
 
-        if (LogManager.Instance != null)
-        {
-            LogManager.Instance.LogTrialStart(currentTrialIndex + 1, 1, 0, 0, false);
-        }
+        // if (LogManager.Instance != null)
+        // {
+        //     LogManager.Instance.LogTrialStart(currentTrialIndex + 1, 1, 0, 0, false);
+        // }
 
         if (trialIndexText != null)
         {

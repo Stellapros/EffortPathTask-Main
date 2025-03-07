@@ -8,6 +8,7 @@ public class InstructionManager : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI welcomeText;
     [SerializeField] private TextMeshProUGUI instructionText;
+    [SerializeField] private TextMeshProUGUI pageIndicatorText;
     [SerializeField] private Button nextButton;
     [SerializeField] private Button previousButton;
     [SerializeField] private Button skipButton;
@@ -54,21 +55,21 @@ public class InstructionManager : MonoBehaviour
 
     private string[] instructions = new string[]
     {
-        "1 Welcome to the Motivation Expedition, a strategic fruit-collecting adventure across two unique islands!",
-        "2 Each island offers different challenges and rewards. Your mission is to navigate, collect fruits, and maximize your score and minimize the efforts.",
-        "3 Now, let's explore how to play.",
-        "4 You will decide whether to collect fruits. Each Fruit = 10 POINTS.",
-        "5 Use the keyboard: Press 'A' to 'Work' (collect fruit) or 'D' to 'Skip' (rest). You have 2.5 seconds to decide — fail to choose in time, and you'll get 0 points plus a time penalty!",
-        "6 If you choose WORK: See that apple on the grid? That's your target! Time is limited, so act quickly to collect fruits before they disappear.",
-        "7 Use arrow keys to move your character. Some fruits are difficult to reach, you may need to press the keys multiple times to take a single step.",
-        "8 If you choose SKIP: Earn 0 points.",
-        "9 Your time on each island is LIMITED, so sometimes it might be better to SKIP, if the fruit feels hard to reach.",
-        "10 You will have to decide which fruits are worth collecting in this time limit.",
-        "11 You will visit two different islands, with 5 minutes on each island. The islands will differ in how often you see different kinds of fruit.",
-        "12 Remember, your goal is to explore the island, collect fruits, and decide which fruits are worth the effort.",
-        "13 Points will be converted to a bonus payment. Your choices will remain completely anonymous and confidential.",
-        "14 If you're unsure about the instructions, feel free to press the LEFT '←' button to read them again.",
-        "15 That's it! You're ready to start with some practice. Good luck, and may the juiciest fruits be ever in your favor!"
+        "Welcome to the Motivation Expedition, a strategic fruit-collecting adventure across two unique islands!",
+        "Each island offers different challenges and rewards. Your mission is to navigate, collect fruits, and maximize your score and minimize the efforts.",
+        "Now, let's explore how to play.",
+        "You will decide whether to collect fruits. Each Fruit = 10 POINTS.",
+        "Use the keyboard: Press 'A' to 'Work' (collect fruit) or 'D' to 'Skip' (rest). You have 2.5 seconds to decide — fail to choose in time, and you'll get 0 points plus a time penalty!",
+        "If you choose WORK: See that apple on the grid? That's your target! Time is limited, so act quickly to collect fruits before they disappear.",
+        "Use arrow keys to move your character. Some fruits are difficult to reach, you may need to press the keys multiple times to take a single step.",
+        "If you choose SKIP: Earn 0 points.",
+        "Your time on each island is LIMITED, so sometimes it might be better to SKIP, if the fruit feels hard to reach.",
+        "You will have to decide which fruits are worth collecting in this time limit.",
+        "You will visit two different islands, with 5 minutes on each island. The islands will differ in how often you see different kinds of fruit.",
+        "Remember, your goal is to explore the island, collect fruits, and decide which fruits are worth the effort.",
+        "Points will be converted to a bonus payment. Your choices will remain completely anonymous and confidential.",
+        "If you're unsure about the instructions, feel free to press the LEFT '←' button to read them again.",
+        "That's it! You're ready to start with some practice. Good luck, and may the juiciest fruits be ever in your favor!"
     };
 
     private int currentInstructionIndex = 0;
@@ -232,12 +233,15 @@ public class InstructionManager : MonoBehaviour
         }
         else
         {
-            // instructionText.text += "\n\n<size=70%>Use ←/→ to navigate buttons, Space/Enter to confirm</size>";
-            // instructionText.text += "\n\n<size=70%>Use ←/→ to navigate</size>";
             instructionText.text += "\n\n<size=70%>Press 'Space' to continue; ← to go back</size>";
         }
-    }
 
+        // Update page indicator if available
+        if (pageIndicatorText != null)
+        {
+            pageIndicatorText.text = $"Page {currentInstructionIndex + 1} of {instructions.Length}";
+        }
+    }
 
     private IEnumerator ShowGridWorldDemo()
     {
@@ -254,6 +258,7 @@ public class InstructionManager : MonoBehaviour
         nextButton.gameObject.SetActive(false);
         previousButton.gameObject.SetActive(false);
         skipButton.gameObject.SetActive(false);
+        pageIndicatorText.gameObject.SetActive(false);
 
         // Load GridWorld scene
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("TourGridWorld", LoadSceneMode.Additive);
@@ -281,6 +286,7 @@ public class InstructionManager : MonoBehaviour
         nextButton.gameObject.SetActive(true);
         previousButton.gameObject.SetActive(true);
         skipButton.gameObject.SetActive(true);
+        pageIndicatorText.gameObject.SetActive(true);
 
         // Move to next instruction
         currentInstructionIndex++;

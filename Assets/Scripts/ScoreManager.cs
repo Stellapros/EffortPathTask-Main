@@ -9,7 +9,7 @@ public class ScoreManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI scoreText;
     private int totalScore = 0;
     private int practiceScore = 0;
-    private ScoreAnimationManager animationManager;
+    private ScoreAnimationManager scoreAnimationManager;
 
     // List of scenes where score should be displayed
     private readonly string[] scenesWithScore = { "GridWorld", "DecisionPhase" };
@@ -34,14 +34,11 @@ public class ScoreManager : MonoBehaviour
 
     private void Start()
     {
-        animationManager = gameObject.AddComponent<ScoreAnimationManager>();
+        scoreAnimationManager = gameObject.AddComponent<ScoreAnimationManager>();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Debug.Log($"ScoreManager: Scene loaded - {scene.name}");
-
-        // Ensure score text persists across scene loads
         bool shouldDisplayScore = System.Array.Exists(scenesWithScore,
             sceneName => scene.name.Contains(sceneName));
 
@@ -85,46 +82,11 @@ public class ScoreManager : MonoBehaviour
         // Uncomment if needed
         // CreateScoreText();
     }
-    
-    private void CreateScoreText()
-    {
-        // Find existing canvas or create new one
-        Canvas canvas = FindAnyObjectByType<Canvas>();
-        if (canvas == null)
-        {
-            GameObject canvasObj = new GameObject("Canvas");
-            canvas = canvasObj.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 999; // Ensure it's on top
-            canvasObj.AddComponent<UnityEngine.UI.CanvasScaler>();
-            canvasObj.AddComponent<UnityEngine.UI.GraphicRaycaster>();
-        }
 
-        // Create score text object
-        GameObject scoreTextObj = new GameObject("ScoreText");
-        scoreTextObj.transform.SetParent(canvas.transform, false);
-
-        // Set up TextMeshProUGUI component
-        scoreText = scoreTextObj.AddComponent<TextMeshProUGUI>();
-        scoreText.fontSize = 36;
-        scoreText.color = Color.white;
-        scoreText.font = TMP_Settings.defaultFontAsset;
-        scoreText.alignment = TextAlignmentOptions.TopRight;
-
-        // Position the score text
-        RectTransform rectTransform = scoreText.rectTransform;
-        rectTransform.anchorMin = new Vector2(1, 1);
-        rectTransform.anchorMax = new Vector2(1, 1);
-        rectTransform.pivot = new Vector2(1, 1);
-        rectTransform.anchoredPosition = new Vector2(-20, -20);
-        rectTransform.sizeDelta = new Vector2(200, 50);
-
-        UpdateScoreDisplay();
-    }
 
     public void AddScore(int points, bool isFormalTrial)
     {
-        Debug.Log($"≈ called - Points: {points}, IsFormalTrial: {isFormalTrial}, Current Scene: {SceneManager.GetActiveScene().name}");
+        Debug.Log($"AddScore called - Points: {points}, IsFormalTrial: {isFormalTrial}, Current Scene: {SceneManager.GetActiveScene().name}");
 
         if (isFormalTrial)
         {
@@ -137,10 +99,36 @@ public class ScoreManager : MonoBehaviour
             Debug.Log($"Practice trial: Added {points} points. New practice score: {practiceScore}");
         }
 
-        // Force immediate display update
-        // UpdateScoreDisplay();
+        // Get current trial number from TrialManager if available
+        int trialNumber = 0;
+        if (ExperimentManager.Instance != null)
+        {
+            trialNumber = ExperimentManager.Instance.GetCurrentTrialIndex() + 1;
+        }
 
-        // Force update across scenes
+        // Get scores for logging (using different variable names to avoid conflict)
+        int currentTotalScore = this.totalScore;
+        int currentPracticeScore = this.practiceScore;
+
+        // Check if we should use practice score from PracticeScoreManager for accuracy
+        if (!isFormalTrial && PracticeScoreManager.Instance != null)
+        {
+            currentPracticeScore = PracticeScoreManager.Instance.GetCurrentScore();
+        }
+
+        // Get block number - for practice always use 0, for formal trials get from ExperimentManager
+        // int blockNumber = 0;
+        int blockNumber = 1;
+        if (isFormalTrial && ExperimentManager.Instance != null)
+        {
+            // blockNumber = PlayerPrefs.GetInt("CurrentBlock", 0);              
+            blockNumber = ExperimentManager.Instance.GetCurrentBlockNumber();
+        }
+
+        // Log the score update with complete information
+        LogManager.Instance.LogScoreUpdateComplete(trialNumber, !isFormalTrial, points, "ScoreAdded",
+                                                   currentTotalScore, currentPracticeScore, blockNumber);
+
         if (scoreText == null)
         {
             StartCoroutine(FindAndUpdateScoreTextPersistent());
@@ -150,7 +138,6 @@ public class ScoreManager : MonoBehaviour
             UpdateScoreDisplay();
         }
 
-        // Verify the score text was updated
         if (scoreText != null)
         {
             Debug.Log($"Score display updated. Current text: {scoreText.text}");
@@ -158,14 +145,13 @@ public class ScoreManager : MonoBehaviour
         else
         {
             Debug.LogWarning("Score text is null during AddScore!");
-            // CreateScoreText();          
         }
 
         // Play animation if possible
-        // if (scoreText != null && animationManager != null)
-        // {
-        //     animationManager.PlayScoreAnimation(scoreText, points);
-        // }
+        if (scoreText != null && scoreAnimationManager != null)
+        {
+            scoreAnimationManager.PlayScoreAnimation(scoreText, points);
+        }
     }
 
     private void UpdateScoreDisplay()

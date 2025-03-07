@@ -43,49 +43,32 @@ public class RestBreakManager : MonoBehaviour
         navigationController.AddElement(continueButton);
     }
 
-    private void UpdateBlockInfo()
+private void UpdateBlockInfo()
+{
+    if (blockInfoText != null && ExperimentManager.Instance != null)
     {
-        if (blockInfoText != null && ExperimentManager.Instance != null)
+        int currentBlock = ExperimentManager.Instance.GetCurrentBlockNumber();
+        ExperimentManager.BlockType nextBlockType = ExperimentManager.Instance.GetNextBlockType();
+
+        Debug.Log($"RestBreakManager: Current block: {currentBlock}, Next block type: {nextBlockType}");
+
+        // Check if we're at the end of the experiment
+        if (currentBlock > ExperimentManager.Instance.GetTotalBlocks())
         {
-            int currentBlock = ExperimentManager.Instance.GetCurrentBlockNumber();
-            ExperimentManager.BlockType nextBlockType = ExperimentManager.Instance.GetNextBlockType();
-
-            Debug.Log($"RestBreakManager: Current block: {currentBlock}, Next block type: {nextBlockType}");
-
-            // Check if we're at the end of the experiment
-            if (currentBlock > ExperimentManager.Instance.GetTotalBlocks())
-            {
-                SceneManager.LoadScene("EndExperiment");
-                return;
-            }
-
-            // "Orange Haven" = HighLowRatio; "Cherry Paradise" = LowHighRatio
-            string blockDescription = nextBlockType == ExperimentManager.BlockType.HighLowRatio ?
-                "where most fruits will require more effort" :
-                "where most fruits will require less effort";
-
-            // 修改显示逻辑，确保 currentBlock - 1 不会为负数
-            int completedBlock = currentBlock;
-            // if (completedBlock < 0) completedBlock = 0; // 防止负数
-
-            // blockInfoText.text = $"You have completed Block {completedBlock} of 2.\n\n" +
-            //     "Take a short break, then click 'Continue' when you're ready to start " +
-            //     $"the next block {blockDescription}. ";
-
-            // blockInfoText.text = $"Nice shot!\n\n" +
-            //     "Take a short break, then hit 'Space' or the 'Continue' button when you're ready to embark on the next island's adventure — " +
-            //     $"{blockDescription} awaits! ";
-
-            blockInfoText.text = $"Nice shot!\n\n" +
-                "Take a short break, then hit 'Space' or the 'Continue' button when you're ready to embark on the next island's adventure";
-
-            Debug.Log($"RestBreakManager: Block info updated. Completed block: {completedBlock}, Next block type: {nextBlockType}");
+            SceneManager.LoadScene("TirednessRating");
+            return;
         }
-        else
-        {
-            Debug.LogError("RestBreakManager: Required components not assigned!");
-        }
+
+        blockInfoText.text = $"Nice shot!\n\n" +
+            "Take a short break, then hit 'Space' or the 'Continue' button when you're ready to embark on the next island's adventure";
+
+        Debug.Log($"RestBreakManager: Block info updated. Completed block: {currentBlock}, Next block type: {nextBlockType}");
     }
+    else
+    {
+        Debug.LogError("RestBreakManager: Required components not assigned!");
+    }
+}
 
 
     private void UpdateScoreDisplay()
@@ -110,6 +93,7 @@ public class RestBreakManager : MonoBehaviour
             ContinueExperiment();
         }
     }
+
     private void ContinueExperiment()
     {
         Debug.Log("RestBreakManager: ContinueExperiment method called");
@@ -118,7 +102,7 @@ public class RestBreakManager : MonoBehaviour
         {
             ExperimentManager.Instance.ContinueAfterBreak();
 
-            // Load the instructions scene (now generic since blocks are randomized)
+            // Load the instructions scene for the next block
             SceneManager.LoadScene(nextSceneName);
             Debug.Log($"RestBreakManager: Loading next scene: {nextSceneName}");
         }

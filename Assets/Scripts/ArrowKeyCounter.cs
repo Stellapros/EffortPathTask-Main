@@ -46,6 +46,12 @@ public class ArrowKeyCounter : MonoBehaviour
         "Great effort! But can you go even faster? Now, TRY TO BEAT YOUR SCORE and push the bar even HIGHER! Get ready... and start pressing when you're prepared.",
         "This is your LAST CHANCE to reach the top! Give it your all. Every tap counts! GO! Explorer!"
     };
+    private class CalibrationStats
+    {
+        public int MaximumPresses { get; set; }
+        public int AveragePresses { get; set; }
+        public float MaxPressRate { get; set; }
+    }
 
     private void Start()
     {
@@ -130,13 +136,13 @@ public class ArrowKeyCounter : MonoBehaviour
     // }
 
     private void UpdateProgressBar()
-{
-    if (progressBarFill != null)
     {
-        currentProgress = (float)counter / targetPresses;
-        progressBarFill.fillAmount = Mathf.Clamp01(currentProgress);
+        if (progressBarFill != null)
+        {
+            currentProgress = (float)counter / targetPresses;
+            progressBarFill.fillAmount = Mathf.Clamp01(currentProgress);
+        }
     }
-}
 
 
     private void ResetProgressBar()
@@ -220,26 +226,26 @@ public class ArrowKeyCounter : MonoBehaviour
         }
     }
 
-    private void CalculateFinalResultsAndProceed()
-    {
-        int averageKeyPresses = Mathf.RoundToInt((float)phaseResults.Average());
-        PlayerPrefs.SetInt("totalKeyPresses", averageKeyPresses);
+    // private void CalculateFinalResultsAndProceed()
+    // {
+    //     int averageKeyPresses = Mathf.RoundToInt((float)phaseResults.Average());
+    //     PlayerPrefs.SetInt("totalKeyPresses", averageKeyPresses);
 
-        CalculateAndSetPressesPerEffortLevel(averageKeyPresses);
+    //     CalculateAndSetPressesPerEffortLevel(averageKeyPresses);
 
-        // Log final calibration results
-        logManager?.LogCalibrationResults(
-            phaseResults[0],
-            phaseResults[1],
-            phaseResults[2],
-            averageKeyPresses,
-            PlayerPrefs.GetInt("PressesPerEffortLevel_0"),
-            PlayerPrefs.GetInt("PressesPerEffortLevel_1"),
-            PlayerPrefs.GetInt("PressesPerEffortLevel_2")
-        );
+    //     // Log final calibration results
+    //     logManager?.LogCalibrationResults(
+    //         phaseResults[0],
+    //         phaseResults[1],
+    //         phaseResults[2],
+    //         averageKeyPresses,
+    //         PlayerPrefs.GetInt("PressesPerEffortLevel_0"),
+    //         PlayerPrefs.GetInt("PressesPerEffortLevel_1"),
+    //         PlayerPrefs.GetInt("PressesPerEffortLevel_2")
+    //     );
 
-        SceneManager.LoadScene(nextSceneName);
-    }
+    //     SceneManager.LoadScene(nextSceneName);
+    // }
 
     private IEnumerator BreakBetweenPhases()
     {
@@ -258,35 +264,143 @@ public class ArrowKeyCounter : MonoBehaviour
         ShowCurrentInstruction();
     }
 
+    // Revised calibration = 1:3:5 till the press rate reaches 10
+    // Using 10%, 30%, and 50% of the average press rate
+    // private void CalculateAndSetPressesPerEffortLevel(int averageKeyPresses)
+    // {
+    //     float pressRate = (float)averageKeyPresses / calibrationTime;
+    //     int[] pressesPerEffortLevel = new int[3];
 
-    private void CalculateAndSetPressesPerEffortLevel(int averageKeyPresses)
+    //     pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressRate * 0.1f));
+    //     pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressRate * 0.3f));
+    //     pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressRate * 0.5f));
+
+    //     for (int i = 1; i < pressesPerEffortLevel.Length; i++)
+    //     {
+    //         if (pressesPerEffortLevel[i] - pressesPerEffortLevel[i - 1] < 2)
+    //         {
+    //             pressesPerEffortLevel[i] = pressesPerEffortLevel[i - 1] + 2;
+    //         }
+    //     }
+
+    //     for (int i = 0; i < pressesPerEffortLevel.Length; i++)
+    //     {
+    //         PlayerPrefs.SetInt($"PressesPerEffortLevel_{i}", pressesPerEffortLevel[i]);
+    //         Debug.Log($"Saved PressesPerEffortLevel_{i}: {pressesPerEffortLevel[i]}");
+    //     }
+    //     PlayerPrefs.Save();
+
+    //     string effortLevelsString = string.Join(", ", pressesPerEffortLevel);
+    //     Debug.Log($"Calibration completed. Average press rate: {pressRate}, Final presses per effort level: {effortLevelsString}");
+
+    //     string logEntry = $"{System.DateTime.Now}: Calibration - Average press rate: {pressRate}, Effort levels: {effortLevelsString}";
+    //     System.IO.File.AppendAllText("calibration_log.txt", logEntry + System.Environment.NewLine);
+    // }
+
+
+    private void CalculateFinalResultsAndProceed()
     {
-        float pressRate = (float)averageKeyPresses / calibrationTime;
-        int[] pressesPerEffortLevel = new int[3];
+        // Calculate both maximum and average
+        CalibrationStats stats = CalculateCalibrationStats();
 
-        pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressRate * 0.1f));
-        pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressRate * 0.3f));
-        pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressRate * 0.5f));
+        // Store both values
+        PlayerPrefs.SetInt("totalKeyPresses", stats.MaximumPresses);
+        PlayerPrefs.SetInt("averageKeyPresses", stats.AveragePresses);
 
-        for (int i = 1; i < pressesPerEffortLevel.Length; i++)
+        // Calculate and save effort levels based on maximum
+        int[] pressesPerEffortLevel = CalculateEffortLevels(stats.MaxPressRate);
+        SaveEffortLevels(pressesPerEffortLevel);
+
+        // Log results with both values
+        LogCalibrationResults(pressesPerEffortLevel, stats);
+
+        // Proceed to next scene
+        SceneManager.LoadScene(nextSceneName);
+    }
+
+    private CalibrationStats CalculateCalibrationStats()
+    {
+        return new CalibrationStats
         {
-            if (pressesPerEffortLevel[i] - pressesPerEffortLevel[i - 1] < 2)
-            {
-                pressesPerEffortLevel[i] = pressesPerEffortLevel[i - 1] + 2;
-            }
-        }
+            MaximumPresses = phaseResults.Max(),
+            AveragePresses = Mathf.RoundToInt((float)phaseResults.Average()),
+            MaxPressRate = (float)phaseResults.Max() / calibrationTime  // Keep this for logging purposes
+        };
+    }
 
+    private int[] CalculateEffortLevels(float maxPressRate)
+    {
+        int[] pressesPerEffortLevel = new int[3];
+        int maxPresses = phaseResults.Max();
+        float pressesPerMovement = maxPresses / 5f;
+
+        // // Calculate effort levels based on press rate percentages
+        // pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(maxPressRate * 0.49f));
+        // pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(maxPressRate * 0.56f));
+        // pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(maxPressRate * 0.70f));
+
+        // // Calculate effort levels based on press rate percentages
+        // pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(maxPressRate * 0.10f));
+        // pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(maxPressRate * 0.30f));
+        // pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(maxPressRate * 0.50f));
+
+        // // Calculate effort levels based on press rate percentages
+        // pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(maxPressRate * 0.30f));
+        // pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(maxPressRate * 0.60f));
+        // pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(maxPressRate * 0.90f));
+
+        // Calculate effort levels based on presses per movement
+        pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressesPerMovement * 0.30f));
+        pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressesPerMovement * 0.60f));
+        pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressesPerMovement * 0.90f));
+
+        // // Ensure minimum difference of 2 between levels
+        // for (int i = 1; i < pressesPerEffortLevel.Length; i++)
+        // {
+        //     if (pressesPerEffortLevel[i] - pressesPerEffortLevel[i - 1] < 2)
+        //     {
+        //         pressesPerEffortLevel[i] = pressesPerEffortLevel[i - 1] + 2;
+        //     }
+        // }
+
+        return pressesPerEffortLevel;
+    }
+
+    private void SaveEffortLevels(int[] pressesPerEffortLevel)
+    {
         for (int i = 0; i < pressesPerEffortLevel.Length; i++)
         {
             PlayerPrefs.SetInt($"PressesPerEffortLevel_{i}", pressesPerEffortLevel[i]);
             Debug.Log($"Saved PressesPerEffortLevel_{i}: {pressesPerEffortLevel[i]}");
         }
         PlayerPrefs.Save();
+    }
 
+    private void LogCalibrationResults(int[] pressesPerEffortLevel, CalibrationStats stats)
+    {
+        // Console logging
         string effortLevelsString = string.Join(", ", pressesPerEffortLevel);
-        Debug.Log($"Calibration completed. Average press rate: {pressRate}, Final presses per effort level: {effortLevelsString}");
+        Debug.Log($"Calibration completed. Maximum press rate: {stats.MaxPressRate}, " +
+                  $"Maximum presses: {stats.MaximumPresses}, Average presses: {stats.AveragePresses}, " +
+                  $"Final presses per effort level: {effortLevelsString}");
 
-        string logEntry = $"{System.DateTime.Now}: Calibration - Average press rate: {pressRate}, Effort levels: {effortLevelsString}";
+        // File logging
+        string logEntry = $"{System.DateTime.Now}: Calibration - " +
+                         $"Maximum press rate: {stats.MaxPressRate}, " +
+                         $"Maximum presses: {stats.MaximumPresses}, " +
+                         $"Average presses: {stats.AveragePresses}, " +
+                         $"Effort levels: {effortLevelsString}";
         System.IO.File.AppendAllText("calibration_log.txt", logEntry + System.Environment.NewLine);
+
+        // LogManager logging
+        logManager?.LogCalibrationResults(
+            phaseResults[0],
+            phaseResults[1],
+            phaseResults[2],
+            stats.MaximumPresses,  // Using maximum for calibration
+            pressesPerEffortLevel[0],
+            pressesPerEffortLevel[1],
+            pressesPerEffortLevel[2]
+        );
     }
 }

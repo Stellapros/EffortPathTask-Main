@@ -131,7 +131,7 @@ PrefabInstance:
         type: 3}
       propertyPath: logManager
       value: 
-      objectReference: {fileID: 315494380}
+      objectReference: {fileID: 0}
     - target: {fileID: -8690266444773239620, guid: 96d776e8ee130440d8b6e04107cc91e0,
         type: 3}
       propertyPath: gameController
@@ -224,6 +224,7 @@ GameObject:
   - component: {fileID: 136922340}
   - component: {fileID: 136922339}
   - component: {fileID: 136922338}
+  - component: {fileID: 136922341}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -305,6 +306,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &136922341
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 136922337}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8311a7ca064d4a0e8829ad2a811c67d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
+    type: 3}
 --- !u!1 &188394631
 GameObject:
   m_ObjectHideFlags: 0
@@ -640,7 +655,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 315494381}
-  - component: {fileID: 315494380}
+  - component: {fileID: 315494382}
   m_Layer: 0
   m_Name: LogManager
   m_TagString: Untagged
@@ -648,19 +663,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &315494380
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 315494379}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ca30b8a6de114aeeb1ea6c567718270, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_ShowDebugLogManager: 1
 --- !u!4 &315494381
 Transform:
   m_ObjectHideFlags: 0
@@ -676,6 +678,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &315494382
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 315494379}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ca30b8a6de114aeeb1ea6c567718270, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_ShowDebugLogManager: 1
+  participantID: 
 --- !u!1 &347793286
 GameObject:
   m_ObjectHideFlags: 0
@@ -960,7 +976,7 @@ PrefabInstance:
         type: 3}
       propertyPath: logManager
       value: 
-      objectReference: {fileID: 315494380}
+      objectReference: {fileID: 0}
     - target: {fileID: 3507179296321619295, guid: 082b8600c17df4d43939728b5144dd10,
         type: 3}
       propertyPath: block1InstructionScene
@@ -2701,7 +2717,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e04b3340cb7964238bff8d960e368eea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  backgroundMusic: {fileID: 8300000, guid: 4a672eff61471498085d0ec2b6b7efc2, type: 3}
+  backgroundMusic: {fileID: 8300000, guid: ebd529fa9d4bc4b3aa44e47046b9e782, type: 3}
 --- !u!114 &1911769004
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2912,6 +2928,6 @@ SceneRoots:
   - {fileID: 499181480}
   - {fileID: 1061459429}
   - {fileID: 315494381}
-  - {fileID: 1944345769}
   - {fileID: 1846582174}
   - {fileID: 1424053957}
+  - {fileID: 1944345769}

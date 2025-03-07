@@ -35,7 +35,7 @@ public class ParticipantInfo : MonoBehaviour
         submitButton.onClick.AddListener(SaveParticipantInfo);
 
         navigationController = gameObject.AddComponent<ButtonNavigationController>();
-        
+
         // Add navigation elements
         navigationController.AddElement(idInput);
         navigationController.AddElement(ageInput);

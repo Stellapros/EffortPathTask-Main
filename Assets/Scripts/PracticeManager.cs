@@ -108,19 +108,19 @@ public class PracticeManager : MonoBehaviour
         }
     }
 
-        private void Update()
+    private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space) && buttonsInitialized)
         {
             StartPracticeMode();
         }
     }
-    
+
     private void OnDisable()
     {
         // Remove scene loading event listener
         SceneManager.sceneLoaded -= OnSceneLoaded;
-        
+
         // Clean up button listeners and clear references
         CleanupButtonListeners();
     }
@@ -137,7 +137,7 @@ public class PracticeManager : MonoBehaviour
             skipButton.onClick.RemoveAllListeners();
             skipButton = null;
         }
-        
+
         // Reset initialization flags
         buttonsInitialized = false;
 
@@ -418,6 +418,9 @@ public class PracticeManager : MonoBehaviour
         PlayerPrefs.SetInt("CurrentPracticeTrialIndex", currentPracticeTrialIndex);
         PlayerPrefs.Save();
 
+        // Log the start of the first practice trial
+        LogPracticeTrialStart(currentPracticeTrialIndex + 1); // adjusted for 0-based index
+
         Debug.Log($"Starting practice attempt {practiceAttempts + 1}");
         SceneManager.LoadScene(decisionPhaseScene);
     }
@@ -453,7 +456,7 @@ public class PracticeManager : MonoBehaviour
         PlayerPrefs.DeleteKey("CurrentPracticeTrialIndex");
         PlayerPrefs.DeleteKey("CurrentPracticeEffortLevel");
     }
-    
+
     public void HandleDecisionPhaseOutcome(bool isWorking)
     {
         Debug.Log($"HandleDecisionPhaseOutcome called. isWorking: {isWorking}. Current Score: {PracticeScoreManager.Instance?.GetCurrentScore()}");
@@ -473,6 +476,7 @@ public class PracticeManager : MonoBehaviour
             // Trial was skipped
             // PracticeScoreManager.Instance?.AddScore(1);
             currentTrial.wasSkipped = true;
+            LogPracticeTrialOutcome(currentPracticeTrialIndex, true, false, 0f); // Log skipped trial
             AdvanceToNextTrial();
             return;
         }
@@ -586,6 +590,16 @@ public class PracticeManager : MonoBehaviour
         return 1;
     }
 
+    public int GetCurrentTrialEV()
+    {
+        int effortLevel = GetCurrentTrialEffortLevel();
+        int pressesRequired = PlayerPrefs.GetInt($"PressesPerEffortLevel_{effortLevel - 1}", 0); // Subtract 1 to match the PlayerPrefs keys
+
+        Debug.Log($"Current practice trial (index: {currentPracticeTrialIndex}) Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
+
+        return pressesRequired;
+    }
+
     // Experiment controller management
     // private void DisableExperimentControllers()
     // {
@@ -625,4 +639,81 @@ public class PracticeManager : MonoBehaviour
         else
             Debug.LogError("Start Practice Button is NOT assigned!");
     }
+
+public void LogPracticeTrialStart(int trialIndex)
+{
+    int effortLevel = GetCurrentTrialEffortLevel();
+    int requiredPresses = GetCurrentTrialEV();
+
+    LogManager.Instance.LogEvent("TrialStart", new Dictionary<string, string>
+    {
+        {"TrialNumber", trialIndex.ToString()}, // Adjust to 1-based index
+        {"BlockNumber", "0"}, // Assuming practice trials are in block 0
+        {"EffortLevel", effortLevel.ToString()},
+        {"RequiredPresses", requiredPresses.ToString()},
+        {"AdditionalInfo", "Practice"}
+    });
+}
+
+public void LogPracticeTrialOutcome(int trialIndex, bool wasSkipped, bool rewardCollected, float completionTime)
+{
+    string outcome = wasSkipped ? "Skipped" : (rewardCollected ? "Success" : "Failure");
+
+    LogManager.Instance.LogEvent("TrialEnd", new Dictionary<string, string>
+    {
+        {"TrialNumber", (trialIndex + 1).ToString()},
+        {"BlockNumber", "0"}, // Assuming practice trials are in block 0
+        {"DecisionType", wasSkipped ? "Skip" : "Work"},
+        {"OutcomeType", outcome},
+        {"RewardCollected", rewardCollected.ToString()},
+        {"MovementDuration", completionTime.ToString("F3")},
+        {"ButtonPresses", "0"}, // Assuming no button presses are logged here
+        {"AdditionalInfo", "Practice"}
+    });
+}
+
+    private const string PRACTICE_BLOCK_ID = "Practice";
+    private int baseTrialIndex = 1000; // Offset for practice trials to distinguish from formal trials
+
+    public int GetCurrentTrialIndex()
+    {
+        return baseTrialIndex + currentPracticeTrialIndex;
+    }
+
+    // public void LogTrialStart(int trialIndex)
+    // {
+    //     int effortLevel = GetCurrentTrialEffortLevel();
+        
+    //     LogManager.Instance.LogEvent("TrialStart", new Dictionary<string, string>
+    //     {
+    //         {"TrialNumber", trialIndex.ToString()},
+    //         {"BlockType", PRACTICE_BLOCK_ID},
+    //         {"EffortLevel", effortLevel.ToString()},
+    //         {"RequiredPresses", GetCurrentTrialEV().ToString()}
+    //     });
+    // }
+
+    // public void LogTrialCompletion(int trialIndex, bool skipped, bool rewardCollected, float duration, int buttonPresses)
+    // {
+    //     LogManager.Instance.LogEvent("TrialEnd", new Dictionary<string, string>
+    //     {
+    //         {"TrialNumber", (trialIndex + 1).ToString()},
+    //         {"BlockType", PRACTICE_BLOCK_ID},
+    //         {"Skipped", skipped.ToString()},
+    //         {"RewardCollected", rewardCollected.ToString()},
+    //         {"Duration", duration.ToString("F3")},
+    //         {"TotalPresses", buttonPresses.ToString()}
+    //     });
+    // }
+
+    // public void LogButtonPress(int trialIndex, int pressCount, string direction)
+    // {
+    //     LogManager.Instance.LogEvent("ButtonPress", new Dictionary<string, string>
+    //     {
+    //         {"TrialNumber", (trialIndex + 1).ToString()},
+    //         {"BlockType", PRACTICE_BLOCK_ID},
+    //         {"PressNumber", pressCount.ToString()},
+    //         {"Direction", direction}
+    //     });
+    // }
 }

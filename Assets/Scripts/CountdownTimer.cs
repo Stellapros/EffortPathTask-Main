@@ -10,7 +10,9 @@ public class CountdownTimer : MonoBehaviour
     [SerializeField] private TextMeshProUGUI timerText;
     [SerializeField] private float totalTime = 5.0f;
     // [SerializeField] private Color warningColor = new Color(0.6f, 0.2f, 0.2f); // dard red
-    [SerializeField] private Color warningColor = new Color(1f, 1f, 0f); // bright yellow 
+
+    // ToRGB: 0.4 × 255 = 102; 1.0 × 255 = 255; 0.4 × 255 = 102
+    [SerializeField] private Color warningColor = new Color(0.694f, 0.925f, 0.180f); // #B1EC2E
     [SerializeField] private Color normalColor = new Color(0.584f, 0.761f, 0.749f); // #95C2BF
 
     private float timeLeft;
@@ -56,7 +58,7 @@ public class CountdownTimer : MonoBehaviour
             timeLeft = Mathf.Max(totalTime - elapsedTime, 0);
 
             // 检查是否进入警告阶段（3秒）
-            if (timeLeft <= 3f && !isInWarningPhase)
+            if (timeLeft <= 2f && !isInWarningPhase)
             {
                 isInWarningPhase = true;
                 timerText.color = warningColor;

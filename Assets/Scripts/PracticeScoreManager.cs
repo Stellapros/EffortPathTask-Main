@@ -9,6 +9,7 @@ public class PracticeScoreManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI practiceScoreText;
     private int currentPracticeScore = 0;
     private ScoreAnimationManager animationManager;
+    public PracticeManager practiceManager;
 
     // List of scenes where practice score should be displayed
     private readonly string[] scenesWithPracticeScore = { "PracticeGridWorld", "PracticeDecisionPhase" };
@@ -85,87 +86,58 @@ public class PracticeScoreManager : MonoBehaviour
         }
     }
 
-    private void CreatePracticeScoreText()
+public void AddScore(int points)
+{
+    if (Instance == null)
     {
-        Canvas canvas = FindAnyObjectByType<Canvas>();
-        if (canvas == null)
-        {
-            GameObject canvasObj = new GameObject("Canvas");
-            canvas = canvasObj.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 999;
-            canvasObj.AddComponent<UnityEngine.UI.CanvasScaler>();
-            canvasObj.AddComponent<UnityEngine.UI.GraphicRaycaster>();
-        }
-
-        GameObject practiceScoreTextObj = new GameObject("PracticeScoreText");
-        practiceScoreTextObj.transform.SetParent(canvas.transform, false);
-
-        practiceScoreText = practiceScoreTextObj.AddComponent<TextMeshProUGUI>();
-        practiceScoreText.fontSize = 36;
-        practiceScoreText.color = Color.white;
-        practiceScoreText.font = TMP_Settings.defaultFontAsset;
-        practiceScoreText.alignment = TextAlignmentOptions.TopRight;
-
-        RectTransform rectTransform = practiceScoreText.rectTransform;
-        rectTransform.anchorMin = new Vector2(1, 1);
-        rectTransform.anchorMax = new Vector2(1, 1);
-        rectTransform.pivot = new Vector2(1, 1);
-        rectTransform.anchoredPosition = new Vector2(-20, -70);
-        rectTransform.sizeDelta = new Vector2(200, 50);
-
-        UpdateScoreDisplay();
+        Debug.LogError("PracticeScoreManager.Instance is null!");
+        return;
     }
 
-    public void AddScore(int points)
+    if (PracticeManager.Instance == null)
     {
-        // Existing debug logs
-        Debug.Log($"AddScore called with {points} points");
-        Debug.Log($"Current Practice Score BEFORE adding: {currentPracticeScore}");
-
-        currentPracticeScore += points;
-
-        Debug.Log($"Current Practice Score AFTER adding: {currentPracticeScore}");
-
-        // Persistently store score using PlayerPrefs
-        PlayerPrefs.SetInt("PersistentPracticeScore", currentPracticeScore);
-        PlayerPrefs.Save();
-
-        // Always try to update, with fallback mechanism
-        // if (practiceScoreText == null)
-        // {
-        //     StartCoroutine(FindAndUpdateScoreTextPersistent());
-        // }
-
-        // UpdateScoreDisplay();
-        // Force update across scenes
-        if (practiceScoreText == null)
-        {
-            StartCoroutine(FindAndUpdateScoreTextPersistent());
-        }
-        else
-        {
-            UpdateScoreDisplay();
-        }
-
-        // Verify the score text was updated
-        if (practiceScoreText != null)
-        {
-            Debug.Log($"Score display updated. Current text: {practiceScoreText.text}");
-        }
-        else
-        {
-            Debug.LogWarning("Score text is null during AddScore!");
-            // CreateScoreText();          
-        }
-
-
-        // Ensure animation plays
-        // if (animationManager != null)
-        // {
-        //     animationManager.PlayScoreAnimation(practiceScoreText, points);
-        // }
+        Debug.LogError("PracticeManager.Instance is null!");
+        return;
     }
+
+    if (LogManager.Instance == null)
+    {
+        Debug.LogError("LogManager.Instance is null!");
+        return;
+    }
+
+    Debug.Log($"AddScore called with {points} points");
+    Debug.Log($"Current Practice Score BEFORE adding: {currentPracticeScore}");
+
+    currentPracticeScore += points;
+
+    Debug.Log($"Current Practice Score AFTER adding: {currentPracticeScore}");
+
+    // Persistently store score using PlayerPrefs
+    PlayerPrefs.SetInt("PersistentPracticeScore", currentPracticeScore);
+    PlayerPrefs.Save();
+
+    // Log the score update
+    int trialIndex = PracticeManager.Instance.GetCurrentPracticeTrialIndex();
+    
+    // Get both scores for logging (using different variable names)
+    int currentPracticeScoreValue = this.currentPracticeScore;
+    int currentTotalScoreValue = 0;
+    
+    // Get the formal trial score if possible
+    if (ScoreManager.Instance != null)
+    {
+        currentTotalScoreValue = ScoreManager.Instance.GetTotalScore();
+    }
+    
+    // For practice, always use block 0
+    int blockNumber = 0;
+    
+    LogManager.Instance.LogScoreUpdateComplete(trialIndex+1, true, points, "PracticeScoreAdded", 
+                                              currentTotalScoreValue, currentPracticeScoreValue, blockNumber);
+
+    UpdateScoreDisplay();
+}
 
     // private void UpdateScoreDisplay()
     // {
@@ -252,7 +224,6 @@ public class PracticeScoreManager : MonoBehaviour
         }
     }
 
-
     public void ResetScore()
     {
         int oldPracticeScore = currentPracticeScore;
@@ -262,7 +233,7 @@ public class PracticeScoreManager : MonoBehaviour
         PlayerPrefs.SetInt("PersistentPracticeScore", 0);
         PlayerPrefs.Save();
 
-        LogManager.Instance?.LogScoreReset(0, true, oldPracticeScore, currentPracticeScore, "Practice Score Reset");
+        LogManager.Instance.LogScoreReset(0, true, oldPracticeScore, currentPracticeScore, "Practice Score Reset");
         UpdateScoreDisplay();
     }
 

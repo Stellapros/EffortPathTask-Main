@@ -13,7 +13,7 @@ public class CountdownAnimationManager : MonoBehaviour
     [SerializeField] private float pulseDuration = 0.5f;
     [SerializeField] private float maxScale = 1.4f;
     // [SerializeField] private Color warningColor = new Color(1f, 0.3f, 0.3f); // red
-    [SerializeField] private Color warningColor = new Color(1f, 1f, 0f); // bright yellow 
+    [SerializeField] private Color warningColor = new Color(0.4f, 1f, 0.4f);  // green
     [SerializeField] private Color normalColor = Color.white;
 
     private TextMeshProUGUI timerText;
@@ -33,16 +33,16 @@ public class CountdownAnimationManager : MonoBehaviour
 
         currentAnimation = DOTween.Sequence();
 
-        // 创建一个循环的动画序列
+        // Create a looping animation sequence
         currentAnimation
-            // 放大和颜色变化
+            // Scale up and change color
             .Append(timerText.transform.DOScale(originalScale * maxScale, pulseDuration / 2))
             .Join(timerText.DOColor(warningColor, pulseDuration / 2))
-            // 恢复正常大小和颜色
+            // Return to normal size and color
             .Append(timerText.transform.DOScale(originalScale, pulseDuration / 2))
             .Join(timerText.DOColor(normalColor, pulseDuration / 2))
-            // 设置循环
-            .SetLoops(-1); // -1 表示无限循环
+            // Set looping
+            .SetLoops(-1); // -1 means infinite looping
 
         currentAnimation.Play();
     }
@@ -53,14 +53,14 @@ public class CountdownAnimationManager : MonoBehaviour
 
         currentAnimation = DOTween.Sequence();
 
-        // 为每个数字创建特殊的动画
+        // Create a special animation for each number
         currentAnimation
-            // 快速放大并变色
+            // Quickly scale up and change color
             .Append(timerText.transform.DOScale(originalScale * maxScale, 0.2f))
             .Join(timerText.DOColor(warningColor, 0.2f))
-            // 保持一会儿
+            // Hold for a moment
             .AppendInterval(0.3f)
-            // 恢复正常大小和颜色
+            // Return to normal size and color
             .Append(timerText.transform.DOScale(originalScale, 0.3f))
             .Join(timerText.DOColor(normalColor, 0.3f));
 

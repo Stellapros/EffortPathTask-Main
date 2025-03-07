@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Collections;
 
 public class LogManager : MonoBehaviour
 {
@@ -14,15 +15,17 @@ public class LogManager : MonoBehaviour
     #region Private Fields
     private const string LOG_DIRECTORY = "ExperimentLogs";
     private string logFilePath;
+    private StringBuilder logBuilder;
     private List<string> unloggedTrials = new List<string>();
     private readonly object logLock = new object();
     [SerializeField] private bool m_ShowDebugLogManager;
+    private OneDriveUploader oneDriveUploader;
 
     // Participant info
-    private string participantID;
+    public string participantID;
     private int participantAge;
     private string participantGender;
-    private ParticipantInfo participantInfo;
+    // private ParticipantInfo participantInfo;
     #endregion
 
     #region Additional Fields for Behavioral Analysis
@@ -33,6 +36,7 @@ public class LogManager : MonoBehaviour
     private Dictionary<int, int> skipCountByEffortLevel = new Dictionary<int, int>();
     private Dictionary<int, int> successCountByEffortLevel = new Dictionary<int, int>();
     #endregion
+
     #region Timing Fields
     private Dictionary<int, float> decisionStartTimes = new Dictionary<int, float>();
     private Dictionary<int, float> movementStartTimes = new Dictionary<int, float>();
@@ -52,36 +56,35 @@ public class LogManager : MonoBehaviour
         public int effortLevel;
         public int requiredPresses;
         public bool isComplete;
-    }
-
-    private static class LogType
-    {
-        public const string SETUP = "SETUP";
-        public const string SESSION = "SESSION";
-        public const string BLOCK = "BLOCK";
-        public const string TRIAL = "TRIAL";
-        public const string DECISION = "DECISION";
-        public const string MOVEMENT = "MOVEMENT";
-        public const string SCORE = "SCORE";
-        public const string PENALTY = "PENALTY";
-        public const string CALIBRATION = "CALIBRATION";
+        public string outcomeType; // Added to track outcome explicitly
     }
 
     #region Unity Lifecycle
-    private void Awake()
+private void Awake()
+{
+    if (Instance == null)
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            LoadParticipantInfo();
-            InitializeLogging();
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        Instance = this;
+        DontDestroyOnLoad(gameObject); // Ensure the LogManager persists across scenes
+        InitializeLogging(); // Initialize logging only once
+        Debug.Log("LogManager initialized and set to persist across scenes.");
     }
+    else if (Instance != this)
+    {
+        Debug.Log("Duplicate LogManager instance destroyed.");
+        Destroy(gameObject); // Destroy duplicate instances
+    }
+}
+
+private void OnEnable()
+{
+    Debug.Log("LogManager GameObject enabled.");
+}
+
+private void OnDisable()
+{
+    Debug.Log("LogManager GameObject disabled.");
+}
     #endregion
 
     #region Initialization
@@ -89,30 +92,54 @@ public class LogManager : MonoBehaviour
     {
         participantID = PlayerPrefs.GetString("ParticipantID", "Unknown");
         participantAge = PlayerPrefs.GetInt("ParticipantAge", 0);
-        participantGender = PlayerPrefs.GetString("ParticipantGender", "Unvknown");
-    }
+        participantGender = PlayerPrefs.GetString("ParticipantGender", "Unknown");
 
+        Debug.Log($"Loaded participant info: ID={participantID}, Age={participantAge}, Gender={participantGender}");
+    }
     public string LogFilePath => logFilePath;
 
-    private void InitializeLogging()
-    {
-        string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-        string strDir = Path.Combine(Application.dataPath, "_ExpData");
-        Directory.CreateDirectory(strDir);
-        logFilePath = Path.Combine(strDir, $"decision_task_log_{participantID}_{timestamp}.csv");
+    private bool isInitialized = false; // Add this flag
 
-        // Create header for the log file
-        string header = "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
-                       "EffortLevel,RequiredPresses,DecisionType,DecisionRT,OutcomeType,RewardCollected,MovementDuration," +
-                       "ButtonPresses,TotalScore,CheckQuestionNumber,CheckQuestionResponse,CheckQuestionCorrect,AdditionalInfo\n";
-        try
+private void InitializeLogging()
+{
+    if (isInitialized || !string.IsNullOrEmpty(logFilePath))
+    {
+        Debug.Log($"Logging already initialized with path: {logFilePath}");
+        return; // Prevent multiple initializations
+    }
+
+    // Create a single log file with timestamp
+    string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+    string strDir = Path.Combine(Application.persistentDataPath, LOG_DIRECTORY); // Use persistentDataPath for cross-platform compatibility
+    Directory.CreateDirectory(strDir);
+    logFilePath = Path.Combine(strDir, $"decision_task_log_{participantID}_{timestamp}.csv");
+
+    Debug.Log($"Logging initialized. Log file is saved at: {logFilePath}");
+
+    // Create header for the log file
+    string header = "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
+                   "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
+                   "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n";
+
+    try
+    {
+        File.WriteAllText(logFilePath, header);
+        if (m_ShowDebugLogManager) Debug.Log($"Initialized logging to: {logFilePath}");
+        isInitialized = true; // Mark logging as initialized
+    }
+    catch (Exception e)
+    {
+        Debug.LogError($"Failed to initialize logging: {e.Message}");
+    }
+}
+
+    // Replace the EnsureLogFileInitialized with a simpler check
+    public void EnsureLogFileInitialized()
+    {
+        if (!isInitialized)
         {
-            File.WriteAllText(logFilePath, header);
-            if (m_ShowDebugLogManager) Debug.Log($"Initialized logging to: {logFilePath}");
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Failed to initialize logging: {e.Message}");
+            Debug.Log("Ensuring log file is initialized");
+            InitializeLogging();
         }
     }
     #endregion
@@ -203,23 +230,28 @@ public class LogManager : MonoBehaviour
         });
     }
 
+
+    // Modified trial start logging to handle both practice and regular trials
     public void LogTrialStart(int trialNumber, int blockNumber, int effortLevel, int requiredPresses, bool isPractice)
     {
+        // Ensure proper trial number handling
+        int adjustedTrialNumber = isPractice ? trialNumber : AdjustToOneBasedIndex(trialNumber);
+
         var state = new TrialState
         {
             effortLevel = effortLevel,
             requiredPresses = requiredPresses,
             isComplete = false
         };
-        trialStates[trialNumber] = state;
+        trialStates[adjustedTrialNumber] = state;
 
-        LogEvent("TrialStart", new Dictionary<string, string>
+        LogEvent(isPractice ? "PracticeTrialStart" : "TrialStart", new Dictionary<string, string>
         {
-            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+            {"TrialNumber", adjustedTrialNumber.ToString()},
             {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
             {"EffortLevel", effortLevel.ToString()},
             {"RequiredPresses", requiredPresses.ToString()},
-            {"IsPractice", isPractice.ToString()}
+            {"IsPractice", isPractice.ToString().ToLower()}
         });
     }
 
@@ -423,142 +455,70 @@ public class LogManager : MonoBehaviour
 
 
     #region Decision Phase Logging
-    public void LogDecisionPhaseStart(int trialNumber)
-    {
-        if (!trialStates.ContainsKey(trialNumber))
-        {
-            trialStates[trialNumber] = new TrialState();
-        }
-
-        var state = trialStates[trialNumber];
-        state.decisionStartTime = Time.time;
-
-        LogEvent("DecisionPhaseStart", new Dictionary<string, string>
-    {
-        {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-        {"StartTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
-    });
-    }
-
-    // public void LogDecisionMade(int trialNumber, string decisionType, float reactionTime = -1)
-    // {
-    //     // Calculate decision time if not provided
-    //     if (reactionTime < 0 && decisionStartTimes.ContainsKey(trialNumber))
-    //     {
-    //         reactionTime = Time.time - decisionStartTimes[trialNumber];
-    //         decisionStartTimes.Remove(trialNumber); // Cleanup
-    //     }
-
-    //     decisionTypes[trialNumber] = decisionType;
-
-    //     LogEvent("Decision", new Dictionary<string, string>
-    //     {
-    //         {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-    //         {"DecisionType", decisionType},
-    //         {"DecisionTime", reactionTime.ToString("F3")},
-    //         {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
-    //     });
-    // }
-
-public void LogDecisionMade(int trialNumber, string decisionType, float decisionTime)
-{
-    Dictionary<string, string> parameters = new Dictionary<string, string>
-    {
-        { "TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString() },
-        { "BlockNumber", ExperimentManager.Instance.GetCurrentBlockNumber().ToString() },
-        { "DecisionType", decisionType },
-        { "DecisionTime", decisionTime.ToString("F3") }
-    };
-    
-    LogEvent("Decision", parameters);
-}
-
-    public void LogWorkDecision(int trialNumber, float reactionTime = -1)
+    public void LogWorkDecision(int trialNumber, float decisionTime = -1)
     {
         if (!trialStates.ContainsKey(trialNumber)) return;
 
         var state = trialStates[trialNumber];
-        if (reactionTime < 0)
+        if (decisionTime < 0)
         {
-            reactionTime = Time.time - state.decisionStartTime;
+            decisionTime = Time.time - state.decisionStartTime;
         }
 
         state.decisionType = "Work";
-        state.decisionTime = reactionTime;
+        state.decisionTime = decisionTime;
 
         LogEvent("Decision", new Dictionary<string, string>
     {
         {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
         {"BlockNumber", ExperimentManager.Instance.GetCurrentBlockNumber().ToString()},  // Added BlockNumber
         {"DecisionType", "Work"},
-        {"DecisionTime", reactionTime.ToString("F3")},
+        {"DecisionTime", decisionTime.ToString("F3")},
         {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
     });
     }
 
-    public void LogSkipDecision(int trialNumber, float reactionTime = -1)
+    public void LogSkipDecision(int trialNumber, float decisionTime = -1)
     {
         if (!trialStates.ContainsKey(trialNumber)) return;
 
         var state = trialStates[trialNumber];
-        if (reactionTime < 0)
+        if (decisionTime < 0)
         {
-            reactionTime = Time.time - state.decisionStartTime;
+            decisionTime = Time.time - state.decisionStartTime;
         }
 
         state.decisionType = "Skip";
-        state.decisionTime = reactionTime;
+        state.decisionTime = decisionTime;
 
         LogEvent("Decision", new Dictionary<string, string>
     {
         {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
         {"BlockNumber", ExperimentManager.Instance.GetCurrentBlockNumber().ToString()},  // Added BlockNumber
         {"DecisionType", "Skip"},
-        {"DecisionTime", reactionTime.ToString("F3")},
+        {"DecisionTime", decisionTime.ToString("F3")},
         {"PenaltyDuration", "3.0"},
         {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
     });
     }
 
-    public void LogDecisionOutcome(int trialNumber, string decisionType)
+    public void LogDecisionOutcome(int trialNumber, int blockNumber, string decisionType, bool rewardCollected, float decisionTime, float movementTime, int buttonPresses, int effortLevel, int requiredPresses)
     {
-        LogEvent("DecisionOutcome", new Dictionary<string, string> {
+        string outcomeType = DetermineOutcomeType(decisionType, rewardCollected);
+
+        LogEvent("DecisionOutcome", new Dictionary<string, string>
+    {
         {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+        {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
         {"DecisionType", decisionType},
-        {"Timestamp", System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        {"DecisionTime", decisionTime.ToString("F3")},
+        {"RewardCollected", rewardCollected.ToString()},
+        {"MovementTime", movementTime.ToString("F3")},
+        {"ButtonPresses", buttonPresses.ToString()},
+        {"EffortLevel", effortLevel.ToString()},
+        {"RequiredPresses", requiredPresses.ToString()},
+        {"OutcomeType", outcomeType}
     });
-    }
-
-    public void LogNoDecision(int trialNumber)
-    {
-        if (!trialStates.ContainsKey(trialNumber)) return;
-
-        var state = trialStates[trialNumber];
-        float timeElapsed = Time.time - state.decisionStartTime;
-
-        state.decisionType = "NoDecision";
-        state.decisionTime = timeElapsed;
-
-        // Create parameters with all required fields
-        var parameters = new Dictionary<string, string>
-        {
-            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-            {"BlockNumber", ExperimentManager.Instance.GetCurrentBlockNumber().ToString()},  // Add BlockNumber
-            {"DecisionType", "NoDecision"},
-            {"DecisionTime", timeElapsed.ToString("F3")},
-            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
-        };
-
-        // Log the decision event with complete parameters
-        LogEvent("Decision", parameters);
-
-        // Then log the penalty
-        LogEvent("PenaltyStart", new Dictionary<string, string>
-        {
-            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-            {"PenaltyType", "NoDecision"},
-            {"Duration", "5.0"}
-        });
     }
 
     #endregion
@@ -592,82 +552,104 @@ public void LogDecisionMade(int trialNumber, string decisionType, float decision
         });
     }
 
-    public void LogMovementOutcome(int trialNumber, bool rewardCollected, int buttonPresses)
-    {
-        if (!trialStates.ContainsKey(trialNumber)) return;
-
-        var state = trialStates[trialNumber];
-        float movementTime = Time.time - state.movementStartTime;
-
-        state.rewardCollected = rewardCollected;
-        state.buttonPresses = buttonPresses;
-        state.movementTime = movementTime;
-
-        string outcome = rewardCollected ? "Hit" : "Miss";
-
-        LogEvent("MovementOutcome", new Dictionary<string, string>
-        {
-            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-            {"Outcome", outcome},
-            {"RewardCollected", rewardCollected.ToString()},
-            {"MovementTime", movementTime.ToString("F3")},
-            {"ButtonPresses", buttonPresses.ToString()},
-            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
-        });
-    }
 
     public void LogCollisionTime(int trialNumber)
     {
-        LogEvent("CollisionTime", new Dictionary<string, string>
+        // Ensure we have a valid ExperimentManager before logging
+        if (ExperimentManager.Instance != null)
+        {
+            // Get the current trial index dynamically
+            int currentTrialIndex = ExperimentManager.Instance.GetCurrentTrialIndex();
+            Debug.Log($"Logging collision time for trial index: {currentTrialIndex}");
+
+            // Log the collision time
+            LogEvent("CollisionTime", new Dictionary<string, string>
+        {
+            {"TrialNumber", AdjustToOneBasedIndex(currentTrialIndex).ToString()},
+            {"CollisionTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
+        }
+        else
+        {
+            Debug.LogError("ExperimentManager is null when trying to log collision time!");
+        }
+    }
+
+
+    #endregion
+
+
+
+    #region Score Logging
+    public void LogScoreUpdate(int trialNumber, bool isPractice, int points, string outcome)
     {
-        {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-        {"CollisionTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        // Get the most accurate scores possible
+        int totalScore = ScoreManager.Instance != null ? ScoreManager.Instance.GetTotalScore() : 0;
+        int practiceScore = isPractice && PracticeScoreManager.Instance != null ?
+                           PracticeScoreManager.Instance.GetCurrentScore() :
+                           (ScoreManager.Instance != null ? ScoreManager.Instance.GetPracticeScore() : 0);
+
+        // For practice, always use block 0
+        int blockNumber = 0;
+
+        // For formal trials, get the block from ExperimentManager
+        if (!isPractice && ExperimentManager.Instance != null)
+        {
+            blockNumber = ExperimentManager.Instance.GetCurrentBlockNumber();
+        }
+
+        LogScoreUpdateComplete(trialNumber, isPractice, points, outcome, totalScore, practiceScore, blockNumber);
+    }
+
+    public void LogScoreUpdateComplete(int trialNumber, bool isPractice, int points, string outcome,
+                                      int totalScore, int practiceScore, int blockNumber)
+    {
+        LogEvent("ScoreUpdate", new Dictionary<string, string>
+    {
+        {"TrialNumber", trialNumber.ToString()},
+        {"IsPractice", isPractice.ToString()},
+        {"Points", points.ToString()},
+        {"Outcome", outcome},
+        {"TotalScore", totalScore.ToString()},
+        {"PracticeScore", practiceScore.ToString()},
+        // {"BlockNumber", blockNumber.ToString()}
+        {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
+    });
+    }
+
+    public void LogScoreReset(int trialNumber, bool isPractice, int oldScore, int newScore, string reason)
+    {
+        // Get the current state of both scores for complete logging
+        int totalScore = ScoreManager.Instance != null ? ScoreManager.Instance.GetTotalScore() : 0;
+        int practiceScore = isPractice && PracticeScoreManager.Instance != null ?
+                            PracticeScoreManager.Instance.GetCurrentScore() :
+                            (ScoreManager.Instance != null ? ScoreManager.Instance.GetPracticeScore() : 0);
+
+        // For practice, always use block 0
+        int blockNumber = 0;
+
+        // For formal trials, get the block from ExperimentManager
+        if (!isPractice && ExperimentManager.Instance != null)
+        {
+            blockNumber = ExperimentManager.Instance.GetCurrentBlockNumber();
+        }
+
+        LogEvent("ScoreReset", new Dictionary<string, string>
+    {
+        {"TrialNumber", trialNumber.ToString()},
+        {"IsPractice", isPractice.ToString()},
+        {"OldScore", oldScore.ToString()},
+        {"NewScore", newScore.ToString()},
+        {"ResetReason", reason},
+        {"CurrentTotalScore", totalScore.ToString()},
+        {"CurrentPracticeScore", practiceScore.ToString()},
+        // {"BlockNumber", blockNumber.ToString()}
+        {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
     });
     }
 
     #endregion
 
-    public void LogScoreUpdate(int trialNumber, bool isPractice, int points, string outcome)
-    {
-        LogEvent("ScoreUpdate", new Dictionary<string, string>
-        {
-            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-            {"IsPractice", isPractice.ToString()},
-            {"Points", points.ToString()},
-            {"Outcome", outcome}
-        });
-    }
-
-    public void LogScoreReset(int trialNumber, bool isPractice, int oldScore, int newScore, string reason)
-    {
-        LogEvent("ScoreReset", new Dictionary<string, string>
-        {
-            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-            {"IsPractice", isPractice.ToString()},
-            {"OldScore", oldScore.ToString()},
-            {"NewScore", newScore.ToString()},
-            {"ResetReason", reason}
-        });
-    }
-
-    public void LogSkipPenaltyStart(int trialNumber, string penaltyType, float duration)
-    {
-        LogEvent("PenaltyStart", new Dictionary<string, string>
-        {
-            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-            {"PenaltyType", penaltyType},
-            {"Duration", duration.ToString()}
-        });
-    }
-
-    public void LogSkipPenaltyEnd(int trialNumber, string penaltyType)
-    {
-        LogEvent("PenaltyEnd", new Dictionary<string, string>
-        {
-            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-            {"PenaltyType", penaltyType}
-        });
-    }
 
     public void LogPenaltyStart(int trialNumber, string penaltyType, float duration)
     {
@@ -679,25 +661,6 @@ public void LogDecisionMade(int trialNumber, string decisionType, float decision
         });
     }
 
-    public void LogPenaltyEnd(int trialNumber, string penaltyType)
-    {
-        LogEvent("PenaltyEnd", new Dictionary<string, string>
-        {
-            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-            {"PenaltyType", penaltyType}
-        });
-    }
-
-    public void LogPenaltyApplied(int trialNumber, string decisionType, float penaltyDuration)
-    {
-        LogEvent("Penalty", new Dictionary<string, string>
-        {
-            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-            {"DecisionType", decisionType},
-            {"PenaltyDuration", penaltyDuration.ToString("F3")},
-            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
-        });
-    }
 
     public void LogTrialEnd(int trialNumber, bool rewardCollected, float trialDuration, float actionReactionTime)
     {
@@ -720,56 +683,27 @@ public void LogDecisionMade(int trialNumber, string decisionType, float decision
 
         state.isComplete = true;
 
-        // Determine the outcome type based on decision type and reward collection
-        string outcomeType = DetermineOutcomeType(state.decisionType, state.rewardCollected);
+        // Determine outcome type based on the complete trial state
+        string outcomeType = state.outcomeType ?? DetermineOutcomeType(state.decisionType, state.rewardCollected);
 
         LogEvent("TrialOutcome", new Dictionary<string, string>
-    {
-        {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-        {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
-        {"DecisionType", state.decisionType},
-        {"DecisionTime", state.decisionTime.ToString("F3")},
-        {"RewardCollected", state.rewardCollected.ToString()},
-        {"MovementTime", state.movementTime.ToString("F3")},
-        {"ButtonPresses", state.buttonPresses.ToString()},
-        {"EffortLevel", state.effortLevel.ToString()},
-        {"RequiredPresses", state.requiredPresses.ToString()},
-        {"OutcomeType", outcomeType}  // Added required OutcomeType parameter
-    });
+        {
+            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+            {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
+            {"DecisionType", state.decisionType},
+            {"DecisionTime", state.decisionTime.ToString("F3")},
+            {"RewardCollected", state.rewardCollected.ToString().ToLower()}, // Ensure boolean is lowercase
+            {"MovementTime", state.movementTime.ToString("F3")},
+            {"ButtonPresses", state.buttonPresses.ToString()},
+            {"EffortLevel", state.effortLevel.ToString()},
+            {"RequiredPresses", state.requiredPresses.ToString()},
+            {"OutcomeType", outcomeType}
+        });
 
         // Cleanup trial state after logging
         trialStates.Remove(trialNumber);
     }
 
-    // public void LogTrialOutcome(int trialNumber, int blockNumber, bool rewardCollected, float completionTime, int effortLevel)
-    // {
-    //     string decisionType = decisionTypes.GetValueOrDefault(trialNumber, "Unknown");
-
-    //     // Update success/skip counts
-    //     if (decisionType == "Skip")
-    //     {
-    //         skipCountByEffortLevel[effortLevel] = skipCountByEffortLevel.GetValueOrDefault(effortLevel, 0) + 1;
-    //     }
-    //     else if (rewardCollected)
-    //     {
-    //         successCountByEffortLevel[effortLevel] = successCountByEffortLevel.GetValueOrDefault(effortLevel, 0) + 1;
-    //     }
-
-    //     LogEvent("TrialOutcome", new Dictionary<string, string>
-    //     {
-    //         {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-    //         {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
-    //         {"DecisionType", decisionType},
-    //         {"RewardCollected", rewardCollected.ToString()},
-    //         {"CompletionTime", completionTime.ToString("F3")},
-    //         {"EffortLevel", effortLevel.ToString()},
-    //         {"SuccessRate", GetSuccessRate(effortLevel).ToString("F3")},
-    //         {"Outcome", rewardCollected ? "Hit" : decisionType == "Skip" ? "Skip" : "Miss"}
-    //     });
-
-    //     // Cleanup decision type after logging
-    //     decisionTypes.Remove(trialNumber);
-    // }
 
     public void LogBlockTimeStatus(int blockNumber, float remainingTime, int completedTrials)
     {
@@ -808,12 +742,25 @@ public void LogDecisionMade(int trialNumber, string decisionType, float decision
     #region Helper Methods
     public void LogEvent(string eventType, Dictionary<string, string> parameters)
     {
-        // First, validate required parameters based on event type
-        ValidateRequiredParameters(eventType, parameters);
-
-        // Create a dictionary with default values for all fields
+        // First ensure logging is initialized
+        if (!isInitialized)
+        {
+            Debug.LogWarning($"Logging not initialized when trying to log event: {eventType}. Initializing now.");
+            InitializeLogging();
+            if (!isInitialized)
+            {
+                Debug.LogError($"Failed to initialize logging for event: {eventType}");
+                return; // Don't proceed if initialization failed
+            }
+        }
+        // Define the default values for all columns
         var logData = new Dictionary<string, string>
     {
+        {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")},
+        {"EventType", eventType},
+        {"ParticipantID", participantID},
+        {"ParticipantAge", participantAge.ToString()},
+        {"ParticipantGender", participantGender},
         {"BlockNumber", "-"},
         {"TrialNumber", "-"},
         {"EffortLevel", "-"},
@@ -822,34 +769,35 @@ public void LogDecisionMade(int trialNumber, string decisionType, float decision
         {"DecisionTime", "-"},
         {"OutcomeType", "-"},
         {"RewardCollected", "-"},
-        {"MovementTime", "-"},
-        {"ButtonPresses", "-"},
+        {"MovementDuration", "-"},
+        {"TotalPresses", "-"},
         {"TotalScore", "-"},
-        {"CheckQuestionNumber", "-"},
-        {"CheckQuestionResponse", "-"},
-        {"CheckQuestionCorrect", "-"}
+        {"PracticeScore", "-"},
+        {"AdditionalInfo", "-"},
+        {"StartX", "-"},
+        {"StartY", "-"},
+        {"EndX", "-"},
+        {"EndY", "-"},
+        {"StepDuration", "-"},
+        {"TirednessRating", "-"},
+        {"ParticipantFeedback", "-"} // Ensure Feedback column is included
     };
 
         // Override defaults with actual values if provided
         foreach (var param in parameters)
         {
-            logData[param.Key] = param.Value;
+            if (logData.ContainsKey(param.Key))
+            {
+                logData[param.Key] = param.Value;
+            }
+            else
+            {
+                Debug.LogWarning($"Unknown parameter key: {param.Key}");
+            }
         }
 
-        // Add context-specific values
-        if (eventType == "Decision")
-        {
-            logData["TotalScore"] = ScoreManager.Instance?.GetTotalScore().ToString() ?? "-";
-        }
-
+        // Construct the log entry
         StringBuilder logEntry = new StringBuilder();
-        logEntry.Append($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff},");
-        logEntry.Append($"{eventType},");
-        logEntry.Append($"{participantID},");
-        logEntry.Append($"{participantAge},");
-        logEntry.Append($"{participantGender},");
-
-        // Add all fields in specific order
         foreach (var field in logData)
         {
             logEntry.Append($"{field.Value},");
@@ -858,11 +806,16 @@ public void LogDecisionMade(int trialNumber, string decisionType, float decision
         // Remove trailing comma
         logEntry.Length--;
 
+        // Write the log entry to the file using StreamWriter
         lock (logLock)
         {
             try
             {
-                File.AppendAllText(logFilePath, logEntry.ToString() + "\n");
+                using (StreamWriter writer = new StreamWriter(logFilePath, true))
+                {
+                    writer.WriteLine(logEntry.ToString());
+                    writer.Flush(); // Ensure the data is written to the file
+                }
                 if (m_ShowDebugLogManager) Debug.Log($"Logged event: {eventType}");
             }
             catch (Exception e)
@@ -899,17 +852,20 @@ public void LogDecisionMade(int trialNumber, string decisionType, float decision
         }
     }
 
-    // Update LogEvent validation
     private List<string> GetRequiredParameters(string eventType)
     {
         switch (eventType)
         {
+            case "TrialStart":
+                return new List<string> { "TrialNumber", "BlockNumber", "EffortLevel", "RequiredPresses" };
+            case "TrialEnd":
+                return new List<string> { "TrialNumber", "BlockNumber", "DecisionType", "OutcomeType", "RewardCollected", "MovementDuration", "ButtonPresses" };
             case "Decision":
-                return new List<string> { "TrialNumber", "BlockNumber", "DecisionType", "DecisionTime" };
-            case "MovementOutcome":
-                return new List<string> { "TrialNumber", "RewardCollected", "MovementTime", "ButtonPresses" };
-            case "TrialOutcome":
-                return new List<string> { "TrialNumber", "BlockNumber", "DecisionType", "OutcomeType" };
+                return new List<string> { "TrialNumber", "BlockNumber", "DecisionType", "DecisionRT" };
+            case "MovementStart":
+                return new List<string> { "TrialNumber", "StartX", "StartY" };
+            case "MovementEnd":
+                return new List<string> { "TrialNumber", "EndX", "EndY", "MovementDuration", "RewardCollected" };
             default:
                 return new List<string>();
         }
@@ -955,14 +911,15 @@ public void LogDecisionMade(int trialNumber, string decisionType, float decision
     #region Calibration Logging
     public void LogCalibrationPhase(int phaseNumber, int totalPresses, float calibrationTime)
     {
-        LogEvent("CalibrationPhase", new Dictionary<string, string>
+        LogManager.Instance.LogEvent("CalibrationPhase", new Dictionary<string, string>
     {
         {"Tag", $"CALIB_PHASE_{phaseNumber}"},
         {"PhaseNumber", phaseNumber.ToString()},
         {"TotalPresses", totalPresses.ToString()},
         {"Duration", calibrationTime.ToString("F2")},
         {"PressesPerSecond", (totalPresses / calibrationTime).ToString("F2")},
-        {"Category", "PhaseMetrics"}
+        {"Category", "PhaseMetrics"},
+        {"PhaseType", "Calibration"} // Add this line to distinguish calibration phase
     });
     }
 
@@ -999,4 +956,123 @@ public void LogDecisionMade(int trialNumber, string decisionType, float decision
         return Mathf.Sqrt(sumOfSquares / values.Length);
     }
     #endregion
+
+    public string GetCsvContent()
+    {
+        if (string.IsNullOrEmpty(logFilePath))
+        {
+            Debug.LogWarning("Log file path is not set! Initializing log file...");
+            InitializeLogging();
+
+            // If it's still null after trying to initialize, return an empty CSV with headers
+            if (string.IsNullOrEmpty(logFilePath))
+            {
+                Debug.LogError("Failed to initialize log file path!");
+
+                // Create header for the log file
+                return "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
+                               "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
+                               "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n"; // Added Feedback column
+            }
+        }
+
+        try
+        {
+            // Read the entire file content
+            string csvContent = File.ReadAllText(logFilePath);
+            Debug.Log($"Read {csvContent.Split('\n').Length} lines from the log file."); // Debug log to verify line count
+
+            // Check if the content is valid
+            if (string.IsNullOrEmpty(csvContent))
+            {
+                Debug.LogWarning("CSV content is empty!");
+
+                // Create header for the log file
+                return "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
+                               "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
+                               "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n"; // Added Feedback column
+            }
+
+            return csvContent;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to read log file: {e.Message}");
+
+            // Return minimal CSV with headers as fallback
+
+            // Create header for the log file
+            return "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
+                           "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
+                           "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n"; // Added Feedback column
+        }
+    }
+
+
+    public void TestUpload()
+    {
+        Debug.Log("Testing CSV upload...");
+        StartCoroutine(FinalizeAndUploadLogWithDelay());
+    }
+
+    public IEnumerator FinalizeAndUploadLogWithDelay()
+    {
+        // First, finalize the log file
+        FinalizeLogFile();
+
+        // Add a longer delay to ensure all data is written
+        yield return new WaitForSeconds(2f);
+
+        // Read the CSV content - ensure it's reading the full file
+        string csvContent = File.ReadAllText(logFilePath);
+        if (string.IsNullOrEmpty(csvContent))
+        {
+            Debug.LogError("No CSV content to upload!");
+            yield break;
+        }
+
+        // Debug: Log the CSV content size to verify it contains all data
+        Debug.Log($"CSV Content size to Upload: {csvContent.Length} bytes, {csvContent.Split('\n').Length} lines");
+
+        string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        string fileName = $"decision_task_log_{participantID}_{timestamp}.csv";
+
+        // Check if oneDriveUploader exists
+        if (oneDriveUploader == null)
+        {
+            Debug.LogError("OneDriveUploader is null! Attempting to add component.");
+            oneDriveUploader = gameObject.AddComponent<OneDriveUploader>();
+        }
+
+        // Upload the file
+        yield return oneDriveUploader.UploadFileToOneDrive(csvContent, fileName);
+    }
+
+    public void FinalizeLogFile()
+    {
+        lock (logLock)
+        {
+            try
+            {
+                if (logBuilder != null && logBuilder.Length > 0)
+                {
+                    File.AppendAllText(logFilePath, logBuilder.ToString());
+                    logBuilder.Clear();
+                    Debug.Log("Finalized log file by writing all buffered data.");
+                }
+
+                // Ensure the file system fully flushes data
+                using (StreamWriter writer = new StreamWriter(logFilePath, true))
+                {
+                    writer.Flush();
+                }
+
+                Debug.Log($"Finalized log file: {logFilePath}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to finalize log file: {e.Message}");
+            }
+        }
+    }
 }

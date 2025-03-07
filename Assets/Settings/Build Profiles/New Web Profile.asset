@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 15003, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: New Web Profile
+  m_EditorClassIdentifier: 
+  m_AssetVersion: 1
+  m_BuildTarget: 20
+  m_Subtarget: 0
+  m_PlatformId: 84a3bb9e7420477f885e98145999eb20
+  m_PlatformBuildProfile:
+    rid: 7108358712921161733
+  m_OverrideGlobalSceneList: 0
+  m_Scenes:
+  - m_enabled: 1
+    m_path: Assets/Scenes/Persistent.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/TitlePage.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/BeforeStartingScreen.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/StartScreen.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/CalibrationCounter.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/TourGame.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/TourDecisionPhase.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/TourGridWorld.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/PracticeInstructions.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/GetReadyPractice.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/PracticePhase.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/PracticeDecisionPhase.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/GetReadyEveryTrialPractice.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/PracticeGridWorld.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/GetReadyCheck.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/Check1_Preference.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/Check2_Recognition.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/Check3_ComprehensionQuiz.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/GetReadyFormal.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/Block_PreInstructions.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/Block_Instructions.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/DecisionPhase.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/GetReadyITI.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/GetReadyEveryTrial.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/TimePenalty.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/GridWorld.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/RestBreak.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/EndExperiment.unity
+  m_ScriptingDefines: []
+  m_PlayerSettingsYaml:
+    m_Settings: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 7108358712921161733
+      type: {class: WebGLPlatformSettings, ns: UnityEditor.WebGL, asm: UnityEditor.WebGL.Extensions}
+      data:
+        m_Development: 0
+        m_ConnectProfiler: 0
+        m_BuildWithDeepProfilingSupport: 0
+        m_AllowDebugging: 0
+        m_WaitForManagedDebugger: 0
+        m_ManagedDebuggerFixedPort: 0
+        m_ExplicitNullChecks: 0
+        m_ExplicitDivideByZeroChecks: 0
+        m_ExplicitArrayBoundsChecks: 0
+        m_CompressionType: -1
+        m_InstallInBuildFolder: 0
+        m_CodeOptimization: 4
+        m_WebGLClientBrowserPath: 
+        m_WebGLClientBrowserType: 0
+        m_WebGLTextureSubtarget: 0

@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /// <summary>
@@ -22,7 +25,6 @@ public class PlayerController : MonoBehaviour
     private Vector2 lastHorizontalDirection = Vector2.right; // To keep track of last horizontal movement; Initialize facing right
 
     private bool isTrialRunning = false;
-    private float moveStartTime;
     private bool isMoving = false;
 
     private int[] directionCounters = new int[4]; // 0: Up, 1: Down, 2: Left, 3: Right
@@ -38,6 +40,13 @@ public class PlayerController : MonoBehaviour
     public delegate void MovementRecordedHandler(Vector2 startPos, Vector2 endPos);
     public event MovementRecordedHandler OnMovementRecorded;
 
+    // Create a list to store button presses for later batch logging
+    private List<KeyValuePair<float, string>> buttonPressList = new List<KeyValuePair<float, string>>();
+
+    // Movement timing variables - consolidated
+    private float trialStartTime;
+    private float movementStartTime;
+    private bool movementTimerStarted = false;
 
 
     private void Awake()
@@ -136,48 +145,7 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         if (!isTrialRunning) return;
-
-        // if (!isMoving)
-        // {
-        //     isMoving = true;
-        //     moveStartTime = Time.time;
-        // }
-
-        // Remove the isMoving check here as it's not necessary and could cause issues
         HandleInput();
-        // HandleMovement(); // Add this line to handle movement and facing direction
-    }
-
-    // private void HandleInput()
-    // {
-    //     // Only process input if we're not currently moving
-    //     if (isMoving) return;
-
-    //     if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
-    //         IncrementCounter(0, Vector2.up);
-    //     else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
-    //         IncrementCounter(1, Vector2.down);
-    //     else if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
-    //         IncrementCounter(2, Vector2.left);
-    //     else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
-    //         IncrementCounter(3, Vector2.right);
-    // }
-
-
-    // Kept only arrow key controls (UpArrow, DownArrow, LeftArrow, RightArrow)
-    private void HandleInput()
-    {
-        // Only process input if we're not currently moving
-        if (isMoving) return;
-
-        if (Input.GetKeyDown(KeyCode.UpArrow))
-            IncrementCounter(0, Vector2.up);
-        else if (Input.GetKeyDown(KeyCode.DownArrow))
-            IncrementCounter(1, Vector2.down);
-        else if (Input.GetKeyDown(KeyCode.LeftArrow))
-            IncrementCounter(2, Vector2.left);
-        else if (Input.GetKeyDown(KeyCode.RightArrow))
-            IncrementCounter(3, Vector2.right);
     }
 
     private void IncrementCounter(int index, Vector2 direction)
@@ -194,8 +162,13 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // Start movement timer on first button press if not already started
+        if (!movementTimerStarted)
+        {
+            StartMovementTimer();
+        }
+
         directionCounters[index]++;
-        totalButtonPresses++;
 
         Debug.Log($"Button press {totalButtonPresses} in direction {direction}, " +
                   $"Current count: {directionCounters[index]}, Required: {pressesPerStep}");
@@ -215,39 +188,107 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private void HandleInput()
+    {
+        if (!isTrialRunning) return;
+
+        // Only log button press if a relevant key is actually pressed
+        if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.DownArrow) ||
+            Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            string direction = "none";
+            if (Input.GetKeyDown(KeyCode.UpArrow)) direction = "up";
+            else if (Input.GetKeyDown(KeyCode.DownArrow)) direction = "down";
+            else if (Input.GetKeyDown(KeyCode.LeftArrow)) direction = "left";
+            else if (Input.GetKeyDown(KeyCode.RightArrow)) direction = "right";
+
+            // Log button press
+            int trialIndex = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1
+                ? PracticeManager.Instance.GetCurrentPracticeTrialIndex()
+                : ExperimentManager.Instance.GetCurrentTrialIndex();
+
+            float timeSinceTrialStart = Time.time - trialStartTime;
+            buttonPressList.Add(new KeyValuePair<float, string>(timeSinceTrialStart, direction));
+            totalButtonPresses++;
+        }
+
+        // Only process input if we're not currently moving
+        if (isMoving) return;
+
+        if (Input.GetKeyDown(KeyCode.UpArrow))
+            IncrementCounter(0, Vector2.up);
+        else if (Input.GetKeyDown(KeyCode.DownArrow))
+            IncrementCounter(1, Vector2.down);
+        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+            IncrementCounter(2, Vector2.left);
+        else if (Input.GetKeyDown(KeyCode.RightArrow))
+            IncrementCounter(3, Vector2.right);
+    }
+
+    private void StartMovementTimer()
+    {
+        if (!movementTimerStarted)
+        {
+            movementStartTime = Time.time;
+            movementTimerStarted = true;
+            Debug.Log($"Movement timer started at {movementStartTime}");
+        }
+    }
+
     private void AttemptMove(Vector2 direction)
     {
         Vector2 startPosition = transform.position;
         Vector2 newPosition = (Vector2)transform.position + (direction * moveStepSize);
-        float moveStartTime = Time.time;
+        float stepStartTime = Time.time;
 
         Debug.Log($"Attempting move from {startPosition} to {newPosition}");
+
+        // Log the start of movement
+        LogMovementStart(startPosition);
 
         if (gridManager != null && gridManager.IsValidPosition(newPosition))
         {
             // Record movement before executing it
             OnMovementRecorded?.Invoke(startPosition, newPosition);
 
-            // Log the movement
-            if (LogManager.Instance != null)
-            {
-                float movementTime = Time.time - moveStartTime;
-                // Get the current trial number from GameController or ExperimentManager
-                int currentTrial = ExperimentManager.Instance?.GetCurrentTrialIndex() ?? 0;
-                LogManager.Instance.LogPlayerMovement(currentTrial, startPosition, newPosition, movementTime);
-            }
-
             MoveCharacter(newPosition);
             UpdateFacingDirection(direction);
             PlayStepSound();
 
             currentPosition = newPosition;
-            Debug.Log($"Player moved. New position: {currentPosition}");
+            float stepDuration = Time.time - stepStartTime;
+            Debug.Log($"Player moved. New position: {currentPosition}, Step duration: {stepDuration}s");
+
+            // Only log individual steps but don't reset the main movement timer
+            LogMovementStep(startPosition, newPosition, stepDuration);
         }
         else
         {
             Debug.Log("Invalid move attempted. Playing error sound.");
             PlaySound(errorSound);
+        }
+    }
+
+    // Add a new method for logging individual steps
+    private void LogMovementStep(Vector2 startPos, Vector2 endPos, float stepDuration)
+    {
+        // Get trial index based on trial type
+        int trialIndex = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1
+            ? PracticeManager.Instance.GetCurrentPracticeTrialIndex()
+            : ExperimentManager.Instance.GetCurrentTrialIndex();
+
+        if (LogManager.Instance != null)
+        {
+            LogManager.Instance.LogEvent("MovementStep", new Dictionary<string, string>
+            {
+                {"TrialNumber", (trialIndex + 1).ToString()},
+                {"StartX", startPos.x.ToString("F2")},
+                {"StartY", startPos.y.ToString("F2")},
+                {"EndX", endPos.x.ToString("F2")},
+                {"EndY", endPos.y.ToString("F2")},
+                {"StepDuration", stepDuration.ToString("F3")},
+                {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+            });
         }
     }
 
@@ -302,7 +343,6 @@ public class PlayerController : MonoBehaviour
         Debug.Log($"Player position reset to: {position}, Total button presses reset to 0");
     }
 
-
     public void UpdateFacingDirection(Vector2 direction)
     {
         // Only update for horizontal movement
@@ -334,7 +374,6 @@ public class PlayerController : MonoBehaviour
     {
         pressesPerStep = presses;
         ResetCounters();
-        // Debug.Log($"Presses per step set to: {pressesPerStep}");
         Debug.Log($"PlayerController: Presses per step set to {pressesPerStep}");
     }
 
@@ -391,15 +430,19 @@ public class PlayerController : MonoBehaviour
 
         // Ensure clean initial state
         isMoving = false;
+
+        trialStartTime = Time.time;
         isTrialRunning = false;
         totalButtonPresses = 0;
         ResetCounters();
 
+        // Reset movement tracking
+        movementTimerStarted = false;
+        movementStartTime = 0f;
+        buttonPressList.Clear();
+
         // Update presses per step
         UpdatePressesPerStep();
-
-        // Reset movement timing
-        moveStartTime = Time.time;
 
         // Enable physics if needed
         if (playerRigidbody != null)
@@ -430,38 +473,210 @@ public class PlayerController : MonoBehaviour
         Debug.Log("Player movement disabled from PlayerController");
     }
 
+    // Modify OnTriggerEnter
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Reward") && isTrialRunning)
         {
             float collisionTime = Time.time;
-            Debug.Log($"Player collided with reward at time: {Time.time}");
-            float movementDuration = isMoving ? collisionTime - moveStartTime : 0f;
 
+            // Calculate the actual movement duration from when movement first started
+            float movementDuration = 0f;
+            if (movementTimerStarted)
+            {
+                movementDuration = collisionTime - movementStartTime;
+                Debug.Log($"Movement duration calculation: {collisionTime} - {movementStartTime} = {movementDuration}");
+            }
+            else
+            {
+                Debug.LogWarning("Movement timer was never started, duration will be 0");
+            }
+
+            // Get trial index based on trial type
+            bool isPracticeTrial = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1;
+            int trialIndex = isPracticeTrial
+                ? PracticeManager.Instance.GetCurrentPracticeTrialIndex()
+                : ExperimentManager.Instance.GetCurrentTrialIndex();
+
+            // Log final decision outcome with accurate movement data
+            LogManager.Instance.LogDecisionOutcome(
+                trialIndex,
+                PlayerPrefs.GetInt("CurrentBlock", 0),
+                PlayerPrefs.GetString("DecisionType", "Work"),
+                true, // rewardCollected
+                PlayerPrefs.GetFloat("DecisionTime", 0f),
+                movementDuration,
+                totalButtonPresses,
+                PlayerPrefs.GetInt("EffortLevel", 1),
+                PlayerPrefs.GetInt("RequiredPresses", 1)
+            );
+
+            // Log final movement details
+            LogMovementEnd(currentPosition, true, true); // This is the final move
+
+            // Log movement duration
+            LogManager.Instance.LogEvent("MovementDuration", new Dictionary<string, string>
+            {
+                {"TrialNumber", (trialIndex + 1).ToString()},
+                {"MovementDuration", movementDuration.ToString("F3")},
+                {"OutcomeType", "Success"}
+            });
+
+            // Log success outcome
+            LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
+            {
+                {"TrialNumber", (trialIndex + 1).ToString()},
+                {"OutcomeType", "Success"}
+            });
+
+            // Log reward collection
+            LogManager.Instance.LogEvent("RewardCollected", new Dictionary<string, string>
+            {
+                {"TrialNumber", (trialIndex + 1).ToString()},
+                {"Collected", "True"}
+            });
+
+            // Log collision timing
+            LogManager.Instance.LogEvent("CollisionTime", new Dictionary<string, string>
+            {
+                {"TrialNumber", (trialIndex + 1).ToString()},
+                {"Time", collisionTime.ToString("F3")}
+            });
+
+            // Handle reward collection
             GameController gameController = GameController.Instance;
             if (gameController != null)
             {
                 gameController.LogRewardCollectionTiming(collisionTime, movementDuration);
                 gameController.RewardCollected(true);
             }
-            else
-            {
-                Debug.LogError("GameController not found in the scene!");
-            }
 
-            // Play reward sound
+            // Play reward sound and disable reward object
             PlaySound(rewardSound);
-
-            // Disable the reward object
             other.gameObject.SetActive(false);
 
-            // IMPORTANT: Invoke the reward collected event BEFORE disabling movement
+            // Invoke reward collected event before disabling movement
             OnRewardCollected?.Invoke();
-
-            // Disable player movement
+            LogButtonPressesAtTrialEnd(trialIndex);
             DisableMovement();
-
-            Debug.Log("Reward collected!");
         }
+    }
+
+    #region Movement Logging
+    private Vector2 movementStartPosition;
+
+    private void LogMovementStart(Vector2 startPosition)
+    {
+        movementStartPosition = startPosition;
+
+        // Get trial index based on trial type
+        int trialIndex = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1
+            ? PracticeManager.Instance.GetCurrentPracticeTrialIndex()
+            : ExperimentManager.Instance.GetCurrentTrialIndex();
+
+        if (LogManager.Instance != null)
+        {
+            LogManager.Instance.LogEvent("MovementStart", new Dictionary<string, string>
+            {
+                {"TrialNumber", (trialIndex + 1).ToString()},
+                {"StartX", startPosition.x.ToString("F2")},
+                {"StartY", startPosition.y.ToString("F2")},
+                {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+            });
+        }
+    }
+
+    public int GetTotalButtonPresses()
+    {
+        return totalButtonPresses;
+    }
+
+    // Replace LogMovementEnd with a simpler version that doesn't reset the timer
+    private void LogMovementEnd(Vector2 endPosition, bool rewardCollected, bool isFinalMove = false)
+    {
+        // Calculate total movement time if this is the final move and timer was started
+        float totalTime = (isFinalMove && movementTimerStarted) ? (Time.time - movementStartTime) : 0f;
+
+        // Get trial index based on trial type
+        int trialIndex = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1
+            ? PracticeManager.Instance.GetCurrentPracticeTrialIndex()
+            : ExperimentManager.Instance.GetCurrentTrialIndex();
+
+        if (LogManager.Instance != null && isFinalMove)
+        {
+            LogManager.Instance.LogEvent("MovementComplete", new Dictionary<string, string>
+            {
+                {"TrialNumber", (trialIndex + 1).ToString()},
+                {"TotalMovementDuration", totalTime.ToString("F3")},
+                {"TotalButtonPresses", totalButtonPresses.ToString()},
+                {"RewardCollected", rewardCollected.ToString()},
+                {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+            });
+
+            // Only log this for the final outcome, not intermediate steps
+            if (isFinalMove)
+            {
+                // Add separate reward collection event
+                LogManager.Instance.LogEvent("RewardCollected", new Dictionary<string, string>
+                {
+                    {"TrialNumber", (trialIndex + 1).ToString()},
+                    {"Collected", rewardCollected.ToString()}
+                });
+            }
+        }
+    }
+
+    public void LogMovementFailure()
+    {
+        if (movementTimerStarted)
+        {
+            float movementDuration = Time.time - movementStartTime;
+
+            // Get trial index based on trial type
+            int trialIndex = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1
+                ? PracticeManager.Instance.GetCurrentPracticeTrialIndex()
+                : ExperimentManager.Instance.GetCurrentTrialIndex();
+
+            // Log movement duration for failure
+            LogManager.Instance.LogEvent("MovementDuration", new Dictionary<string, string>
+            {
+                {"TrialNumber", (trialIndex + 1).ToString()},
+                {"MovementDuration", movementDuration.ToString("F3")},
+                {"OutcomeType", "Fail"}
+            });
+
+            // Log decision outcome for failure
+            LogManager.Instance.LogDecisionOutcome(
+                trialIndex,
+                PlayerPrefs.GetInt("CurrentBlock", 0),
+                PlayerPrefs.GetString("DecisionType", "NoDecision"),
+                false, // rewardCollected
+                PlayerPrefs.GetFloat("DecisionTime", 0f),
+                movementDuration,
+                totalButtonPresses,
+                PlayerPrefs.GetInt("EffortLevel", 1),
+                PlayerPrefs.GetInt("RequiredPresses", 1)
+            );
+
+            // Reset movement tracking
+            movementTimerStarted = false;
+        }
+    }
+    #endregion
+
+    // Then log the entire list at the end of the trial
+    private void LogButtonPressesAtTrialEnd(int trialIndex)
+    {
+        string buttonPressData = string.Join("|", buttonPressList.Select(bp => $"{bp.Key:F3}:{bp.Value}"));
+
+        LogManager.Instance.LogEvent("ButtonPresses", new Dictionary<string, string>
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()},
+            {"TotalPresses", totalButtonPresses.ToString()},
+            {"PressData", buttonPressData} // Format: "0.123:right|0.456:left|..."
+        });
+
+        // Clear the list for next trial
+        buttonPressList.Clear();
     }
 }

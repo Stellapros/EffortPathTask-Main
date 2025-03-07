@@ -11,7 +11,7 @@ public class ScoreAnimationManager : MonoBehaviour
     [SerializeField] private float scaleMultiplier = 1.3f;
 
     [Header("Colors")]
-    [SerializeField] private Color positiveScoreColor = new Color(0.4f, 1f, 0.4f); // Green
+    [SerializeField] private Color positiveScoreColor = new Color(0.694f, 0.925f, 0.180f); // #B1EC2E
     [SerializeField] private Color normalColor = new Color(0.584f, 0.761f, 0.749f); // #95C2BF
 
     [Header("Popup Text")]

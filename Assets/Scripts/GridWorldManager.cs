@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 /// <summary>
 /// Manages the overall state and flow of the GridWorld game.
@@ -191,6 +192,12 @@ public class GridWorldManager : MonoBehaviour
                 rewardSpawner.SetRewardSprite(trialSprite);
             }
         }
+
+        // Log trial start
+        int currentTrial = ExperimentManager.Instance?.GetCurrentTrialIndex() ?? 0;
+        int currentBlock = ExperimentManager.Instance?.GetCurrentBlockNumber() ?? 0;
+        bool isPractice = ExperimentManager.Instance?.IsCurrentTrialPractice() ?? false;
+        LogTrialStart(currentTrial, currentBlock, isPractice);
     }
 
     private Sprite LoadSpriteByName(string spriteName)
@@ -223,6 +230,11 @@ public class GridWorldManager : MonoBehaviour
     {
         if (!isTrialActive) return;
 
+        // Log trial end
+        int currentTrial = ExperimentManager.Instance?.GetCurrentTrialIndex() ?? 0;
+        int currentBlock = ExperimentManager.Instance?.GetCurrentBlockNumber() ?? 0;
+        LogTrialEnd(currentTrial, currentBlock, rewardCollected);
+
         // Key change: Do NOT immediately end the trial if reward is collected
         // Wait for the full trial duration
 
@@ -253,8 +265,45 @@ public class GridWorldManager : MonoBehaviour
             gameController.EndTrial(rewardCollected);
             playerController.DisableMovement();
 
+if (!rewardCollected && playerController != null)
+{
+    playerController.LogMovementFailure();
+}
+
             // Move to the next trial
             ExperimentManager.Instance.MoveToNextTrial();
         }
     }
+
+    #region Trial Logging
+    public void LogTrialStart(int trialNumber, int blockNumber, bool isPractice)
+    {
+        if (LogManager.Instance != null)
+        {
+            LogManager.Instance.LogEvent("TrialStart", new Dictionary<string, string>
+        {
+            {"TrialNumber", trialNumber.ToString()},
+            {"BlockNumber", blockNumber.ToString()},
+            {"IsPractice", isPractice.ToString()},
+            {"Timestamp", System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
+        }
+    }
+
+    public void LogTrialEnd(int trialNumber, int blockNumber, bool rewardCollected)
+    {
+        if (LogManager.Instance != null)
+        {
+            LogManager.Instance.LogEvent("TrialEnd", new Dictionary<string, string>
+        {
+            {"TrialNumber", trialNumber.ToString()},
+            {"BlockNumber", blockNumber.ToString()},
+            {"RewardCollected", rewardCollected.ToString()},
+            {"Timestamp", System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
+        }
+    }
+
+
+    #endregion
 }

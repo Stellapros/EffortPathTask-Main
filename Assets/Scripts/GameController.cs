@@ -55,6 +55,8 @@ public class GameController : MonoBehaviour
     private float decisionMadeTime;
     private float reactionTime;
 
+    // private bool isTrialStarting = false;
+    private readonly object trialLock = new object();
     public enum DecisionType
     {
         Work,
@@ -425,12 +427,12 @@ public class GameController : MonoBehaviour
     // Modify SetupGridWorldScene method to ensure proper component initialization
     private IEnumerator SetupGridWorldScene()
     {
-                // Add this at the beginning of the method
+        // Add this at the beginning of the method
         if (SceneManager.GetActiveScene().name == "GridWorld")
         {
             ValidateTrialMode();
         }
-        
+
         Debug.Log("Setting up GridWorld Scene...");
 
         // Wait for scene to fully load
@@ -570,6 +572,7 @@ public class GameController : MonoBehaviour
 
         Debug.Log("Clearing any existing rewards...");
         yield return StartCoroutine(rewardSpawner.ClearRewardCoroutine());
+        // yield return rewardSpawner.ClearRewardCoroutine();
 
         Debug.Log($"Player initial position: {playerInitialPosition}");
         Debug.Log($"Current block number: {experimentManager?.GetCurrentBlockNumber()}");
@@ -1304,84 +1307,83 @@ public class GameController : MonoBehaviour
     /// <summary>
     /// Called when the player collects the reward.
     /// </summary>
-public void RewardCollected(bool collision)
-{
-    Debug.Log($"RewardCollected called. Collision: {collision}, isTrialActive: {isTrialActive}, rewardCollected: {rewardCollected}, isTrialEnded: {isTrialEnded}");
-
-    // Early exit conditions
-    if (!isTrialActive || rewardCollected || isTrialEnded) return;
-
-    if (collision && !scoreAdded)
+    public void RewardCollected(bool collision)
     {
-        rewardCollected = true;
-        scoreAdded = true;
+        Debug.Log($"RewardCollected called. Collision: {collision}, isTrialActive: {isTrialActive}, rewardCollected: {rewardCollected}, isTrialEnded: {isTrialEnded}");
 
-        float rewardValue = experimentManager != null
-            ? experimentManager.GetCurrentTrialRewardValue()
-            : 0f;
+        // Early exit conditions
+        if (!isTrialActive || rewardCollected || isTrialEnded) return;
 
-        try
+        if (collision && !scoreAdded)
         {
-            // Get the current scene name to help determine trial type
-            string currentScene = SceneManager.GetActiveScene().name;
-            bool isPracticeTrial = currentScene.Contains("Practice") || PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1;
+            rewardCollected = true;
+            scoreAdded = true;
 
-            if (isPracticeTrial)
+            float rewardValue = experimentManager != null
+                ? experimentManager.GetCurrentTrialRewardValue()
+                : 0f;
+
+            try
             {
-                if (PracticeScoreManager.Instance != null)
+                // Get the current scene name to help determine trial type
+                string currentScene = SceneManager.GetActiveScene().name;
+                bool isPracticeTrial = currentScene.Contains("Practice") || PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1;
+
+                if (isPracticeTrial)
                 {
-                    PracticeScoreManager.Instance.AddScore(Mathf.RoundToInt(rewardValue));
-                    Debug.Log($"Practice Score added: {Mathf.RoundToInt(rewardValue)}");
+                    if (PracticeScoreManager.Instance != null)
+                    {
+                        PracticeScoreManager.Instance.AddScore(Mathf.RoundToInt(rewardValue));
+                        Debug.Log($"Practice Score added: {Mathf.RoundToInt(rewardValue)}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("PracticeScoreManager not found during practice trial - falling back to regular ScoreManager");
+                        if (ScoreManager.Instance != null)
+                        {
+                            ScoreManager.Instance.AddScore(Mathf.RoundToInt(rewardValue), isFormalTrial: false);
+                        }
+                    }
                 }
                 else
                 {
-                    Debug.LogWarning("PracticeScoreManager not found during practice trial - falling back to regular ScoreManager");
+                    // Formal trial - use regular ScoreManager
                     if (ScoreManager.Instance != null)
                     {
-                        ScoreManager.Instance.AddScore(Mathf.RoundToInt(rewardValue), isFormalTrial: false);
+                        ScoreManager.Instance.AddScore(Mathf.RoundToInt(rewardValue), isFormalTrial: true);
+                        Debug.Log($"Formal Score added: {Mathf.RoundToInt(rewardValue)}");
+                    }
+                    else
+                    {
+                        Debug.LogError("ScoreManager is null during formal trial!");
                     }
                 }
             }
-            else
+            catch (System.Exception e)
             {
-                // Formal trial - use regular ScoreManager
-                if (ScoreManager.Instance != null)
-                {
-                    ScoreManager.Instance.AddScore(Mathf.RoundToInt(rewardValue), isFormalTrial: true);
-                    Debug.Log($"Formal Score added: {Mathf.RoundToInt(rewardValue)}");
-                }
-                else
-                {
-                    Debug.LogError("ScoreManager is null during formal trial!");
-                }
+                Debug.LogError($"Error adding score: {e.Message}\n{e.StackTrace}");
+            }
+
+            // Hide the reward immediately upon collection
+            if (currentReward != null)
+            {
+                currentReward.SetActive(false);
+                Destroy(currentReward);
+                Debug.Log("Reward hidden upon collection.");
             }
         }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error adding score: {e.Message}\n{e.StackTrace}");
-        }
 
-        // Hide the reward immediately upon collection
-        if (currentReward != null)
+        // Log collision time with the correct trial index
+        if (ExperimentManager.Instance != null)
         {
-            currentReward.SetActive(false);
-            Destroy(currentReward);
-            Debug.Log("Reward hidden upon collection.");
+            int trialIndex = ExperimentManager.Instance.GetCurrentTrialIndex();
+            logManager.LogCollisionTime(trialIndex);
+        }
+        else
+        {
+            Debug.LogError("ExperimentManager is null when trying to log collision time!");
         }
     }
-
-    // Ensure we have a valid ExperimentManager before logging
-    if (ExperimentManager.Instance != null)
-    {
-        ExperimentManager.Instance.logManager?.LogCollisionTime(
-            ExperimentManager.Instance.GetCurrentTrialIndex()
-        );
-    }
-    else
-    {
-        Debug.LogError("ExperimentManager is null when trying to log collision time!");
-    }
-}
     #endregion
 
     #region Logging

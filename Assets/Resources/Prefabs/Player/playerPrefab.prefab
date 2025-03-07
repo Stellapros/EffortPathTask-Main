@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 6382901151627789725}
   - component: {fileID: 100146633506672638}
   - component: {fileID: 4090338640933660404}
+  - component: {fileID: -2962316640211789633}
   m_Layer: 8
   m_Name: playerPrefab
   m_TagString: Player
@@ -157,4 +158,17 @@ MonoBehaviour:
   stepSound: {fileID: 8300000, guid: 701f4fd2ed05a6e47a664dbe700d74b8, type: 3}
   gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
     type: 3}
-  isMoving: 0
+  practiceManager: {fileID: 5028154936095916163, guid: cf96765f7320747d3a1db6abff587e85,
+    type: 3}
+--- !u!114 &-2962316640211789633
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 197052547065130213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a3947979421c427db793c838ff9b9c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

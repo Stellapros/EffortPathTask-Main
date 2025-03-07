@@ -1,10 +1,13 @@
 using UnityEngine;
-using UnityEditor;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using System;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public enum CellType { Empty, Floor, Wall }
 
@@ -83,10 +86,8 @@ public class GridManager : MonoBehaviour
 
     private void CreatePoolContainer()
     {
-        // Check if we're marked as persistent
         isPersistent = transform.root.gameObject.scene.name == "DontDestroyOnLoad";
 
-        // Check if we already have a pool container
         if (poolContainer != null)
         {
             if (isPersistent)
@@ -98,25 +99,28 @@ public class GridManager : MonoBehaviour
 
         try
         {
-            // Create a new container in the active scene
             GameObject container = new GameObject("GridPool_Container");
 
-            // Ensure the container is created in the correct scene first
             if (isPersistent)
             {
                 SceneManager.MoveGameObjectToScene(container, SceneManager.GetActiveScene());
             }
 
-            // Set up hierarchy after scene management
             if (container != null)
             {
                 poolContainer = container.transform;
 
-                // Only set parent if we're not persistent and the current object is not a prefab asset
+#if UNITY_EDITOR
                 if (!isPersistent && !PrefabUtility.IsPartOfPrefabAsset(gameObject))
                 {
                     container.transform.SetParent(transform, false);
                 }
+#else
+                if (!isPersistent)
+                {
+                    container.transform.SetParent(transform, false);
+                }
+#endif
             }
         }
         catch (System.Exception e)
@@ -260,8 +264,12 @@ public class GridManager : MonoBehaviour
     {
         if (prefab == null) return null;
 
-        // Create an instance in the scene
-        GameObject instance = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+        GameObject instance;
+#if UNITY_EDITOR
+        instance = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+#else
+        instance = Instantiate(prefab);
+#endif
 
         if (instance == null)
         {
@@ -269,20 +277,21 @@ public class GridManager : MonoBehaviour
             return null;
         }
 
-        // Ensure the instance is in the correct scene
         if (isPersistent)
         {
             SceneManager.MoveGameObjectToScene(instance, SceneManager.GetActiveScene());
         }
 
-        // Set initial state
         instance.SetActive(false);
 
-        // Only set parent if the instance is not a prefab asset
+#if UNITY_EDITOR
         if (!PrefabUtility.IsPartOfPrefabAsset(instance))
         {
             instance.transform.SetParent(poolContainer, false);
         }
+#else
+        instance.transform.SetParent(poolContainer, false);
+#endif
 
         return instance;
     }
@@ -329,22 +338,22 @@ public class GridManager : MonoBehaviour
             }
         }
     }
-    
-public void ResetAvailablePositions()
-{
-    availableFloorPositions.Clear();
-    for (int x = 0; x < gridWidth; x++)
+
+    public void ResetAvailablePositions()
     {
-        for (int y = 0; y < gridHeight; y++)
+        availableFloorPositions.Clear();
+        for (int x = 0; x < gridWidth; x++)
         {
-            if (grid[x, y] == CellType.Floor)
+            for (int y = 0; y < gridHeight; y++)
             {
-                availableFloorPositions.Add(new Vector2Int(x, y));
+                if (grid[x, y] == CellType.Floor)
+                {
+                    availableFloorPositions.Add(new Vector2Int(x, y));
+                }
             }
         }
+        Debug.Log($"Reset available positions. New count: {availableFloorPositions.Count}");
     }
-    Debug.Log($"Reset available positions. New count: {availableFloorPositions.Count}");
-}
 
     public Vector2 GetRandomAvailablePosition()
     {
@@ -592,10 +601,9 @@ public void ResetAvailablePositions()
 
             try
             {
-                // Create a new instance by copying the prefab instance
                 GameObject obj = Object.Instantiate(prefabInstance);
 
-                if (obj != null && parent != null && !PrefabUtility.IsPartOfPrefabAsset(obj))
+                if (obj != null && parent != null)
                 {
                     obj.transform.SetParent(parent, false);
                     obj.SetActive(false);
@@ -613,13 +621,9 @@ public void ResetAvailablePositions()
 
         public GameObject GetObject()
         {
-            // Clean up any null references
             pool.RemoveAll(item => item == null);
-
-            // Try to find an inactive object
             GameObject obj = pool.Find(item => !item.activeInHierarchy);
 
-            // If no inactive object is found, create a new one
             if (obj == null)
             {
                 obj = CreateObject();
@@ -639,18 +643,12 @@ public void ResetAvailablePositions()
 
             try
             {
-                // Only modify transform if the object is not a prefab asset
-                if (!PrefabUtility.IsPartOfPrefabAsset(obj))
-                {
-                    // Reset transform
-                    obj.transform.localPosition = Vector3.zero;
-                    obj.transform.localRotation = Quaternion.identity;
+                obj.transform.localPosition = Vector3.zero;
+                obj.transform.localRotation = Quaternion.identity;
 
-                    // Make sure it's in the right parent
-                    if (parent != null && obj.transform.parent != parent)
-                    {
-                        obj.transform.SetParent(parent, false);
-                    }
+                if (parent != null && obj.transform.parent != parent)
+                {
+                    obj.transform.SetParent(parent, false);
                 }
 
                 obj.SetActive(false);
@@ -673,7 +671,7 @@ public void ResetAvailablePositions()
 
             foreach (GameObject obj in pool)
             {
-                if (obj != null && !PrefabUtility.IsPartOfPrefabAsset(obj))
+                if (obj != null)
                 {
                     try
                     {
