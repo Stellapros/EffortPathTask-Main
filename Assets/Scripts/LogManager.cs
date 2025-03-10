@@ -22,7 +22,7 @@ public class LogManager : MonoBehaviour
     private OneDriveUploader oneDriveUploader;
 
     // Participant info
-    public string participantID;
+    private string participantID;
     private int participantAge;
     private string participantGender;
     // private ParticipantInfo participantInfo;
@@ -60,31 +60,23 @@ public class LogManager : MonoBehaviour
     }
 
     #region Unity Lifecycle
-private void Awake()
-{
-    if (Instance == null)
+    private void Awake()
     {
-        Instance = this;
-        DontDestroyOnLoad(gameObject); // Ensure the LogManager persists across scenes
-        InitializeLogging(); // Initialize logging only once
-        Debug.Log("LogManager initialized and set to persist across scenes.");
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+            LoadParticipantInfo();
+            InitializeLogging();  // Only initialize once
+            oneDriveUploader = gameObject.AddComponent<OneDriveUploader>();
+            logBuilder = new StringBuilder();
+        }
+        else if (Instance != this)
+        {
+            // Make sure to destroy without initializing anything
+            Destroy(gameObject);
+        }
     }
-    else if (Instance != this)
-    {
-        Debug.Log("Duplicate LogManager instance destroyed.");
-        Destroy(gameObject); // Destroy duplicate instances
-    }
-}
-
-private void OnEnable()
-{
-    Debug.Log("LogManager GameObject enabled.");
-}
-
-private void OnDisable()
-{
-    Debug.Log("LogManager GameObject disabled.");
-}
     #endregion
 
     #region Initialization
@@ -100,40 +92,39 @@ private void OnDisable()
 
     private bool isInitialized = false; // Add this flag
 
-private void InitializeLogging()
-{
-    if (isInitialized || !string.IsNullOrEmpty(logFilePath))
+    private void InitializeLogging()
     {
-        Debug.Log($"Logging already initialized with path: {logFilePath}");
-        return; // Prevent multiple initializations
+        if (isInitialized || !string.IsNullOrEmpty(logFilePath))
+        {
+            Debug.Log($"Logging already initialized with path: {logFilePath}");
+            return; // Prevent multiple initializations
+        }
+
+        // Create a single log file with timestamp
+        string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        string strDir = Path.Combine(Application.dataPath, "_ExpData");
+        Directory.CreateDirectory(strDir);
+        logFilePath = Path.Combine(strDir, $"decision_task_log_{participantID}_{timestamp}.csv");
+
+        Debug.Log($"Initializing log file path: {logFilePath}");
+
+        // Create header for the log file
+        string header = "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
+                       "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
+                       "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n";
+
+        try
+        {
+            File.WriteAllText(logFilePath, header);
+            if (m_ShowDebugLogManager) Debug.Log($"Initialized logging to: {logFilePath}");
+            isInitialized = true; // Mark logging as initialized
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to initialize logging: {e.Message}");
+        }
     }
 
-    // Create a single log file with timestamp
-    string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-    string strDir = Path.Combine(Application.persistentDataPath, LOG_DIRECTORY); // Use persistentDataPath for cross-platform compatibility
-    Directory.CreateDirectory(strDir);
-    logFilePath = Path.Combine(strDir, $"decision_task_log_{participantID}_{timestamp}.csv");
-
-    Debug.Log($"Logging initialized. Log file is saved at: {logFilePath}");
-
-    // Create header for the log file
-    string header = "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
-                   "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
-                   "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n";
-
-    try
-    {
-        File.WriteAllText(logFilePath, header);
-        if (m_ShowDebugLogManager) Debug.Log($"Initialized logging to: {logFilePath}");
-        isInitialized = true; // Mark logging as initialized
-    }
-    catch (Exception e)
-    {
-        Debug.LogError($"Failed to initialize logging: {e.Message}");
-    }
-}
-
-    // Replace the EnsureLogFileInitialized with a simpler check
     public void EnsureLogFileInitialized()
     {
         if (!isInitialized)
@@ -740,8 +731,16 @@ private void InitializeLogging()
     #endregion
 
     #region Helper Methods
+    private StringBuilder cachedLogData = new StringBuilder();
     public void LogEvent(string eventType, Dictionary<string, string> parameters)
     {
+     Debug.Log($"Logging event: {eventType} with {parameters.Count} parameters");
+
+    foreach (var kvp in parameters)
+    {
+        Debug.Log($"{kvp.Key}: {kvp.Value}");
+    }
+
         // First ensure logging is initialized
         if (!isInitialized)
         {
@@ -753,35 +752,36 @@ private void InitializeLogging()
                 return; // Don't proceed if initialization failed
             }
         }
+
         // Define the default values for all columns
         var logData = new Dictionary<string, string>
-    {
-        {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")},
-        {"EventType", eventType},
-        {"ParticipantID", participantID},
-        {"ParticipantAge", participantAge.ToString()},
-        {"ParticipantGender", participantGender},
-        {"BlockNumber", "-"},
-        {"TrialNumber", "-"},
-        {"EffortLevel", "-"},
-        {"RequiredPresses", "-"},
-        {"DecisionType", "-"},
-        {"DecisionTime", "-"},
-        {"OutcomeType", "-"},
-        {"RewardCollected", "-"},
-        {"MovementDuration", "-"},
-        {"TotalPresses", "-"},
-        {"TotalScore", "-"},
-        {"PracticeScore", "-"},
-        {"AdditionalInfo", "-"},
-        {"StartX", "-"},
-        {"StartY", "-"},
-        {"EndX", "-"},
-        {"EndY", "-"},
-        {"StepDuration", "-"},
-        {"TirednessRating", "-"},
-        {"ParticipantFeedback", "-"} // Ensure Feedback column is included
-    };
+        {
+            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")},
+            {"EventType", eventType},
+            {"ParticipantID", participantID},
+            {"ParticipantAge", participantAge.ToString()},
+            {"ParticipantGender", participantGender},
+            {"BlockNumber", "-"},
+            {"TrialNumber", "-"},
+            {"EffortLevel", "-"},
+            {"RequiredPresses", "-"},
+            {"DecisionType", "-"},
+            {"DecisionTime", "-"},
+            {"OutcomeType", "-"},
+            {"RewardCollected", "-"},
+            {"MovementDuration", "-"},
+            {"TotalPresses", "-"},
+            {"TotalScore", "-"},
+            {"PracticeScore", "-"},
+            {"AdditionalInfo", "-"},
+            {"StartX", "-"},
+            {"StartY", "-"},
+            {"EndX", "-"},
+            {"EndY", "-"},
+            {"StepDuration", "-"},
+            {"TirednessRating", "-"},
+            {"ParticipantFeedback", "-"}
+        };
 
         // Override defaults with actual values if provided
         foreach (var param in parameters)
@@ -826,16 +826,6 @@ private void InitializeLogging()
         }
     }
 
-    private void ValidateRequiredParameters(string eventType, Dictionary<string, string> parameters)
-    {
-        var requiredParams = GetRequiredParameters(eventType);
-        var missingParams = requiredParams.Where(p => !parameters.ContainsKey(p)).ToList();
-
-        if (missingParams.Any())
-        {
-            Debug.LogWarning($"Missing required parameters for event {eventType}: {string.Join(", ", missingParams)}");
-        }
-    }
 
     private string DetermineOutcomeType(string decisionType, bool rewardCollected)
     {
@@ -972,7 +962,7 @@ private void InitializeLogging()
                 // Create header for the log file
                 return "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
                                "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
-                               "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n"; // Added Feedback column
+                               "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n";
             }
         }
 
@@ -990,7 +980,7 @@ private void InitializeLogging()
                 // Create header for the log file
                 return "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
                                "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
-                               "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n"; // Added Feedback column
+                               "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n";
             }
 
             return csvContent;
@@ -1000,79 +990,178 @@ private void InitializeLogging()
             Debug.LogError($"Failed to read log file: {e.Message}");
 
             // Return minimal CSV with headers as fallback
-
-            // Create header for the log file
             return "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
                            "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
-                           "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n"; // Added Feedback column
+                           "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n";
         }
     }
 
-
-    public void TestUpload()
+public IEnumerator FinalizeAndUploadLogWithDelay()
+{
+    // Ensure all data is written to the file
+    lock (logLock)
     {
-        Debug.Log("Testing CSV upload...");
-        StartCoroutine(FinalizeAndUploadLogWithDelay());
-    }
-
-    public IEnumerator FinalizeAndUploadLogWithDelay()
-    {
-        // First, finalize the log file
-        FinalizeLogFile();
-
-        // Add a longer delay to ensure all data is written
-        yield return new WaitForSeconds(2f);
-
-        // Read the CSV content - ensure it's reading the full file
-        string csvContent = File.ReadAllText(logFilePath);
-        if (string.IsNullOrEmpty(csvContent))
+        try
         {
-            Debug.LogError("No CSV content to upload!");
-            yield break;
+            // Use StreamWriter to flush the data to the file
+            using (StreamWriter writer = new StreamWriter(logFilePath, true))
+            {
+                writer.Flush(); // Ensure all buffered data is written to the file
+            }
         }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to flush log file: {e.Message}");
+        }
+    }
 
-        // Debug: Log the CSV content size to verify it contains all data
-        Debug.Log($"CSV Content size to Upload: {csvContent.Length} bytes, {csvContent.Split('\n').Length} lines");
+    // Add a small delay to ensure all data is written to disk
+    yield return new WaitForSeconds(2f); // Increased delay to 2 seconds
 
-        string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-        string fileName = $"decision_task_log_{participantID}_{timestamp}.csv";
+    // Read the CSV content
+    string csvContent = GetCsvContent();
+    if (string.IsNullOrEmpty(csvContent))
+    {
+        Debug.LogError("No CSV content to upload!");
+        yield break;
+    }
 
-        // Check if oneDriveUploader exists
+    // Debug: Log the CSV content to verify it contains all data
+    Debug.Log("CSV Content to Upload:\n" + csvContent);
+
+    string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+    string fileName = $"decision_task_log_{participantID}_{timestamp}.csv";
+
+    // Check if oneDriveUploader exists
+    if (oneDriveUploader == null)
+    {
+        Debug.LogError("OneDriveUploader is null! Attempting to add component.");
+        oneDriveUploader = gameObject.AddComponent<OneDriveUploader>();
         if (oneDriveUploader == null)
         {
-            Debug.LogError("OneDriveUploader is null! Attempting to add component.");
-            oneDriveUploader = gameObject.AddComponent<OneDriveUploader>();
+            Debug.LogError("Failed to add OneDriveUploader component!");
+            yield break;
         }
-
-        // Upload the file
-        yield return oneDriveUploader.UploadFileToOneDrive(csvContent, fileName);
     }
 
-    public void FinalizeLogFile()
-    {
-        lock (logLock)
-        {
-            try
-            {
-                if (logBuilder != null && logBuilder.Length > 0)
-                {
-                    File.AppendAllText(logFilePath, logBuilder.ToString());
-                    logBuilder.Clear();
-                    Debug.Log("Finalized log file by writing all buffered data.");
-                }
+    // Upload the file
+    yield return oneDriveUploader.UploadFileToOneDrive(csvContent, Path.GetFileName(logFilePath));
+}
 
-                // Ensure the file system fully flushes data
+
+public void FinalizeLogFile()
+{
+    lock (logLock)
+    {
+        try
+        {
+            Debug.Log($"Finalizing log file: {logFilePath}");
+            
+            // First check if the builder has content
+            if (logBuilder != null && logBuilder.Length > 0)
+            {
+                Debug.Log($"Writing {logBuilder.Length} characters from logBuilder");
+                
+                // Append the builder content to the file
+                File.AppendAllText(logFilePath, logBuilder.ToString());
+                logBuilder.Clear();
+            }
+            
+            // Also check if there's any cached data
+            if (cachedLogData != null && cachedLogData.Length > 0)
+            {
+                Debug.Log($"Writing {cachedLogData.Length} characters from cachedLogData");
+                
+                // Get the first line of the log file (header) to check if it exists
+                string header = "";
+                bool fileExists = File.Exists(logFilePath);
+                
+                if (fileExists)
+                {
+                    try
+                    {
+                        using (StreamReader reader = new StreamReader(logFilePath))
+                        {
+                            header = reader.ReadLine();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"Could not read header: {ex.Message}");
+                    }
+                }
+                
+                // Write the cached data with or without header as appropriate
                 using (StreamWriter writer = new StreamWriter(logFilePath, true))
                 {
+                    if (!fileExists || string.IsNullOrEmpty(header))
+                    {
+                        // File doesn't exist or has no header, so include header
+                        writer.WriteLine("Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
+                            "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
+                            "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback");
+                    }
+                    
+                    writer.Write(cachedLogData.ToString());
                     writer.Flush();
                 }
-
-                Debug.Log($"Finalized log file: {logFilePath}");
+                
+                cachedLogData.Clear();
             }
-            catch (Exception e)
+            
+            // Finally, force the file to flush to disk
+            using (FileStream fs = new FileStream(logFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite))
             {
-                Debug.LogError($"Failed to finalize log file: {e.Message}");
+                fs.Flush(true); // True forces flush to disk
             }
+            
+            // Verify the file has content
+            long fileSize = new FileInfo(logFilePath).Length;
+            Debug.Log($"Log file size after finalization: {fileSize} bytes");
+            
+            if (fileSize == 0)
+            {
+                Debug.LogError("Log file is empty after finalization!");
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to finalize log file: {e.Message}");
+        }
+    }
+
+    // Add a delay to ensure file system operations complete
+    System.Threading.Thread.Sleep(1000); // 1 second delay
+}
+
+
+    public string GetCachedLogData()
+    {
+        // Get the header from the file
+        string header = "";
+        try
+        {
+            if (File.Exists(logFilePath))
+            {
+                using (StreamReader reader = new StreamReader(logFilePath))
+                {
+                    header = reader.ReadLine() + "\n";
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"Error reading header: {e.Message}");
+            // Use default header if file read fails
+            header = "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
+                   "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
+                   "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n";
+        }
+
+        // Return cached data with header
+        lock (logLock)
+        {
+            return header + cachedLogData.ToString();
         }
     }
 }

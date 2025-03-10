@@ -1,141 +1,72 @@
-using System.Collections;
-using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
+using System.Collections;
 
 public class OneDriveUploader : MonoBehaviour
 {
-    // URL of your Google Apps Script web app
-    private string uploadUrl = "https://script.google.com/macros/s/AKfycbwJ6d0zelejUI-bIK6t5h0XNhc6iZD5ShBACM6cnDOrUC8PSUT46qw-8Q2vezMqwLBp/exec";
+    private const string CLIENT_ID = "m.li.14@bham.ac.uk";
+    private const string REDIRECT_URI = "https://play.unity.com/en/games/52050d3f-c1cf-4f90-b79a-84ca9d751616/the-motivation-expedition";
+    private const string ONEDRIVE_SCOPE = "files.readwrite";
+    private const string AUTH_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
+    private const string TOKEN_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
 
-    public IEnumerator UploadFileToOneDrive(string csvContent, string fileName)
+    private string accessToken;
+    private bool isAuthenticated = false;
+
+public IEnumerator UploadFileToOneDrive(string csvContent, string fileName)
+{
+    if (string.IsNullOrEmpty(csvContent))
     {
-        // Try uploading directly first
-        bool success = false;
-
-        if (csvContent.Length < 100000) // If content is small enough for direct upload
-        {
-            yield return StartCoroutine(UploadDirectly(csvContent, fileName, (result) =>
-            {
-                success = result;
-            }));
-        }
-
-        // If direct upload failed or content is too large, try chunked upload
-        if (!success && csvContent.Length > 10000)
-        {
-            yield return StartCoroutine(UploadInChunks(csvContent, fileName));
-        }
+        Debug.LogError("CSV content is empty or null!");
+        yield break;
     }
 
-    private IEnumerator UploadDirectly(string csvContent, string fileName, System.Action<bool> callback)
+    // Ensure authentication is complete
+    if (!isAuthenticated)
     {
-        WWWForm form = new WWWForm();
-
-        // Add base64 encoded data for direct upload
-        byte[] bytes = Encoding.UTF8.GetBytes(csvContent);
-        string base64Data = System.Convert.ToBase64String(bytes);
-
-        form.AddField("participant_id", LogManager.Instance.participantID);
-        form.AddField("json_data", CreateJsonWrapper(csvContent));
-
-        Debug.Log($"Uploading file directly to: {uploadUrl}");
-
-        using (UnityWebRequest www = UnityWebRequest.Post(uploadUrl, form))
-        {
-            // Set timeout to 60 seconds
-            www.timeout = 60;
-
-            yield return www.SendWebRequest();
-
-            if (www.result == UnityWebRequest.Result.Success)
-            {
-                Debug.Log("Upload successful: " + www.downloadHandler.text);
-                callback(true);
-            }
-            else
-            {
-                Debug.LogError("Upload error: " + www.error);
-                Debug.LogError("Response: " + www.downloadHandler.text);
-                callback(false);
-            }
-        }
+        Debug.Log("Starting OAuth flow...");
+        yield return StartOAuthFlow();
     }
 
-    private IEnumerator UploadInChunks(string csvContent, string fileName)
+    // Upload the file
+    string uploadUrl = "https://graph.microsoft.com/v1.0/me/drive/root:/GameLogs/" + fileName + ":/content";
+// string uploadUrl = "https://effortpatch-0b3abd136749.herokuapp.com/upload";
+
+    UnityWebRequest request = new UnityWebRequest(uploadUrl, "PUT");
+    byte[] bodyRaw = Encoding.UTF8.GetBytes(csvContent);
+    request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+    request.downloadHandler = new DownloadHandlerBuffer();
+    request.SetRequestHeader("Authorization", "Bearer " + accessToken);
+    request.SetRequestHeader("Content-Type", "text/csv");
+
+    yield return request.SendWebRequest();
+
+    if (request.result == UnityWebRequest.Result.Success)
     {
-        // Split content into chunks of approximately 50KB
-        const int chunkSize = 50000;
-        int totalChunks = Mathf.CeilToInt((float)csvContent.Length / chunkSize);
+        Debug.Log("File uploaded successfully to OneDrive");
+    }
+    else
+    {
+        Debug.LogError($"Error uploading to OneDrive: {request.error}");
+    }
+}
 
-        Debug.Log($"Uploading file in {totalChunks} chunks");
+    private IEnumerator StartOAuthFlow()
+    {
+        string authUrl = $"{AUTH_ENDPOINT}?client_id={CLIENT_ID}&response_type=token&redirect_uri={REDIRECT_URI}&scope={ONEDRIVE_SCOPE}";
+        Application.OpenURL(authUrl);
 
-        for (int i = 0; i < totalChunks; i++)
-        {
-            int startIndex = i * chunkSize;
-            int length = Mathf.Min(chunkSize, csvContent.Length - startIndex);
-            string chunk = csvContent.Substring(startIndex, length);
-
-            WWWForm form = new WWWForm();
-            form.AddField("chunk_number", i + 1);
-            form.AddField("total_chunks", totalChunks);
-            form.AddField("participant_id", LogManager.Instance.participantID);
-
-            // Wrap the chunk in a JSON structure for the server to process
-            form.AddField("json_data", CreateJsonWrapper(chunk, i + 1, totalChunks));
-
-            using (UnityWebRequest www = UnityWebRequest.Post(uploadUrl, form))
-            {
-                www.timeout = 30;
-                yield return www.SendWebRequest();
-
-                if (www.result == UnityWebRequest.Result.Success)
-                {
-                    Debug.Log($"Chunk {i + 1}/{totalChunks} uploaded successfully");
-                }
-                else
-                {
-                    Debug.LogError($"Failed to upload chunk {i + 1}: {www.error}");
-                    // Wait a bit before retrying
-                    yield return new WaitForSeconds(2f);
-                    i--; // Retry this chunk
-                }
-            }
-
-            // Wait briefly between chunks to not overload the server
-            yield return new WaitForSeconds(0.5f);
-        }
-
-        Debug.Log("Chunked upload complete");
+        // Wait for the access token to be set via JavaScript bridge
+        yield return new WaitUntil(() => !string.IsNullOrEmpty(accessToken));
+        isAuthenticated = true;
+        Debug.Log("OAuth flow completed successfully");
     }
 
-    private string CreateJsonWrapper(string csvContent, int? chunkNumber = null, int? totalChunks = null)
+    // Called from JavaScript when auth token is received
+    public void SetAccessToken(string token)
     {
-        // Create a JSON wrapper for the CSV content
-        StringBuilder jsonBuilder = new StringBuilder();
-        jsonBuilder.Append("{");
-
-        // Add participant info
-        jsonBuilder.Append($"\"participantID\":\"{LogManager.Instance.participantID}\",");
-
-        // Add chunk info if provided
-        if (chunkNumber.HasValue && totalChunks.HasValue)
-        {
-            jsonBuilder.Append($"\"chunkNumber\":{chunkNumber.Value},");
-            jsonBuilder.Append($"\"totalChunks\":{totalChunks.Value},");
-        }
-
-        // Convert CSV content to a JSON array of data points
-        jsonBuilder.Append("\"csvData\":\"");
-
-        // Escape special characters in CSV
-        string escapedCsv = csvContent.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r");
-        jsonBuilder.Append(escapedCsv);
-
-        jsonBuilder.Append("\"");
-        jsonBuilder.Append("}");
-
-        return jsonBuilder.ToString();
+        accessToken = token;
+        Debug.Log("Access token set successfully");
     }
 }

@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 310d1bec4d3424f9a88c52066a2dadfb, type: 3}
   m_Name: ExperimentConfig
   m_EditorClassIdentifier: 
-  serverUrl: https://default-server-url.com/api/submit-data
+  ServerUrl: https://effortpatch-0b3abd136749.herokuapp.com/upload

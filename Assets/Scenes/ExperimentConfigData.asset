@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 310d1bec4d3424f9a88c52066a2dadfb, type: 3}
   m_Name: ExperimentConfigData
   m_EditorClassIdentifier: 
-  ServerUrl: https://script.google.com/macros/s/AKfycbzFthiIj9whUhk0yNAQpFAOTZqRzX73ojOuyYwNP59xIZ3vZmZJxvabbIdccBjMIrTd/exec
+  ServerUrl: https://effortpatch-0b3abd136749.herokuapp.com/upload

@@ -8,6 +8,7 @@ using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using System.IO;
 using System.Threading.Tasks;
+using System.Text;
 
 public class EndExperiment : MonoBehaviour
 {
@@ -106,25 +107,6 @@ public class EndExperiment : MonoBehaviour
         }
 
         // Ensure LogManager is ready
-        if (logManager == null)
-        {
-            logManager = FindAnyObjectByType<LogManager>();
-            if (logManager == null)
-            {
-                Debug.LogError("LogManager not found in the scene!");
-            }
-            else
-            {
-                Debug.Log("LogManager found in the scene.");
-            }
-        }
-
-        if (logManager != null && !logManager.gameObject.activeInHierarchy)
-        {
-            Debug.Log("LogManager GameObject was inactive. Enabling it now.");
-            logManager.gameObject.SetActive(true);
-        }
-
         if (logManager != null)
         {
             logManager.EnsureLogFileInitialized();
@@ -163,6 +145,463 @@ public class EndExperiment : MonoBehaviour
         if (totalScoreText != null)
         {
             totalScoreText.text = $"Total Score: {totalScore}";
+        }
+    }
+
+    // private string ReadAllLogData()
+    // {
+    //     string csvContent = "";
+
+    //     if (logManager != null)
+    //     {
+    //         try
+    //         {
+    //             // Force finalize the log file first
+    //             if (logManager.gameObject.activeInHierarchy)
+    //             {
+    //                 logManager.FinalizeLogFile(); // Ensure all data is written to the file
+    //             }
+
+    //             // Try to read from the log file path directly
+    //             if (!string.IsNullOrEmpty(logManager.LogFilePath) && File.Exists(logManager.LogFilePath))
+    //             {
+
+    //                 // Use File.ReadAllText to get the raw file content
+    //                 csvContent = File.ReadAllText(logManager.LogFilePath);
+    //                 Debug.Log($"Read {csvContent.Split('\n').Length} lines directly from log file: {logManager.LogFilePath}");
+    //             }
+    //             else
+    //             {
+    //                 // Fallback to GetCsvContent
+    //                 csvContent = logManager.GetCsvContent();
+    //                 Debug.Log($"Read {csvContent.Split('\n').Length} lines using GetCsvContent method");
+    //             }
+    //         }
+    //         catch (Exception e)
+    //         {
+    //             Debug.LogError($"Error reading log file: {e.Message}");
+    //         }
+    //     }
+
+    //     // Get the feedback from the InputField or from PlayerPrefs as fallback
+    //     string feedback = "";
+    //     if (feedbackInputField != null && !string.IsNullOrEmpty(feedbackInputField.text))
+    //     {
+    //         feedback = feedbackInputField.text;
+    //     }
+    //     else
+    //     {
+    //         feedback = PlayerPrefs.GetString("ParticipantFeedback", "No feedback provided");
+    //     }
+
+    //     // Validation to ensure we have content
+    //     if (string.IsNullOrEmpty(csvContent) || csvContent.Split('\n').Length <= 1)
+    //     {
+    //         Debug.LogWarning("CSV content is empty or contains only headers. Creating minimal data.");
+
+    //         // Generate minimal dataset with headers
+    //         csvContent = "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
+    //             "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
+    //             "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,FeedbackText\n" + // Changed Feedback to FeedbackText for consistency
+    //             $"{DateTime.Now},Summary,{PlayerPrefs.GetString("ParticipantID", "Unknown")},{PlayerPrefs.GetInt("ParticipantAge", 0)}," +
+    //             $"{PlayerPrefs.GetString("ParticipantGender", "Unknown")},,,,,,,,," +
+    //             $"{totalTime.ToString("F2")},,{totalScore},,,,,,,{PlayerPrefs.GetString("TirednessRating", "")},{feedback}\n";
+    //     }
+    //     else
+    //     {
+    //         // Append the feedback to the existing CSV content
+    //         string[] lines = csvContent.Split('\n');
+
+    //         // Check if the header already has the FeedbackText column
+    //         bool headerHasFeedback = lines[0].Contains("FeedbackText");
+
+    //         // If the header doesn't have the FeedbackText column, add it
+    //         if (!headerHasFeedback)
+    //         {
+    //             lines[0] += ",FeedbackText"; // Add FeedbackText column to the header
+    //         }
+
+    //         // Rebuild the CSV content with the feedback
+    //         string newCsvContent = lines[0] + "\n"; // Start with the header
+
+    //         for (int i = 1; i < lines.Length; i++)
+    //         {
+    //             if (string.IsNullOrEmpty(lines[i])) continue;
+
+    //             // Only add the feedback to the last line (summary line)
+    //             if (i == lines.Length - 1 || i == lines.Length - 2 && string.IsNullOrEmpty(lines[lines.Length - 1]))
+    //             {
+    //                 if (!lines[i].Contains(",ParticipantFeedback,") && !lines[i].EndsWith(",ParticipantFeedback"))
+    //                 {
+    //                     lines[i] += $",{feedback}";
+    //                 }
+    //             }
+
+    //             newCsvContent += lines[i] + "\n";
+    //         }
+
+    //         csvContent = newCsvContent;
+    //     }
+
+    //     // Log the actual content for debugging
+    //     Debug.Log($"CSV data to be submitted has {csvContent.Split('\n').Length} lines and {csvContent.Length} characters");
+
+    //     return csvContent;
+    // }
+
+    private string ReadAllLogData()
+    {
+        string csvContent = "";
+
+        if (logManager != null)
+        {
+            try
+            {
+                // Force finalize the log file first
+                if (logManager.gameObject.activeInHierarchy)
+                {
+                    Debug.Log("Calling FinalizeLogFile...");
+                    logManager.FinalizeLogFile(); // Ensure all data is written to the file
+                    Debug.Log($"Successfully finalized log file at: {logManager.LogFilePath}");
+
+                    // Add a small delay to ensure file system has completed the write
+                    System.Threading.Thread.Sleep(500);
+                }
+
+                // Try to read from the log file path directly
+                if (!string.IsNullOrEmpty(logManager.LogFilePath) && File.Exists(logManager.LogFilePath))
+                {
+                    try
+                    {
+                        // Use File.ReadAllText to get the raw file content
+                        csvContent = File.ReadAllText(logManager.LogFilePath);
+                        Debug.Log($"Read {csvContent.Split('\n').Length} lines directly from log file: {logManager.LogFilePath}");
+
+                        // Check the first and last few characters of the content for debugging
+                        int startChars = Math.Min(50, csvContent.Length);
+                        int endChars = Math.Min(50, csvContent.Length);
+                        Debug.Log($"First {startChars} chars: {csvContent.Substring(0, startChars)}");
+                        if (csvContent.Length > endChars)
+                        {
+                            Debug.Log($"Last {endChars} chars: {csvContent.Substring(csvContent.Length - endChars)}");
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"Error reading log file directly: {e.Message}");
+                    }
+                }
+
+                // If content is empty or only has headers, try GetCsvContent
+                if (string.IsNullOrEmpty(csvContent) || csvContent.Split('\n').Length <= 2)
+                {
+                    Debug.Log("Direct file read failed or returned minimal content. Trying GetCsvContent method...");
+                    try
+                    {
+                        csvContent = logManager.GetCsvContent();
+                        Debug.Log($"Read {csvContent.Split('\n').Length} lines using GetCsvContent method");
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"Error using GetCsvContent: {e.Message}");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error during log reading process: {e.Message}");
+            }
+        }
+        else
+        {
+            Debug.LogError("LogManager is null!");
+        }
+
+        // Get the feedback from the InputField or from PlayerPrefs as fallback
+        string feedback = "";
+        if (feedbackInputField != null && !string.IsNullOrEmpty(feedbackInputField.text))
+        {
+            feedback = feedbackInputField.text;
+        }
+        else
+        {
+            feedback = PlayerPrefs.GetString("ParticipantFeedback", "No feedback provided");
+        }
+
+        // Check content again after all attempts
+        if (string.IsNullOrEmpty(csvContent) || csvContent.Split('\n').Length <= 2)
+        {
+            Debug.LogWarning("CSV content is still empty or contains only headers. Creating minimal data.");
+
+            // Generate minimal dataset with headers
+            csvContent = "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
+                "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
+                "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n" +
+                $"{DateTime.Now},Summary,{PlayerPrefs.GetString("ParticipantID", "Unknown")},{PlayerPrefs.GetInt("ParticipantAge", 0)}," +
+                $"{PlayerPrefs.GetString("ParticipantGender", "Unknown")},,,,,,,,," +
+                $"{totalTime.ToString("F2")},,{totalScore},,,,,,,{PlayerPrefs.GetString("TirednessRating", "")},{feedback}\n";
+        }
+        else
+        {
+            // Correctly append the feedback to the CSV content
+            // First check if ParticipantFeedback column already exists in the header
+            string[] lines = csvContent.Split('\n');
+            bool headerHasFeedback = lines[0].Contains("ParticipantFeedback");
+
+            // If the header doesn't have ParticipantFeedback, we need to add it
+            if (!headerHasFeedback)
+            {
+                Debug.Log("Adding ParticipantFeedback column to header");
+                string newHeader = lines[0] + ",ParticipantFeedback";
+
+                // Rebuild the CSV content with the modified header
+                string newCsvContent = newHeader + "\n";
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    if (string.IsNullOrEmpty(lines[i])) continue;
+
+                    // For the last non-empty line, add the feedback value
+                    if (i == lines.Length - 1 || (i < lines.Length - 1 && string.IsNullOrEmpty(lines[i + 1])))
+                    {
+                        newCsvContent += lines[i] + "," + feedback + "\n";
+                    }
+                    else
+                    {
+                        newCsvContent += lines[i] + "\n";
+                    }
+                }
+                csvContent = newCsvContent;
+            }
+            else
+            {
+                // If header already has ParticipantFeedback column, ensure the feedback is in the last row
+                bool feedbackAdded = false;
+                for (int i = lines.Length - 1; i >= 1; i--)
+                {
+                    if (!string.IsNullOrEmpty(lines[i]))
+                    {
+                        // Check if this line already has a value for ParticipantFeedback
+                        string[] values = lines[i].Split(',');
+                        int feedbackIndex = Array.IndexOf(lines[0].Split(','), "ParticipantFeedback");
+
+                        if (feedbackIndex >= 0 && feedbackIndex < values.Length && string.IsNullOrEmpty(values[feedbackIndex]))
+                        {
+                            // Replace the empty feedback with the current feedback
+                            values[feedbackIndex] = feedback;
+                            lines[i] = string.Join(",", values);
+                            feedbackAdded = true;
+                        }
+                        break;
+                    }
+                }
+
+                // If we didn't add the feedback to an existing column, we need to manually add it to the last line
+                if (!feedbackAdded)
+                {
+                    for (int i = lines.Length - 1; i >= 1; i--)
+                    {
+                        if (!string.IsNullOrEmpty(lines[i]))
+                        {
+                            lines[i] += "," + feedback;
+                            break;
+                        }
+                    }
+                }
+
+                // Rebuild the CSV content
+                csvContent = string.Join("\n", lines);
+            }
+        }
+
+        // Debug log to verify content
+        Debug.Log($"Final CSV data to be submitted has {csvContent.Split('\n').Length} lines and {csvContent.Length} characters");
+
+        return csvContent;
+    }
+
+    private IEnumerator SubmitDataToServer(string csvContent)
+    {
+        if (string.IsNullOrEmpty(csvContent))
+        {
+            Debug.LogError("CSV content is empty! Cannot submit to server.");
+            ShowMessage("Error: No data to submit", true);
+            isSubmitting = false;
+            yield break;
+        }
+
+        // Validate the CSV data
+        string[] lines = csvContent.Split('\n');
+        Debug.Log($"Submitting CSV with {lines.Length} lines");
+
+        if (lines.Length <= 2)
+        {
+            Debug.LogError("CSV data contains only headers or is incomplete!");
+            ShowMessage("Error: Incomplete data", true);
+            SaveLocalBackup(csvContent); // Save what we have anyway
+            isSubmitting = false;
+            yield break;
+        }
+
+        string herokuUploadUrl = "https://effortpatch-0b3abd136749.herokuapp.com/upload";
+        Debug.Log($"Uploading to URL: {herokuUploadUrl}");
+
+        int maxRetries = 3;
+        int retryCount = 0;
+        bool success = false;
+
+        // Try to break the data into chunks if it's large
+        // Heroku might have limitations on request size
+        if (csvContent.Length > 500000) // If larger than ~500KB
+        {
+            Debug.Log("Data is large, will try to compress it before sending");
+            byte[] originalData = Encoding.UTF8.GetBytes(csvContent);
+
+            // Use compression to reduce data size
+            using (MemoryStream compressedStream = new MemoryStream())
+            {
+                using (System.IO.Compression.GZipStream gzipStream = new System.IO.Compression.GZipStream(
+                    compressedStream, System.IO.Compression.CompressionMode.Compress))
+                {
+                    gzipStream.Write(originalData, 0, originalData.Length);
+                }
+
+                byte[] compressedData = compressedStream.ToArray();
+                Debug.Log($"Compressed data from {originalData.Length} to {compressedData.Length} bytes");
+
+                // Use the compressed data for upload
+                while (!success && retryCount < maxRetries)
+                {
+                    retryCount++;
+                    Debug.Log($"Upload attempt {retryCount}/{maxRetries} with compressed data...");
+
+                    // UnityWebRequest request = new UnityWebRequest(herokuUploadUrl, "POST");
+                    // request.uploadHandler = new UploadHandlerRaw(compressedData);
+                    // request.downloadHandler = new DownloadHandlerBuffer();
+                    // request.SetRequestHeader("Content-Type", "application/gzip");
+                    // request.SetRequestHeader("Content-Encoding", "gzip");
+                    // request.timeout = 60;
+
+                    UnityWebRequest request = new UnityWebRequest(herokuUploadUrl, "POST");
+                    // Ensure we're converting all line endings to \n for consistency
+                    string normalizedContent = csvContent.Replace("\r\n", "\n").Replace('\r', '\n');
+                    byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(normalizedContent);
+                    request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+                    request.downloadHandler = new DownloadHandlerBuffer();
+                    request.SetRequestHeader("Content-Type", "text/plain; charset=utf-8");
+                    request.SetRequestHeader("Accept", "application/json");
+                    request.timeout = 60; // Increased timeout for larger data
+
+                    yield return request.SendWebRequest();
+
+                    if (request.result == UnityWebRequest.Result.Success)
+                    {
+                        Debug.Log($"Compressed upload successful! Server response: {request.downloadHandler.text}");
+                        success = true;
+                    }
+                    else
+                    {
+                        Debug.LogError($"Compressed upload attempt {retryCount} failed: {request.error}");
+                        yield return new WaitForSeconds(2f);
+                    }
+                }
+            }
+        }
+
+        // If compression upload failed or wasn't attempted, try normal upload
+        if (!success)
+        {
+            retryCount = 0;
+            while (!success && retryCount < maxRetries)
+            {
+                retryCount++;
+                Debug.Log($"Upload attempt {retryCount}/{maxRetries}...");
+
+                UnityWebRequest request = new UnityWebRequest(herokuUploadUrl, "POST");
+                byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(csvContent);
+                request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+                request.downloadHandler = new DownloadHandlerBuffer();
+                request.SetRequestHeader("Content-Type", "text/plain");
+                request.SetRequestHeader("Accept", "application/json");
+                request.timeout = 60; // Increased timeout for larger data
+
+                Debug.Log($"Sending {bodyRaw.Length} bytes to server...");
+                yield return request.SendWebRequest();
+
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    Debug.Log($"Upload successful! Server response: {request.downloadHandler.text}");
+                    success = true;
+                }
+                else
+                {
+                    Debug.LogError($"Upload attempt {retryCount} failed: {request.error}");
+                    if (request.downloadHandler != null)
+                    {
+                        Debug.LogError($"Server Response: {request.downloadHandler.text}");
+                    }
+
+                    if (retryCount < maxRetries)
+                    {
+                        Debug.Log("Waiting before retry...");
+                        yield return new WaitForSeconds(2f);
+                    }
+                }
+            }
+        }
+
+        if (success)
+        {
+            ShowMessage("Thank you for your participation!", false, true, true);
+            Debug.Log("Upload successful. Local backup already saved.");
+        }
+        else
+        {
+            ShowMessage("Server submission failed, but data was saved locally!", true, true, true);
+            Debug.Log("All upload attempts failed. Using local backup.");
+        }
+
+        if (continueButton != null && redirectAfterSubmission)
+        {
+            continueButton.gameObject.SetActive(true);
+        }
+
+        isSubmitting = false;
+    }
+
+    private string SaveLocalBackup(string csvContent)
+    {
+        try
+        {
+            string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            string participantId = PlayerPrefs.GetString("ParticipantID", "Unknown");
+            string filename = $"experiment_data_{participantId}_{timestamp}.csv";
+
+            // Save to persistent data path (survives app reinstalls)
+            string path = Path.Combine(Application.persistentDataPath, filename);
+            File.WriteAllText(path, csvContent);
+
+            Debug.Log($"Local backup saved to: {path}");
+
+            // Also save to a secondary location for redundancy
+            try
+            {
+                string documentsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "EffortPathBackups");
+                Directory.CreateDirectory(documentsPath);
+                string secondaryPath = Path.Combine(documentsPath, filename);
+                File.WriteAllText(secondaryPath, csvContent);
+                Debug.Log($"Secondary backup saved to: {secondaryPath}");
+            }
+            catch (Exception)
+            {
+                // Ignore errors in secondary backup
+            }
+
+            return path;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to save local backup: {e.Message}");
+            return "Failed to save";
         }
     }
 
@@ -208,50 +647,336 @@ public class EndExperiment : MonoBehaviour
         StartCoroutine(DelayedSubmission());
     }
 
+    // private IEnumerator DelayedSubmission()
+    // {
+    //     // First ensure the log is finalized before we try to get its content
+    //     if (logManager != null && logManager.gameObject.activeInHierarchy)
+    //     {
+    //         try
+    //         {
+    //             // This ensures all buffer data is written to the file
+    //             logManager.StartCoroutine(logManager.FinalizeAndUploadLogWithDelay());
+    //             Debug.Log("Log finalized successfully.");
+    //         }
+    //         catch (Exception e)
+    //         {
+    //             Debug.LogError($"Error finalizing logs: {e.Message}");
+    //         }
+    //     }
+    //     else
+    //     {
+    //         Debug.LogWarning("LogManager is null or inactive.");
+    //     }
+
+    //     // Add a short delay to ensure file writes complete
+    //     yield return new WaitForSeconds(2f);
+
+    //     // Now read directly from the log file
+    //     string csvContent = ReadAllLogData();
+
+    //     // Debug log to check what data we're about to submit
+    //     Debug.Log($"Data to submit contains {csvContent.Split('\n').Length} rows");
+
+    //     if (config == null || string.IsNullOrEmpty(config.ServerUrl))
+    //     {
+    //         Debug.LogWarning("ExperimentConfig or ServerUrl not set, proceeding with offline mode");
+    //         ShowMessage("Thank you for your participation!", false);
+
+    //         // Show continue button instead of redirecting automatically
+    //         if (continueButton != null && redirectAfterSubmission)
+    //         {
+    //             continueButton.gameObject.SetActive(true);
+    //         }
+
+    //         isSubmitting = false;
+    //         yield break;
+    //     }
+
+
+    //     string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+    //     string participantId = PlayerPrefs.GetString("ParticipantID", "Unknown");
+    //     string fileName = $"experiment_data_{participantId}_{timestamp}.csv";
+
+    //     StartCoroutine(SubmitDataToServer(csvContent));
+
+    // }
+
+
     private IEnumerator DelayedSubmission()
     {
-       // Ensure LogManager is ready
-        if (logManager != null && logManager.gameObject.activeInHierarchy)
+        Debug.Log("Starting DelayedSubmission process");
+
+        // First, ensure we force any caching or buffered writes to complete
+        if (logManager != null)
         {
-            try
-            {
-                logManager.StartCoroutine(logManager.FinalizeAndUploadLogWithDelay());
-                Debug.Log("Log finalized successfully.");
-            }
-            catch (Exception e)
-            {
-                Debug.Log($"Error finalizing logs: {e.Message}");
-            }
+            Debug.Log("Forcing log finalization...");
+
+            // Call FinalizeLogFile directly to flush any pending writes
+            logManager.FinalizeLogFile();
+
+            // Allow some time for the file system to finish writing
+            yield return new WaitForSeconds(1f);
         }
         else
         {
-            Debug.Log("LogManager is null or inactive!");
+            Debug.LogError("LogManager is NULL!");
         }
 
+        // Wait an additional moment to ensure file system operations complete
+        Debug.Log("Waiting for file system operations to complete...");
         yield return new WaitForSeconds(2f);
 
-        // Now read directly from the log file
-        string csvContent = ReadAllLogData();
-
-        // Debug log to check what data we're about to submit
-        Debug.Log($"Data to submit contains {csvContent.Split('\n').Length} rows");
-
-        if (config == null || string.IsNullOrEmpty(config.ServerUrl))
+        // Special handling: Check if there's a LogManager.Instance that might be different from our referenced logManager
+        if (LogManager.Instance != null && LogManager.Instance != logManager)
         {
-            Debug.LogWarning("ExperimentConfig or ServerUrl not set, proceeding with offline mode");
-            ShowMessage("Thank you for your participation!", false);
-
-            // Show continue button instead of redirecting automatically
-            if (continueButton != null && redirectAfterSubmission)
-            {
-                continueButton.gameObject.SetActive(true);
-            }
-
-            isSubmitting = false;
-            yield break;
+            Debug.Log("Using LogManager.Instance to finalize logs...");
+            LogManager.Instance.FinalizeLogFile();
+            yield return new WaitForSeconds(1f);
         }
 
+        // Read the log data using our robust approach
+        string csvContent = GetRobustLogData();
+
+        // Debug output to verify data content
+        Debug.Log($"CSV data to be submitted contains {csvContent.Split('\n').Length} rows and {csvContent.Length} characters");
+        Debug.Log($"First 100 characters: {csvContent.Substring(0, Math.Min(100, csvContent.Length))}");
+
+        // Create a local backup before attempting server upload
+        string backupPath = SaveLocalBackup(csvContent);
+        Debug.Log($"Local backup created at: {backupPath}");
+
+        // Proceed with server submission
         StartCoroutine(SubmitDataToServer(csvContent));
+    }
+
+    // private string GetRobustLogData()
+    // {
+    //     string csvContent = "";
+    //     Debug.Log("Attempting to get robust log data...");
+
+    //     // First try the path you mentioned specifically
+    //     string correctFilePath = Path.Combine(
+    //         "/Users/m.li.14@bham.ac.uk/Documents/GitHub/EffortPathTask-2D/Assets/_ExpData",
+    //         $"decision_task_log_{PlayerPrefs.GetString("ParticipantID", "Unknown")}_{DateTime.Now.ToString("yyyy-MM-dd")}*.csv");
+
+    //     string[] matchingFiles = Directory.GetFiles(
+    //         "/Users/m.li.14@bham.ac.uk/Documents/GitHub/EffortPathTask-2D/Assets/_ExpData",
+    //         $"decision_task_log_{PlayerPrefs.GetString("ParticipantID", "Unknown")}*.csv");
+
+    //     if (matchingFiles.Length > 0)
+    //     {
+    //         // Sort by last write time to get the most recent
+    //         System.Array.Sort(matchingFiles, (a, b) => File.GetLastWriteTime(b).CompareTo(File.GetLastWriteTime(a)));
+
+    //         try
+    //         {
+    //             // Use a more robust file reading approach
+    //             using (FileStream fs = new FileStream(matchingFiles[0], FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+    //             using (StreamReader reader = new StreamReader(fs, Encoding.UTF8))
+    //             {
+    //                 csvContent = reader.ReadToEnd();
+    //             }
+    //             Debug.Log($"Successfully read {csvContent.Split('\n').Length} lines from correct log file: {matchingFiles[0]}");
+    //         }
+    //         catch (Exception e)
+    //         {
+    //             Debug.LogError($"Error reading correct log file: {e.Message}");
+    //         }
+
+
+    //     }
+
+    //     return csvContent;
+    // }
+
+
+    private string GetRobustLogData()
+    {
+        string csvContent = "";
+        Debug.Log("Attempting to get robust log data...");
+
+        // Get participant ID for filename matching
+        string participantId = PlayerPrefs.GetString("ParticipantID", "Unknown");
+
+        // Try multiple possible locations
+        List<string> possiblePaths = new List<string>
+    {
+        // Primary location - persistent data path (works across platforms)
+        Application.persistentDataPath,
+        
+        // Secondary location - streaming assets (read-only, but works in builds)
+        Application.streamingAssetsPath,
+        
+        // Tertiary location - data path (might work in editor/standalone)
+        Application.dataPath + "/_ExpData",
+        
+        // Last resort - current directory
+        Directory.GetCurrentDirectory()
+    };
+
+        foreach (string basePath in possiblePaths)
+        {
+            if (!Directory.Exists(basePath))
+                continue;
+
+            Debug.Log($"Searching for log files in: {basePath}");
+
+            try
+            {
+                // Look for any CSV files matching the participant ID pattern
+                string[] matchingFiles = Directory.GetFiles(
+                    basePath,
+                    $"decision_task_log_{participantId}*.csv",
+                    SearchOption.AllDirectories);
+
+                if (matchingFiles.Length > 0)
+                {
+                    // Sort by last write time to get the most recent
+                    System.Array.Sort(matchingFiles, (a, b) =>
+                        File.GetLastWriteTime(b).CompareTo(File.GetLastWriteTime(a)));
+
+                    try
+                    {
+                        // Use a file sharing approach that works even if file is open
+                        using (FileStream fs = new FileStream(matchingFiles[0], FileMode.Open,
+                            FileAccess.Read, FileShare.ReadWrite))
+                        using (StreamReader reader = new StreamReader(fs, Encoding.UTF8))
+                        {
+                            csvContent = reader.ReadToEnd();
+                        }
+                        Debug.Log($"Successfully read {csvContent.Split('\n').Length} lines from log file: {matchingFiles[0]}");
+
+                        // If we successfully read data, no need to check other paths
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"Error reading log file {matchingFiles[0]}: {e.Message}");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error searching in directory {basePath}: {e.Message}");
+            }
+        }
+
+        // If we still don't have content, try to get it directly from LogManager
+        if (string.IsNullOrEmpty(csvContent) || csvContent.Split('\n').Length <= 1)
+        {
+            Debug.Log("Couldn't find valid log file, trying LogManager directly...");
+
+            if (logManager != null)
+            {
+                try
+                {
+                    csvContent = logManager.GetCsvContent();
+                    Debug.Log($"Got {csvContent.Split('\n').Length} lines from LogManager.GetCsvContent()");
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Error getting CSV content from LogManager: {e.Message}");
+                }
+            }
+        }
+
+        // Add feedback to the CSV data if we have any
+        if (!string.IsNullOrEmpty(csvContent) && feedbackInputField != null)
+        {
+            string feedback = feedbackInputField.text;
+            if (!string.IsNullOrEmpty(feedback))
+            {
+                csvContent = AddFeedbackToCSV(csvContent, feedback);
+            }
+        }
+
+        return csvContent;
+    }
+
+    // Helper method to properly add feedback to existing CSV data
+    private string AddFeedbackToCSV(string csvContent, string feedback)
+    {
+        string[] lines = csvContent.Split('\n');
+
+        // Check if header has ParticipantFeedback column
+        bool hasParticipantFeedback = lines[0].Contains("ParticipantFeedback");
+
+        if (!hasParticipantFeedback)
+        {
+            // Add the column to header
+            lines[0] += ",ParticipantFeedback";
+        }
+
+        StringBuilder result = new StringBuilder();
+        result.AppendLine(lines[0]);
+
+        // Process all non-header lines
+        for (int i = 1; i < lines.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(lines[i])) continue;
+
+            // For the last non-empty line, add feedback
+            if (i == lines.Length - 1 || string.IsNullOrWhiteSpace(lines[i + 1]))
+            {
+                // Check if we need to add the feedback column
+                if (!hasParticipantFeedback)
+                {
+                    lines[i] += "," + feedback;
+                }
+                else
+                {
+                    // Replace existing feedback or add it if missing
+                    string[] fields = lines[i].Split(',');
+                    int feedbackIndex = Array.IndexOf(lines[0].Split(','), "ParticipantFeedback");
+
+                    if (feedbackIndex >= fields.Length)
+                    {
+                        // Column exists in header but not in this row
+                        lines[i] += "," + feedback;
+                    }
+                    else
+                    {
+                        // Column exists, replace value
+                        fields[feedbackIndex] = feedback;
+                        lines[i] = string.Join(",", fields);
+                    }
+                }
+            }
+
+            result.AppendLine(lines[i]);
+        }
+
+        return result.ToString();
+    }
+
+    private IEnumerator FinalizeLogWithRetry()
+    {
+        int maxAttempts = 3;
+        for (int i = 0; i < maxAttempts; i++)
+        {
+            Debug.Log($"Finalizing log attempt {i + 1}/{maxAttempts}...");
+
+            // Call FinalizeLogFile
+            logManager.FinalizeLogFile();
+
+            // Also try the coroutine version if available
+            try
+            {
+                StartCoroutine(logManager.FinalizeAndUploadLogWithDelay());
+                Debug.Log("Finalize and upload completed.");
+                break;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"Error in FinalizeAndUploadLogWithDelay: {e.Message}");
+
+                if (i < maxAttempts - 1)
+                {
+                    Debug.Log("Waiting before retry...");
+                }
+            }
+            yield return new WaitForSeconds(1f);
+        }
     }
 
     public void ContinueToSurvey()
@@ -265,8 +990,8 @@ public class EndExperiment : MonoBehaviour
         // Play a nice sound when the continue button is clicked
         PlaySound(continueButtonSound);
 
-        // Show a thank you message without playing a sound
-        ShowMessage("Thank you! Closing application...", false, false);
+        // Show a thank you message without playing a sound and make it persist
+        ShowMessage("Thank you! Closing application...", false, false, true);
 
         // Open the URL and then quit the application
         StartCoroutine(RedirectAndQuit());
@@ -282,7 +1007,6 @@ public class EndExperiment : MonoBehaviour
         {
             Debug.Log("Opening URL: " + redirectUrl);
             Application.OpenURL("https://bhampsychology.eu.qualtrics.com/jfe/form/SV_bjaQmPSeGFMooXI");
-            // Application.OpenURL("https://www.google.com");
         }
 
         // Wait for the delay before quitting
@@ -290,215 +1014,20 @@ public class EndExperiment : MonoBehaviour
 
         Debug.Log("Quitting application...");
 
-        // Quit the application
+        // No need to hide message as application is quitting
+        // HideMessage(); // Uncommenting this would hide the message before quitting
+
 #if UNITY_EDITOR
         // If in editor, stop play mode
         UnityEditor.EditorApplication.isPlaying = false;
 #else
-            // If in standalone build, quit the application
-            Application.Quit();
+    // If in standalone build, quit the application
+    Application.Quit();
 #endif
     }
-private string ReadAllLogData()
-{
-    Debug.Log("Starting to read log data...");
-    
-
-    // Ensure the log file is finalized before reading
-    if (logManager != null && logManager.gameObject.activeInHierarchy)
-    {
-        try
-        {
-            logManager.FinalizeLogFile();
-            Debug.Log("Log file finalized.");
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Error finalizing log: {e.Message}");
-        }
-    }
-
-    // Add a small delay to allow file system changes to propagate
-    System.Threading.Thread.Sleep(1000);
-
-    string csvContent = "";
-    string logFilePath = logManager != null ? logManager.LogFilePath : "";
-
-    if (!string.IsNullOrEmpty(logFilePath) && File.Exists(logFilePath))
-    {
-        try
-        {
-            csvContent = File.ReadAllText(logFilePath);
-            Debug.Log($"Read {csvContent.Split('\n').Length} lines from file.");
-            Debug.Log($"CSV Content: {csvContent}"); // Add this line to log the entire CSV content
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Error reading file: {e.Message}");
-        }
-    }
-
-    // Ensure fallback method is used if data is missing
-    if (string.IsNullOrEmpty(csvContent) || csvContent.Split('\n').Length <= 1)
-    {
-        try
-        {
-            csvContent = logManager.GetCsvContent();
-            Debug.Log($"Method 2: Read {csvContent.Split('\n').Length} lines via LogManager.");
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Error getting CSV via LogManager: {e.Message}");
-        }
-    }
-
-    // If still empty, create a minimal dataset
-    if (string.IsNullOrEmpty(csvContent) || csvContent.Split('\n').Length <= 1)
-    {
-        Debug.LogWarning("Could not read data from log file. Creating minimal dataset.");
-        csvContent = CreateMinimalDataset();
-    }
-
-    return csvContent;
-}
 
 
-    // private string ReadAllLogData()
-    // {
-    //     Debug.Log("Starting to read log data...");
-
-    //     if (logManager != null)
-    //     {
-    //         try
-    //         {
-    //             logManager.FinalizeLogFile(); // Force log file to be fully written
-    //             Debug.Log("Log file finalized.");
-    //         }
-    //         catch (Exception e)
-    //         {
-    //             Debug.LogError($"Error finalizing log: {e.Message}");
-    //         }
-    //     }
-
-    //     System.Threading.Thread.Sleep(1000); // Allow time for file writing
-
-    //     // string logFilePath = logManager != null ? logManager.LogFilePath : "";
-    //     string logFilePath = "/Users/m.li.14@bham.ac.uk/Documents/GitHub/EffortPathTask-2D/Assets/_ExpData/";
-
-
-    //     if (string.IsNullOrEmpty(logFilePath) || !File.Exists(logFilePath))
-    //     {
-    //         Debug.LogError($"Log file not found at expected path: {logFilePath}");
-    //         return "";
-    //     }
-
-    //     string csvContent = File.ReadAllText(logFilePath);
-    //     Debug.Log($"✅ CSV Read Success: {csvContent.Split('\n').Length} lines found.");
-
-    //     // Ensure CSV isn't just headers
-    //     if (csvContent.Split('\n').Length <= 1)
-    //     {
-    //         Debug.LogError("❌ CSV contains only headers. Possible logging failure.");
-    //     }
-
-    //     return csvContent;
-    // }
-
-
-    private string CreateMinimalDataset()
-    {
-        // Create minimal dataset with header and one data row
-        string participantId = PlayerPrefs.GetString("ParticipantID", "Unknown");
-        string feedback = PlayerPrefs.GetString("ParticipantFeedback", "No feedback");
-
-        return "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
-            "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
-            "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,FeedbackText\n" +
-            $"{DateTime.Now},Summary,{participantId},{PlayerPrefs.GetInt("ParticipantAge", 0)}," +
-            $"{PlayerPrefs.GetString("ParticipantGender", "Unknown")},,,,,,,,," +
-            $"{totalTime.ToString("F2")},,{totalScore},,,,,,,{feedback}\n";
-    }
-
-private IEnumerator SubmitDataToServer(string csvContent = null)
-{
-    if (string.IsNullOrEmpty(csvContent))
-    {
-        csvContent = ReadAllLogData();
-    }
-
-    Debug.Log($"Uploading {csvContent.Split('\n').Length} lines of CSV data.");
-    Debug.Log($"CSV Content Before Upload:\n{csvContent}");
-
-    if (csvContent.Split('\n').Length <= 1)
-    {
-        Debug.LogError("CSV only contains headers. Aborting upload.");
-        ShowMessage("Error: No valid data to upload!", true);
-        isSubmitting = false;
-        yield break;
-    }
-
-     string googleScriptURL = "https://script.google.com/macros/s/AKfycbzFthiIj9whUhk0yNAQpFAOTZqRzX73ojOuyYwNP59xIZ3vZmZJxvabbIdccBjMIrTd/exec";
-
-    WWWForm form = new WWWForm();
-    form.AddField("csv_data", csvContent);
-    Debug.Log($"CSV data being sent:\n{csvContent}");
-
-    using (UnityWebRequest request = UnityWebRequest.Post(googleScriptURL, form))
-    {
-        request.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        request.timeout = 30;
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            Debug.Log("CSV successfully uploaded to Google Drive!");
-            Debug.Log("Server response: " + request.downloadHandler.text);
-            ShowMessage("Thank you for your participation!", false);
-        }
-        else
-        {
-            Debug.LogError($"Upload failed: {request.error}");
-            if (request.downloadHandler != null && !string.IsNullOrEmpty(request.downloadHandler.text))
-            {
-                Debug.LogError("Server response: " + request.downloadHandler.text);
-            }
-
-            ShowMessage("Server submission failed, but data was saved locally!", true);
-        }
-    }
-
-    if (continueButton != null && redirectAfterSubmission)
-    {
-        continueButton.gameObject.SetActive(true);
-    }
-
-    isSubmitting = false;
-}
-
-    private string SaveLocalBackup(string csvContent)
-    {
-        try
-        {
-            string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-            string participantId = PlayerPrefs.GetString("ParticipantID", "Unknown");
-            string filename = $"experiment_data_{participantId}_{timestamp}.csv";
-
-            // Save to persistent data path (survives app reinstalls)
-            string path = Path.Combine(Application.persistentDataPath, filename);
-            File.WriteAllText(path, csvContent);
-
-            Debug.Log($"Local backup saved to: {path}");
-            return path;
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Failed to save local backup: {e.Message}");
-            return "Failed to save";
-        }
-    }
-
-    private void ShowMessage(string message, bool isError = false, bool playSound = true)
+    private void ShowMessage(string message, bool isError = false, bool playSound = true, bool persist = false)
     {
         if (feedbackText == null) return;
 
@@ -506,6 +1035,7 @@ private IEnumerator SubmitDataToServer(string csvContent = null)
         if (hideMessageCoroutine != null)
         {
             StopCoroutine(hideMessageCoroutine);
+            hideMessageCoroutine = null;
         }
 
         // Set up the feedback text
@@ -534,8 +1064,11 @@ private IEnumerator SubmitDataToServer(string csvContent = null)
         // Start animation coroutine
         StartCoroutine(AnimateFeedback(isError));
 
-        // Start coroutine to hide message after duration
-        hideMessageCoroutine = StartCoroutine(HideMessageAfterDelay());
+        // Start coroutine to hide message after duration ONLY if persist is false
+        if (!persist)
+        {
+            hideMessageCoroutine = StartCoroutine(HideMessageAfterDelay());
+        }
     }
 
     private IEnumerator AnimateFeedback(bool isError)
@@ -622,25 +1155,5 @@ private IEnumerator SubmitDataToServer(string csvContent = null)
             PlayerPrefs.SetString("ParticipantFeedback", feedback);
             PlayerPrefs.Save();
         }
-    }
-}
-
-internal class JSONObject
-{
-    private string responseText;
-
-    public JSONObject(string responseText)
-    {
-        this.responseText = responseText;
-    }
-
-    internal bool GetBoolean(string v)
-    {
-        throw new NotImplementedException();
-    }
-
-    internal string GetString(string v)
-    {
-        throw new NotImplementedException();
     }
 }

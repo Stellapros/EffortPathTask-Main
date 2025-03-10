@@ -289,7 +289,6 @@ public class ExperimentManager : MonoBehaviour
             // LogManager.instance.LogEvent("ExperimentStart");
             logManager.LogExperimentStart(true);
         }
-        
         VerifyPlayerPrefs();
 
         if (!hasInitializedFlow)
