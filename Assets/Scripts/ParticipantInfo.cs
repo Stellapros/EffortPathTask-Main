@@ -1,3 +1,5 @@
+
+
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -63,7 +65,7 @@ public class ParticipantInfo : MonoBehaviour
     {
         if (instructionsText != null)
         {
-            instructionsText.text = "Click or use arrow keys to navigate. Click or press Space/Enter to select.";
+            instructionsText.text = "Click or use arrow keys to navigate.\nClick or press Space/Enter to select.";
         }
     }
 
@@ -117,6 +119,23 @@ public class ParticipantInfo : MonoBehaviour
         PlayerPrefs.Save();
 
         Debug.Log($"Participant info saved: ID={id}, Age={age}, Gender={gender}");
+        // Add this to ensure PlayerPrefs are saved
+        PlayerPrefs.Save();
+        System.Threading.Thread.Sleep(100); // Small delay to ensure save completes
+
+        // Set the info directly in LogManager if it exists
+        LogManager logManager = FindAnyObjectByType<LogManager>();
+        if (logManager != null)
+        {
+            logManager.SetParticipantInfoDirectly(id, age, gender);
+        }
+        else
+        {
+            PlayerPrefs.SetString("ParticipantID", id);
+            PlayerPrefs.SetInt("ParticipantAge", age);
+            PlayerPrefs.SetString("ParticipantGender", gender);
+            PlayerPrefs.Save();
+        }
 
         // Hide cursor before loading next scene
         HideCursor();

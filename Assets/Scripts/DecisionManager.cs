@@ -30,10 +30,14 @@ public class DecisionManager : MonoBehaviour
     private bool isTimerRunning;
     private float decisionStartTime;
 
+    private float trialStartTime;
+    private float decisionPhaseStartTime;
+
     // Skip delay constant
-    private const int SKIP_SCORE = 0;
-    private const int NO_DECISION_SCORE = 0;
-    private const float SKIP_DELAY = 3f;
+    private const int SKIP_REWARD_VALUE = 0;
+    private const int NO_DECISION_REWARD_VALUE = 0;
+    private const float SKIP_DELAY = 3f;  // Keep it private
+    public static float GetSkipDelay() => SKIP_DELAY;  // Create a public getter
     private const float NO_DECISION_PENALTY = 5f;
     private bool isSkipDelayActive = false;
     private float skipDelayTimer;
@@ -177,6 +181,8 @@ public class DecisionManager : MonoBehaviour
 
     private void TimeExpired()
     {
+        Debug.Log($"TimeExpired called for Trial {experimentManager.GetCurrentTrialIndex()}");
+
         isTimerRunning = false;
         DisableButtons();
 
@@ -189,20 +195,33 @@ public class DecisionManager : MonoBehaviour
         int effortLevel = experimentManager.GetCurrentTrialEffortLevel();
         int requiredPresses = experimentManager.GetCurrentTrialEV();
 
-        // Log as a "no decision" trial with the updated signature
-        // LogDecision(false, true, currentBlock);
+        // // Log the decision outcome for timeout
+        // LogManager.Instance.LogDecisionOutcome(
+        //     currentTrial,
+        //     currentBlock,
+        //     "NoDecision",
+        //     false, // rewardCollected will be updated in the movement phase
+        //     decisionTime, // Use the consistent decision time
+        //     0, // movementTime will be updated in the movement phase
+        //     0, // buttonPresses will be updated in the movement phase
+        //     effortLevel,
+        //     requiredPresses
+        // );
 
-        // Log the decision outcome for timeout
         LogManager.Instance.LogDecisionOutcome(
             currentTrial,
             currentBlock,
             "NoDecision",
-            false, // rewardCollected will be updated in the movement phase
-decisionTime, // Use the consistent decision time
-            0, // movementTime will be updated in the movement phase
-            0, // buttonPresses will be updated in the movement phase
+            false, // rewardCollected
+            decisionTime,
+            0f, // movementTime
+            0, // buttonPresses
             effortLevel,
-            requiredPresses
+            requiredPresses,
+            false, // skipAdjustment
+            "-", // pressData
+            -1f, // timePerPress
+            NO_DECISION_REWARD_VALUE // points
         );
 
         // Store current trial data before moving to penalty scene
@@ -211,17 +230,22 @@ decisionTime, // Use the consistent decision time
             PlayerPrefs.SetString("CurrentRewardSpriteName", effortSpriteImage.sprite.name);
         }
 
-        experimentManager.MoveToNextTrial(); // Advance to next trial
+        // Process trial completion
+        // experimentManager.ProcessTrialCompletion(false, decisionTimeLimit);
 
         // Add 0 points for no decision
         if (ScoreManager.Instance != null)
         {
-            ScoreManager.Instance.AddScore(NO_DECISION_SCORE, !experimentManager.IsCurrentTrialPractice());
+            ScoreManager.Instance.AddScore(NO_DECISION_REWARD_VALUE, !experimentManager.IsCurrentTrialPractice());
             Debug.Log("Time expired: No points awarded");
         }
 
         // Move to penalty scene
-        SceneManager.LoadScene("TimePenalty");
+        // SceneManager.LoadScene("TimePenalty");
+        // Notify ExperimentManager to handle the no-decision penalty
+        experimentManager.HandleNoDecision();
+
+        Debug.Log($"Trial {currentTrial} completed. Moving to penalty scene.");
     }
 
     // New method to update button visual state
@@ -323,11 +347,23 @@ decisionTime, // Use the consistent decision time
         Debug.Log("DecisionManager: Setting up decision phase");
         Debug.Log($"DecisionManager.SetupDecisionPhase - Current Trial Index: {experimentManager.GetCurrentTrialIndex()}");
 
+        // Record the exact start time of the decision phase
+        trialStartTime = Time.time;
+        decisionPhaseStartTime = Time.time;
+
+
         if (effortSpriteImage == null || experimentManager == null)
         {
             Debug.LogError($"Critical components missing - Image: {effortSpriteImage != null}, ExperimentManager: {experimentManager != null}");
             return;
         }
+
+        // Log the trial start time
+        LogManager.Instance?.LogTrialStart(
+            experimentManager.GetCurrentTrialIndex(),
+            experimentManager.GetCurrentBlockNumber(),
+            trialStartTime
+        );
 
         // Reset UI state
         EnableButtons();
@@ -451,7 +487,6 @@ decisionTime, // Use the consistent decision time
     //     }
     // }
 
-    // In OnDecisionMade method, remove the LogDecisionOutcome call
     private void OnDecisionMade(bool workDecision)
     {
         if (!isTimerRunning) return;
@@ -460,8 +495,27 @@ decisionTime, // Use the consistent decision time
         isTimerRunning = false;
         DisableButtons();
 
+        // Stop the decision timeout coroutine if it's running
+        if (experimentManager != null)
+        {
+            experimentManager.StopDecisionTimeout();
+            experimentManager.SetDecisionMade(true); // Explicitly mark decision as made
+        }
+
         // Calculate decision time consistently
         float decisionTime = Time.time - decisionStartTime;
+        float totalTrialTimeSoFar = Time.time - trialStartTime;
+        // Log timing information
+        Debug.Log($"Trial timing - Start: {trialStartTime}, Decision: {Time.time}, Duration: {totalTrialTimeSoFar}");
+
+        // Store decision type and time for formal trials
+        PlayerPrefs.SetString("DecisionType", workDecision ? "Work" : "Skip");
+        PlayerPrefs.SetFloat("DecisionTime", decisionTime);
+        PlayerPrefs.Save();
+
+        // Get trial information
+        int trialIndex = experimentManager.GetCurrentTrialIndex();
+        int blockNumber = experimentManager.GetCurrentBlockNumber();
 
         // Play sound
         if (audioSource != null)
@@ -480,57 +534,70 @@ decisionTime, // Use the consistent decision time
             PlayerPrefs.Save();
         }
 
-        // Get current block number from ExperimentManager
-        int currentBlock = experimentManager.GetCurrentBlockNumber();
-        int currentTrial = experimentManager.GetCurrentTrialIndex();
-        int effortLevel = experimentManager.GetCurrentTrialEffortLevel();
-        int requiredPresses = experimentManager.GetCurrentTrialEV();
-
-        // Store decision data in PlayerPrefs for later logging when outcome is known
-        PlayerPrefs.SetString("DecisionType", workDecision ? "Work" : "Skip");
-        PlayerPrefs.SetFloat("DecisionTime", decisionTimeLimit - currentTimer);
-        PlayerPrefs.SetInt("CurrentBlock", currentBlock);
-        PlayerPrefs.SetInt("CurrentTrial", currentTrial);
-        PlayerPrefs.SetInt("EffortLevel", effortLevel);
-        PlayerPrefs.SetInt("RequiredPresses", requiredPresses);
-        PlayerPrefs.Save();
-
-        // Handle the decision through ExperimentManager first - pass the decision time
-        if (experimentManager != null)
-        {
-            Debug.Log("Calling OnDecisionMade.HandleDecision");
-            experimentManager.HandleDecision(workDecision, decisionTime); // Pass the decision time 
-        }
-
         if (workDecision)
         {
             Debug.Log("Work decision - transitioning to GridWorld");
+            // For Work decisions, notify experiment manager
+            experimentManager.HandleDecision(workDecision, decisionTime);
+            //  StartCoroutine(DelayedSceneTransition("GetReadyEveryTrial", 0.1f));
             StartCoroutine(DelayedSceneTransition("GridWorld", 0.1f));
         }
         else
         {
             Debug.Log("Skip decision - handling skip logic");
+
+            // IMPORTANT CHANGE: For Skip decisions, explicitly let the experiment manager know 
+            // a decision was made, but handle the UI/timing locally
+            experimentManager.SetDecisionMade(true); // Add this method to ExperimentManager
+
+            // Determine if this is a practice trial
+            bool isPracticeTrial = experimentManager.IsCurrentTrialPractice();
+
+            // Get proper block number (-1 for practice, normal block number for formal)
+            int finalBlockNumber = isPracticeTrial ? -1 : blockNumber;
+
+            // Activate skip delay
+            ActivateSkipDelay();
+
+            // Log skip outcome
+            int effortLevel = experimentManager.GetCurrentTrialEffortLevel();
+            int requiredPresses = experimentManager.GetCurrentTrialEV();
+
+            // // Log skip outcome
+            // LogManager.Instance.LogDecisionOutcome(
+            //     trialIndex,
+            //     finalBlockNumber,
+            //     "Skip",
+            //     false, // rewardCollected
+            //     decisionTime,
+            //     0f, // movementDuration (0 for skips)
+            //     0, // buttonPresses (0 for skips)
+            //     effortLevel,
+            //     requiredPresses
+            // );
+
+            LogManager.Instance.LogDecisionOutcome(
+                trialIndex,
+                finalBlockNumber,
+                "Skip",
+                false, // rewardCollected
+                decisionTime,
+                0f, // movementDuration
+                0, // buttonPresses
+                effortLevel,
+                requiredPresses,
+                true, // skipAdjustment
+                "-", // pressData
+                -1f, // timePerPress
+                SKIP_REWARD_VALUE // points
+            );
+
             // Add skip score immediately
             if (ScoreManager.Instance != null)
             {
-                Debug.Log($"Adding skip score: {SKIP_SCORE} points");
-                ScoreManager.Instance.AddScore(SKIP_SCORE, !experimentManager.IsCurrentTrialPractice());
+                Debug.Log($"Adding skip score: {SKIP_REWARD_VALUE} points");
+                ScoreManager.Instance.AddScore(SKIP_REWARD_VALUE, !isPracticeTrial);
             }
-            // Log Skip outcome immediately since we know the result
-            LogManager.Instance.LogDecisionOutcome(
-                currentTrial,
-                currentBlock,
-                "Skip",
-                false, // rewardCollected 
-                       // decisionTimeLimit - currentTimer,
-                decisionTime, // Use the consistent decision time
-                0, // movementTime
-                0, // buttonPresses
-                effortLevel,
-                requiredPresses
-            );
-            // Then activate skip delay
-            ActivateSkipDelay();
         }
     }
 

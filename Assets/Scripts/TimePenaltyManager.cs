@@ -64,6 +64,14 @@ public class TimePenaltyManager : MonoBehaviour
     {
         if (penaltyComplete || isTransitioning) return;
 
+        // Check if we already processed this penalty
+        if (ExperimentManager.Instance != null && ExperimentManager.Instance.DecisionMade)
+        {
+            // Skip penalty if decision was already made
+            SceneManager.LoadScene("DecisionPhase");
+            return;
+        }
+
         currentPenaltyTime = 0;
         UpdatePenaltyText();
         penaltyComplete = true;

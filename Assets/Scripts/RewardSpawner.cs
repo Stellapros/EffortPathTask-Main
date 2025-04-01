@@ -135,11 +135,156 @@ public class RewardSpawner : MonoBehaviour
     /// <summary>
     /// Spawns a reward at the specified position with the given parameters.
     /// </summary>
+    // public GameObject SpawnReward(Vector2 playerPosition, int blockIndex, int trialIndex, int pressesRequired, int scoreValue)
+    // {
+
+
+    //     // Add more detailed logging
+    //     Debug.Log($"SpawnReward called with parameters: " +
+    //               $"playerPosition={playerPosition}, " +
+    //               $"blockIndex={blockIndex}, " +
+    //               $"trialIndex={trialIndex}, " +
+    //               $"pressesRequired={pressesRequired}, " +
+    //               $"scoreValue={scoreValue}");
+
+    //     // Retrieve sprite from PlayerPrefs if not already set
+    //     if (currentRewardSprite == null)
+    //     {
+    //         string spriteName = PlayerPrefs.GetString("CurrentRewardSpriteName", "");
+    //         if (!string.IsNullOrEmpty(spriteName))
+    //         {
+    //             // Load sprite by name from resources or find in scene
+    //             currentRewardSprite = Resources.Load<Sprite>(spriteName);
+    //         }
+    //     }
+    //     if (currentReward != null)
+    //     {
+    //         Debug.LogWarning("Attempting to spawn a reward when one already exists. Clearing existing reward first.");
+    //         ClearReward();
+    //     }
+
+    //     if (gridManager == null)
+    //     {
+    //         Debug.LogError("Cannot spawn reward: GridManager is missing.");
+    //         return null;
+    //     }
+
+    //     // Determine which reward prefabs to use based on trial type
+    //     List<GameObject> currentRewardPrefabs = practiceManager.IsPracticeTrial()
+    //         ? practiceRewardPrefabs
+    //         : formalRewardPrefabs;
+
+    //     if (currentRewardPrefabs == null || currentRewardPrefabs.Count == 0)
+    //     {
+    //         Debug.LogError("No reward prefabs available for current trial type.");
+    //         return null;
+    //     }
+
+    //     // Special handling for practice trials to use specific sprites
+    //     if (practiceManager.IsPracticeTrial())
+    //     {
+    //         Sprite practiceTrialSprite = practiceManager.GetCurrentPracticeTrialSprite();
+    //         if (practiceTrialSprite != null)
+    //         {
+    //             currentRewardSprite = practiceTrialSprite;
+    //             Debug.Log($"Using practice trial sprite: {practiceTrialSprite.name}");
+    //         }
+    //     }
+
+    //     // First, try to find the player GameObject
+    //     GameObject player = GameObject.FindGameObjectWithTag("Player");
+    //     if (player == null)
+    //     {
+    //         Debug.LogError("No player found in scene!");
+    //         return null;
+    //     }
+    //     if (player != null)
+    //     {
+    //         // Convert player's transform position to Vector2
+    //         playerPosition = new Vector2(player.transform.position.x, player.transform.position.y);
+    //         Debug.Log($"Player found directly - Updated Player Position: {playerPosition}");
+    //     }
+    //     else
+    //     {
+    //         // If no player found, attempt to spawn a new player
+    //         GameObject spawnedPlayer = playerSpawner.SpawnPlayer();
+    //         if (spawnedPlayer != null)
+    //         {
+    //             playerPosition = new Vector2(
+    //                 spawnedPlayer.transform.position.x,
+    //                 spawnedPlayer.transform.position.y
+    //             );
+    //             Debug.Log($"Player spawned - New Player Position: {playerPosition}");
+    //         }
+    //         else
+    //         {
+    //             Debug.LogError("CRITICAL: Cannot determine player position for reward spawning!");
+    //             return null;
+    //         }
+    //     }
+
+    //     // Log the final player position before spawning reward
+    //     Debug.Log($"Final Player Position before Reward Spawn: {playerPosition}");
+
+    //     // Rest of the SpawnReward method remains the same...
+    //     Vector2 rewardPosition = GetSpawnPositionAtDistance(playerPosition, FIXED_DISTANCE);
+
+    //     // Validate the spawn position
+    //     if (rewardPosition == Vector2.zero)
+    //     {
+    //         Debug.LogError("Failed to get valid spawn position for reward");
+    //         return null;
+    //     }
+
+    //     // Select a random reward prefab from the current pool
+    //     // GameObject rewardPrefab = GetRandomRewardPrefab(currentRewardPrefabs);
+    //     GameObject rewardPrefab = GetRewardPrefabBySprite(currentRewardPrefabs, PlayerPrefs.GetString("CurrentRewardSpriteName", ""));
+
+    //     Vector3 spawnPosition = new Vector3(rewardPosition.x, rewardPosition.y, 0f);
+
+    //     Debug.Log($"Newwwwww Spawn Details: " +
+    //       $"Player Position: {playerPosition}, " +
+    //       $"Reward Position: {spawnPosition}, " +
+    //       $"Distance Between: {Vector2.Distance(playerPosition, spawnPosition)}");
+
+    //     currentReward = Instantiate(rewardPrefab, spawnPosition, Quaternion.identity);
+
+    //     if (currentReward == null)
+    //     {
+    //         Debug.LogError("Failed to instantiate reward prefab.");
+    //         return null;
+    //     }
+
+    //     // Set up reward parameters
+    //     Reward rewardComponent = currentReward.GetComponent<Reward>();
+    //     if (rewardComponent != null)
+    //     {
+    //         rewardComponent.SetRewardParameters(blockIndex, trialIndex, pressesRequired, scoreValue);
+    //         Debug.Log($"Reward spawned at {spawnPosition}, Distance: {Vector2.Distance(playerPosition, rewardPosition)} cells");
+
+    //         // Apply the current sprite (from DecisionManager)
+    //         if (currentRewardSprite != null)
+    //         {
+    //             SpriteRenderer spriteRenderer = currentReward.GetComponent<SpriteRenderer>();
+    //             if (spriteRenderer != null)
+    //             {
+    //                 Debug.Log($"Setting reward sprite: {currentRewardSprite.name}");
+    //                 Debug.Log($"Sprite details - Width: {currentRewardSprite.rect.width}, Height: {currentRewardSprite.rect.height}");
+    //                 spriteRenderer.sprite = currentRewardSprite;
+    //                 spriteRenderer.sortingOrder = 5;
+    //             }
+    //         }
+    //         return currentReward;
+    //     }
+
+    //     Debug.LogError("Reward component missing!");
+    //     Destroy(currentReward);
+    //     return null;
+    // }
+
+
     public GameObject SpawnReward(Vector2 playerPosition, int blockIndex, int trialIndex, int pressesRequired, int scoreValue)
     {
-
-
-        // Add more detailed logging
         Debug.Log($"SpawnReward called with parameters: " +
                   $"playerPosition={playerPosition}, " +
                   $"blockIndex={blockIndex}, " +
@@ -147,16 +292,24 @@ public class RewardSpawner : MonoBehaviour
                   $"pressesRequired={pressesRequired}, " +
                   $"scoreValue={scoreValue}");
 
-        // Retrieve sprite from PlayerPrefs if not already set
-        if (currentRewardSprite == null)
+        if (practiceManager != null)
         {
-            string spriteName = PlayerPrefs.GetString("CurrentRewardSpriteName", "");
-            if (!string.IsNullOrEmpty(spriteName))
-            {
-                // Load sprite by name from resources or find in scene
-                currentRewardSprite = Resources.Load<Sprite>(spriteName);
-            }
+            trialIndex = practiceManager.GetCurrentPracticeTrialIndex();
+            Debug.Log($"Current Practice Trial Index: {trialIndex}");
         }
+
+        // Validate the effort level
+        int effortLevel;
+        if (practiceManager.IsPracticeTrial())
+        {
+            effortLevel = practiceManager.GetCurrentTrialEffortLevel(); // ✅ Get from PracticeManager
+        }
+        else
+        {
+            effortLevel = experimentManager.GetCurrentTrialEffortLevel(); // Formal trial
+        }
+        Debug.Log($"Current Effort Level: {effortLevel}");
+
         if (currentReward != null)
         {
             Debug.LogWarning("Attempting to spawn a reward when one already exists. Clearing existing reward first.");
@@ -180,53 +333,7 @@ public class RewardSpawner : MonoBehaviour
             return null;
         }
 
-        // Special handling for practice trials to use specific sprites
-        if (practiceManager.IsPracticeTrial())
-        {
-            Sprite practiceTrialSprite = practiceManager.GetCurrentPracticeTrialSprite();
-            if (practiceTrialSprite != null)
-            {
-                currentRewardSprite = practiceTrialSprite;
-                Debug.Log($"Using practice trial sprite: {practiceTrialSprite.name}");
-            }
-        }
-
-        // First, try to find the player GameObject
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player == null)
-        {
-            Debug.LogError("No player found in scene!");
-            return null;
-        }
-        if (player != null)
-        {
-            // Convert player's transform position to Vector2
-            playerPosition = new Vector2(player.transform.position.x, player.transform.position.y);
-            Debug.Log($"Player found directly - Updated Player Position: {playerPosition}");
-        }
-        else
-        {
-            // If no player found, attempt to spawn a new player
-            GameObject spawnedPlayer = playerSpawner.SpawnPlayer();
-            if (spawnedPlayer != null)
-            {
-                playerPosition = new Vector2(
-                    spawnedPlayer.transform.position.x,
-                    spawnedPlayer.transform.position.y
-                );
-                Debug.Log($"Player spawned - New Player Position: {playerPosition}");
-            }
-            else
-            {
-                Debug.LogError("CRITICAL: Cannot determine player position for reward spawning!");
-                return null;
-            }
-        }
-
-        // Log the final player position before spawning reward
-        Debug.Log($"Final Player Position before Reward Spawn: {playerPosition}");
-
-        // Rest of the SpawnReward method remains the same...
+        // Get the reward position
         Vector2 rewardPosition = GetSpawnPositionAtDistance(playerPosition, FIXED_DISTANCE);
 
         // Validate the spawn position
@@ -237,12 +344,11 @@ public class RewardSpawner : MonoBehaviour
         }
 
         // Select a random reward prefab from the current pool
-        // GameObject rewardPrefab = GetRandomRewardPrefab(currentRewardPrefabs);
         GameObject rewardPrefab = GetRewardPrefabBySprite(currentRewardPrefabs, PlayerPrefs.GetString("CurrentRewardSpriteName", ""));
 
         Vector3 spawnPosition = new Vector3(rewardPosition.x, rewardPosition.y, 0f);
 
-        Debug.Log($"Newwwwww Spawn Details: " +
+        Debug.Log($"Spawn Details: " +
           $"Player Position: {playerPosition}, " +
           $"Reward Position: {spawnPosition}, " +
           $"Distance Between: {Vector2.Distance(playerPosition, spawnPosition)}");
@@ -282,20 +388,32 @@ public class RewardSpawner : MonoBehaviour
         return null;
     }
 
-    // New method to find the correct reward prefab
     private GameObject GetRewardPrefabBySprite(List<GameObject> prefabs, string spriteName)
     {
+        // Check if sprite name is empty or null
+        if (string.IsNullOrEmpty(spriteName))
+        {
+            Debug.LogWarning("Sprite name is empty or null. Using default prefab.");
+            // Return the first prefab as a fallback if available
+            return prefabs.Count > 0 ? prefabs[0] : null;
+        }
+
         foreach (GameObject prefab in prefabs)
         {
             SpriteRenderer spriteRenderer = prefab.GetComponent<SpriteRenderer>();
-            if (spriteRenderer != null && spriteRenderer.sprite.name == spriteName)
+            if (spriteRenderer != null && spriteRenderer.sprite != null)
             {
-                return prefab;
+                Debug.Log($"Checking prefab: {prefab.name}, Sprite: {spriteRenderer.sprite.name}");
+                if (spriteRenderer.sprite.name == spriteName)
+                {
+                    return prefab;
+                }
             }
         }
 
-        Debug.LogError($"No reward prefab found matching sprite: {spriteName}");
-        return prefabs[0]; // Fallback to first prefab if no match
+        Debug.LogWarning($"No prefab found for sprite: {spriteName}. Using default prefab.");
+        // Return the first prefab as a fallback
+        return prefabs.Count > 0 ? prefabs[0] : null;
     }
 
     // private GameObject GetRandomRewardPrefab(List<GameObject> rewardPrefabPool)
@@ -459,6 +577,8 @@ public class RewardSpawner : MonoBehaviour
         return rewardPosition;
     }
 
+
+
     private bool IsValidGridPosition(Vector2Int pos, int gridWidth, int gridHeight)
     {
         return pos.x >= 0 && pos.x < gridWidth &&
@@ -484,30 +604,52 @@ public class RewardSpawner : MonoBehaviour
     //     StartCoroutine(FinalRewardCheck());
     // }
 
+    // public IEnumerator ClearRewardCoroutine()
+    // {
+    //     if (currentReward != null)
+    //     {
+    //         Debug.Log("Clearing current reward");
+    //         if (gridManager != null)
+    //         {
+    //             gridManager.ReleasePosition(currentReward.transform.position);
+    //         }
+    //         Destroy(currentReward);
+    //         currentReward = null;
+
+    //         // Wait for the destruction to complete
+    //         yield return new WaitForEndOfFrame();
+
+    //         // Double-check for any remaining rewards
+    //         GameObject[] remainingRewards = GameObject.FindGameObjectsWithTag("Reward");
+    //         foreach (var reward in remainingRewards)
+    //         {
+    //             Destroy(reward);
+    //         }
+
+    //         yield return new WaitForEndOfFrame();
+    //     }
+    // }
+
     public IEnumerator ClearRewardCoroutine()
     {
         if (currentReward != null)
         {
+            // Get position BEFORE destruction
+            Vector2 rewardPosition = currentReward.transform.position;
+
             Debug.Log("Clearing current reward");
-            if (gridManager != null)
-            {
-                gridManager.ReleasePosition(currentReward.transform.position);
-            }
             Destroy(currentReward);
             currentReward = null;
 
-            // Wait for the destruction to complete
+            // Wait for destruction to complete
             yield return new WaitForEndOfFrame();
 
-            // Double-check for any remaining rewards
-            GameObject[] remainingRewards = GameObject.FindGameObjectsWithTag("Reward");
-            foreach (var reward in remainingRewards)
-            {
-                Destroy(reward);
-            }
-
-            yield return new WaitForEndOfFrame();
+            // Release grid position AFTER destruction
+            gridManager?.ReleasePosition(rewardPosition);
         }
+
+        // Additional cleanup if needed
+        yield return null;
     }
 
     public void ClearReward()
@@ -518,20 +660,20 @@ public class RewardSpawner : MonoBehaviour
     /// <summary>
     /// Performs a final check for any remaining rewards and logs the result.
     /// </summary>
-    private IEnumerator FinalRewardCheck()
-    {
-        yield return new WaitForEndOfFrame();
-        GameObject[] remainingRewards = GameObject.FindGameObjectsWithTag("Reward");
-        if (remainingRewards.Length > 0)
-        {
-            Debug.LogWarning($"There are still {remainingRewards.Length} rewards in the scene after clearing. Removing them.");
-            foreach (var reward in remainingRewards)
-            {
-                Destroy(reward);
-            }
-        }
-        Debug.Log($"Final reward count after clearing: {remainingRewards.Length}");
-    }
+    // private IEnumerator FinalRewardCheck()
+    // {
+    //     yield return new WaitForEndOfFrame();
+    //     GameObject[] remainingRewards = GameObject.FindGameObjectsWithTag("Reward");
+    //     if (remainingRewards.Length > 0)
+    //     {
+    //         Debug.LogWarning($"There are still {remainingRewards.Length} rewards in the scene after clearing. Removing them.");
+    //         foreach (var reward in remainingRewards)
+    //         {
+    //             Destroy(reward);
+    //         }
+    //     }
+    //     Debug.Log($"Final reward count after clearing: {remainingRewards.Length}");
+    // }
 
     public void DisableRewardCollection()
     {
@@ -549,103 +691,102 @@ public class RewardSpawner : MonoBehaviour
     /// <summary>
     /// Spawns the reward synchronized with the player for the current trial.
     /// </summary>
-    public IEnumerator SpawnPlayerAndRewardSynchronized(
-                Vector2 playerInitialPosition,
-            int blockIndex,
-            int trialIndex,
-            int pressesRequired,
-            int scoreValue)
-    {
-        // Validate grid manager reference
-        if (gridManager == null)
-        {
-            gridManager = FindAnyObjectByType<GridManager>();
-            if (gridManager == null)
-            {
-                Debug.LogError("GridManager not found for synchronized spawning!");
-                yield break;
-            }
-        }
+    // public IEnumerator SpawnPlayerAndRewardSynchronized(
+    //             Vector2 playerInitialPosition,
+    //         int blockIndex,
+    //         int trialIndex,
+    //         int pressesRequired,
+    //         int scoreValue)
+    // {
+    //     // Validate grid manager reference
+    //     if (gridManager == null)
+    //     {
+    //         gridManager = FindAnyObjectByType<GridManager>();
+    //         if (gridManager == null)
+    //         {
+    //             Debug.LogError("GridManager not found for synchronized spawning!");
+    //             yield break;
+    //         }
+    //     }
 
-        // Validate player spawner reference
-        PlayerSpawner playerSpawner = FindAnyObjectByType<PlayerSpawner>();
-        if (playerSpawner == null)
-        {
-            Debug.LogError("PlayerSpawner not found for synchronized spawning!");
-            yield break;
-        }
+    //     // Validate player spawner reference
+    //     PlayerSpawner playerSpawner = FindAnyObjectByType<PlayerSpawner>();
+    //     if (playerSpawner == null)
+    //     {
+    //         Debug.LogError("PlayerSpawner not found for synchronized spawning!");
+    //         yield break;
+    //     }
 
-        // Synchronization variables
-        GameObject spawnedPlayer = null;
-        GameObject spawnedReward = null;
-        bool playerSpawned = false;
-        bool rewardSpawned = false;
+    //     // Synchronization variables
+    //     GameObject spawnedPlayer = null;
+    //     GameObject spawnedReward = null;
+    //     bool playerSpawned = false;
+    //     bool rewardSpawned = false;
 
-        // Spawn player
-        StartCoroutine(SpawnPlayerAsync(playerSpawner, playerInitialPosition, (player) =>
-        {
-            spawnedPlayer = player;
-            playerSpawned = true;
-        }));
+    //     // Spawn player
+    //     StartCoroutine(SpawnPlayerAsync(playerSpawner, playerInitialPosition, (player) =>
+    //     {
+    //         spawnedPlayer = player;
+    //         playerSpawned = true;
+    //     }));
 
-        // Spawn reward
-        StartCoroutine(SpawnRewardAsync(blockIndex, trialIndex, playerInitialPosition, pressesRequired, scoreValue, (reward) =>
-        {
-            spawnedReward = reward;
-            rewardSpawned = true;
-        }));
+    //     // Spawn reward
+    //     StartCoroutine(SpawnRewardAsync(blockIndex, trialIndex, playerInitialPosition, pressesRequired, scoreValue, (reward) =>
+    //     {
+    //         spawnedReward = reward;
+    //         rewardSpawned = true;
+    //     }));
 
-        // Wait until both are spawned
-        float timeout = 2f; // 2-second timeout
-        float startTime = Time.time;
-        while (!playerSpawned || !rewardSpawned)
-        {
-            if (Time.time - startTime > timeout)
-            {
-                Debug.LogError("Synchronized spawning timed out!");
-                yield break;
-            }
-            yield return null;
-        }
+    //     // Wait until both are spawned
+    //     float timeout = 2f; // 2-second timeout
+    //     float startTime = Time.time;
+    //     while (!playerSpawned || !rewardSpawned)
+    //     {
+    //         if (Time.time - startTime > timeout)
+    //         {
+    //             Debug.LogError("Synchronized spawning timed out!");
+    //             yield break;
+    //         }
+    //         yield return null;
+    //     }
 
-        // Optional: Additional setup after synchronized spawn
-        if (spawnedPlayer != null)
-        {
-            PlayerController playerController = spawnedPlayer.GetComponent<PlayerController>();
-            if (playerController != null)
-            {
-                playerController.SetPressesPerStep(pressesRequired);
-                playerController.EnableMovement();
-            }
-        }
+    //     // Optional: Additional setup after synchronized spawn
+    //     if (spawnedPlayer != null)
+    //     {
+    //         PlayerController playerController = spawnedPlayer.GetComponent<PlayerController>();
+    //         if (playerController != null)
+    //         {
+    //             playerController.SetPressesPerStep(pressesRequired);
+    //             playerController.EnableMovement();
+    //         }
+    //     }
 
-        Debug.Log("Player and Reward synchronized spawn completed successfully.");
-    }
+    //     Debug.Log("Player and Reward synchronized spawn completed successfully.");
+    // }
 
-    private IEnumerator SpawnPlayerAsync(PlayerSpawner spawner, Vector2 initialPosition, Action<GameObject> onPlayerSpawned)
-    {
-        yield return new WaitForEndOfFrame(); // Slight delay for thread safety
-        GameObject player = spawner.SpawnPlayer();
-        onPlayerSpawned?.Invoke(player);
-    }
+    // private IEnumerator SpawnPlayerAsync(PlayerSpawner spawner, Vector2 initialPosition, Action<GameObject> onPlayerSpawned)
+    // {
+    //     yield return new WaitForEndOfFrame(); // Slight delay for thread safety
+    //     GameObject player = spawner.SpawnPlayer();
+    //     onPlayerSpawned?.Invoke(player);
+    // }
 
-    private IEnumerator SpawnRewardAsync(
-        int blockNumber,
-        int trialIndex,
-        Vector2 playerPosition,
-        int pressesRequired,
-        int rewardValue,
-        Action<GameObject> onRewardSpawned)
-    {
-        yield return new WaitForEndOfFrame(); // Slight delay for thread safety
-        GameObject reward = SpawnReward(
-            playerPosition,
-            blockNumber,
-            trialIndex,
-            pressesRequired,
-            rewardValue
-        );
-        onRewardSpawned?.Invoke(reward);
-    }
-
+    // private IEnumerator SpawnRewardAsync(
+    //     int blockNumber,
+    //     int trialIndex,
+    //     Vector2 playerPosition,
+    //     int pressesRequired,
+    //     int rewardValue,
+    //     Action<GameObject> onRewardSpawned)
+    // {
+    //     yield return new WaitForEndOfFrame(); // Slight delay for thread safety
+    //     GameObject reward = SpawnReward(
+    //         playerPosition,
+    //         blockNumber,
+    //         trialIndex,
+    //         pressesRequired,
+    //         rewardValue
+    //     );
+    //     onRewardSpawned?.Invoke(reward);
+    // }
 }

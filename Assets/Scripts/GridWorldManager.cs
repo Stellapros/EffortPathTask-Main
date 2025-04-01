@@ -265,10 +265,10 @@ public class GridWorldManager : MonoBehaviour
             gameController.EndTrial(rewardCollected);
             playerController.DisableMovement();
 
-if (!rewardCollected && playerController != null)
-{
-    playerController.LogMovementFailure();
-}
+            if (!rewardCollected && playerController != null)
+            {
+                playerController.LogMovementFailure();
+            }
 
             // Move to the next trial
             ExperimentManager.Instance.MoveToNextTrial();

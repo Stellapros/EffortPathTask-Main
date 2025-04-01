@@ -9,6 +9,8 @@ using UnityEngine.SceneManagement;
 using System.IO;
 using System.Threading.Tasks;
 using System.Text;
+using System.Linq;
+using System.Runtime.InteropServices;
 
 public class EndExperiment : MonoBehaviour
 {
@@ -19,11 +21,17 @@ public class EndExperiment : MonoBehaviour
     [SerializeField] private TextMeshProUGUI feedbackText;
     [SerializeField] private Image feedbackBackground;
     [SerializeField] private TMP_InputField feedbackInputField;
-
+    [SerializeField] private TextMeshProUGUI submissionInstructionText;
     [SerializeField] private Button submitButton;
+
     [SerializeField] public AudioClip buttonClickSound;
     [SerializeField] private Button continueButton;
+    private bool continueButtonClicked = false;
     [SerializeField] private AudioClip continueButtonSound; // New audio clip for continue button
+    [Header("Resubmission Settings")]
+    [SerializeField] private Button resubmitButton; // Assign in Inspector
+    [SerializeField] private bool autoResubmitOnContinue = true; // Toggle auto-resubmit
+    private bool submissionSuccess = false;
 
     [Header("Feedback Settings")]
     [SerializeField] private float messageDuration = 3f;
@@ -43,12 +51,54 @@ public class EndExperiment : MonoBehaviour
     [Header("Server Settings")]
     [SerializeField] private bool offlineMode = false;
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+[DllImport("__Internal")]
+private static extern void WebGLAlert(string message);
+
+[DllImport("__Internal")]
+private static extern void BlockWindowClose();
+#endif
+
     private float totalTime;
     private int totalScore;
     private bool isSubmitting = false;
     private AudioSource audioSource;
     private Coroutine hideMessageCoroutine;
     private Vector3 originalFeedbackScale;
+
+    private void Awake()
+    {
+        // Ensure music continues playing in this final scene
+        if (BackgroundMusicManager.Instance != null)
+        {
+            // Make sure music is playing (in case it somehow stopped)
+            BackgroundMusicManager.Instance.PlayMusic();
+        }
+    }
+
+    private void OnApplicationQuit()
+    {
+        // Optional: Stop music just before application quits
+        if (BackgroundMusicManager.Instance != null)
+        {
+            BackgroundMusicManager.Instance.StopMusic();
+        }
+
+        if (!submissionSuccess)
+        {
+            // Save emergency backup (if not already saved)
+            string csvContent = GetRobustLogData();
+            SaveLocalBackup(csvContent);
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // Show browser alert (WebGL only)
+        WebGLAlert("Your data is being saved locally.");
+        
+        // Optional: Block accidental tab closing
+        BlockWindowClose();
+#endif
+        }
+    }
 
     private void Start()
     {
@@ -69,6 +119,30 @@ public class EndExperiment : MonoBehaviour
             {
                 feedbackBackground.gameObject.SetActive(false);
             }
+        }
+
+        if (feedbackInputField == null)
+        {
+            Debug.LogError("feedbackInputField is not assigned in the inspector!");
+        }
+        else
+        {
+            // Make sure it's interactable
+            feedbackInputField.interactable = true;
+
+            // Ensure it has the correct event listener
+            feedbackInputField.onEndEdit.RemoveAllListeners();
+            feedbackInputField.onEndEdit.AddListener(OnFeedbackEndEdit);
+        }
+
+        // Set the instruction text
+        if (submissionInstructionText != null)
+        {
+            submissionInstructionText.text = "Click the 'Submit' button or Press 'Enter' to submit";
+        }
+        else
+        {
+            Debug.LogWarning("submissionInstructionText is not assigned in the inspector!");
         }
 
         // Initially hide the continue button
@@ -94,10 +168,18 @@ public class EndExperiment : MonoBehaviour
             submitButton.onClick.AddListener(SubmitData);
         }
 
+        // Initialize resubmit button (hidden by default)
+        if (resubmitButton != null)
+        {
+            resubmitButton.onClick.AddListener(ResubmitData);
+            resubmitButton.gameObject.SetActive(false);
+        }
+
         // Add button navigation controller
         ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
         navigationController.AddElement(submitButton);
         navigationController.AddElement(continueButton);
+        navigationController.AddElement(resubmitButton);
 
         // Setup audio source if needed
         if (audioSource == null)
@@ -109,16 +191,44 @@ public class EndExperiment : MonoBehaviour
         // Ensure LogManager is ready
         if (logManager != null)
         {
-            logManager.EnsureLogFileInitialized();
+            // Log initial scene data
+            Dictionary<string, string> initialData = new Dictionary<string, string>
+        {
+            {"ParticipantID", PlayerPrefs.GetString("ParticipantID", "Unknown")},
+            {"Scene", "EndExperiment"},
+            {"TotalTime", totalTime.ToString("F2")},
+            {"TotalScore", totalScore.ToString()}
+        };
+
+            // Log that we're on the final scene
+            logManager.LogEvent("EndExperimentSceneLoaded", initialData);
         }
     }
 
+
     private void Update()
     {
-        // Check for Space key press
-        if (Input.GetKeyDown(KeyCode.Space) && !isSubmitting)
+        // Check if we're not currently editing the feedback field
+        bool canSubmit = feedbackInputField == null ||
+                        (!feedbackInputField.isFocused && !string.IsNullOrEmpty(feedbackInputField.text));
+
+        // Submit when Enter is pressed, but only when NOT editing feedback
+        if ((Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) &&
+            !isSubmitting && canSubmit)
         {
             SubmitData();
+        }
+
+        // You could also add a check to activate the input field on click
+        if (feedbackInputField != null && Input.GetMouseButtonDown(0))
+        {
+            // Check if mouse is over the input field (simplified)
+            if (RectTransformUtility.RectangleContainsScreenPoint(
+                feedbackInputField.GetComponent<RectTransform>(),
+                Input.mousePosition))
+            {
+                feedbackInputField.ActivateInputField();
+            }
         }
     }
 
@@ -148,275 +258,17 @@ public class EndExperiment : MonoBehaviour
         }
     }
 
-    // private string ReadAllLogData()
-    // {
-    //     string csvContent = "";
-
-    //     if (logManager != null)
-    //     {
-    //         try
-    //         {
-    //             // Force finalize the log file first
-    //             if (logManager.gameObject.activeInHierarchy)
-    //             {
-    //                 logManager.FinalizeLogFile(); // Ensure all data is written to the file
-    //             }
-
-    //             // Try to read from the log file path directly
-    //             if (!string.IsNullOrEmpty(logManager.LogFilePath) && File.Exists(logManager.LogFilePath))
-    //             {
-
-    //                 // Use File.ReadAllText to get the raw file content
-    //                 csvContent = File.ReadAllText(logManager.LogFilePath);
-    //                 Debug.Log($"Read {csvContent.Split('\n').Length} lines directly from log file: {logManager.LogFilePath}");
-    //             }
-    //             else
-    //             {
-    //                 // Fallback to GetCsvContent
-    //                 csvContent = logManager.GetCsvContent();
-    //                 Debug.Log($"Read {csvContent.Split('\n').Length} lines using GetCsvContent method");
-    //             }
-    //         }
-    //         catch (Exception e)
-    //         {
-    //             Debug.LogError($"Error reading log file: {e.Message}");
-    //         }
-    //     }
-
-    //     // Get the feedback from the InputField or from PlayerPrefs as fallback
-    //     string feedback = "";
-    //     if (feedbackInputField != null && !string.IsNullOrEmpty(feedbackInputField.text))
-    //     {
-    //         feedback = feedbackInputField.text;
-    //     }
-    //     else
-    //     {
-    //         feedback = PlayerPrefs.GetString("ParticipantFeedback", "No feedback provided");
-    //     }
-
-    //     // Validation to ensure we have content
-    //     if (string.IsNullOrEmpty(csvContent) || csvContent.Split('\n').Length <= 1)
-    //     {
-    //         Debug.LogWarning("CSV content is empty or contains only headers. Creating minimal data.");
-
-    //         // Generate minimal dataset with headers
-    //         csvContent = "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
-    //             "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
-    //             "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,FeedbackText\n" + // Changed Feedback to FeedbackText for consistency
-    //             $"{DateTime.Now},Summary,{PlayerPrefs.GetString("ParticipantID", "Unknown")},{PlayerPrefs.GetInt("ParticipantAge", 0)}," +
-    //             $"{PlayerPrefs.GetString("ParticipantGender", "Unknown")},,,,,,,,," +
-    //             $"{totalTime.ToString("F2")},,{totalScore},,,,,,,{PlayerPrefs.GetString("TirednessRating", "")},{feedback}\n";
-    //     }
-    //     else
-    //     {
-    //         // Append the feedback to the existing CSV content
-    //         string[] lines = csvContent.Split('\n');
-
-    //         // Check if the header already has the FeedbackText column
-    //         bool headerHasFeedback = lines[0].Contains("FeedbackText");
-
-    //         // If the header doesn't have the FeedbackText column, add it
-    //         if (!headerHasFeedback)
-    //         {
-    //             lines[0] += ",FeedbackText"; // Add FeedbackText column to the header
-    //         }
-
-    //         // Rebuild the CSV content with the feedback
-    //         string newCsvContent = lines[0] + "\n"; // Start with the header
-
-    //         for (int i = 1; i < lines.Length; i++)
-    //         {
-    //             if (string.IsNullOrEmpty(lines[i])) continue;
-
-    //             // Only add the feedback to the last line (summary line)
-    //             if (i == lines.Length - 1 || i == lines.Length - 2 && string.IsNullOrEmpty(lines[lines.Length - 1]))
-    //             {
-    //                 if (!lines[i].Contains(",ParticipantFeedback,") && !lines[i].EndsWith(",ParticipantFeedback"))
-    //                 {
-    //                     lines[i] += $",{feedback}";
-    //                 }
-    //             }
-
-    //             newCsvContent += lines[i] + "\n";
-    //         }
-
-    //         csvContent = newCsvContent;
-    //     }
-
-    //     // Log the actual content for debugging
-    //     Debug.Log($"CSV data to be submitted has {csvContent.Split('\n').Length} lines and {csvContent.Length} characters");
-
-    //     return csvContent;
-    // }
-
-    private string ReadAllLogData()
+    private void OnFeedbackEndEdit(string text)
     {
-        string csvContent = "";
-
-        if (logManager != null)
+        // Only prevent submission when Enter is pressed in the input field
+        if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
         {
-            try
-            {
-                // Force finalize the log file first
-                if (logManager.gameObject.activeInHierarchy)
-                {
-                    Debug.Log("Calling FinalizeLogFile...");
-                    logManager.FinalizeLogFile(); // Ensure all data is written to the file
-                    Debug.Log($"Successfully finalized log file at: {logManager.LogFilePath}");
+            // This keeps focus in the input field
+            feedbackInputField.ActivateInputField();
 
-                    // Add a small delay to ensure file system has completed the write
-                    System.Threading.Thread.Sleep(500);
-                }
-
-                // Try to read from the log file path directly
-                if (!string.IsNullOrEmpty(logManager.LogFilePath) && File.Exists(logManager.LogFilePath))
-                {
-                    try
-                    {
-                        // Use File.ReadAllText to get the raw file content
-                        csvContent = File.ReadAllText(logManager.LogFilePath);
-                        Debug.Log($"Read {csvContent.Split('\n').Length} lines directly from log file: {logManager.LogFilePath}");
-
-                        // Check the first and last few characters of the content for debugging
-                        int startChars = Math.Min(50, csvContent.Length);
-                        int endChars = Math.Min(50, csvContent.Length);
-                        Debug.Log($"First {startChars} chars: {csvContent.Substring(0, startChars)}");
-                        if (csvContent.Length > endChars)
-                        {
-                            Debug.Log($"Last {endChars} chars: {csvContent.Substring(csvContent.Length - endChars)}");
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError($"Error reading log file directly: {e.Message}");
-                    }
-                }
-
-                // If content is empty or only has headers, try GetCsvContent
-                if (string.IsNullOrEmpty(csvContent) || csvContent.Split('\n').Length <= 2)
-                {
-                    Debug.Log("Direct file read failed or returned minimal content. Trying GetCsvContent method...");
-                    try
-                    {
-                        csvContent = logManager.GetCsvContent();
-                        Debug.Log($"Read {csvContent.Split('\n').Length} lines using GetCsvContent method");
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError($"Error using GetCsvContent: {e.Message}");
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Error during log reading process: {e.Message}");
-            }
+            // Prevent event propagation
+            Event.current?.Use();
         }
-        else
-        {
-            Debug.LogError("LogManager is null!");
-        }
-
-        // Get the feedback from the InputField or from PlayerPrefs as fallback
-        string feedback = "";
-        if (feedbackInputField != null && !string.IsNullOrEmpty(feedbackInputField.text))
-        {
-            feedback = feedbackInputField.text;
-        }
-        else
-        {
-            feedback = PlayerPrefs.GetString("ParticipantFeedback", "No feedback provided");
-        }
-
-        // Check content again after all attempts
-        if (string.IsNullOrEmpty(csvContent) || csvContent.Split('\n').Length <= 2)
-        {
-            Debug.LogWarning("CSV content is still empty or contains only headers. Creating minimal data.");
-
-            // Generate minimal dataset with headers
-            csvContent = "Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
-                "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
-                "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback\n" +
-                $"{DateTime.Now},Summary,{PlayerPrefs.GetString("ParticipantID", "Unknown")},{PlayerPrefs.GetInt("ParticipantAge", 0)}," +
-                $"{PlayerPrefs.GetString("ParticipantGender", "Unknown")},,,,,,,,," +
-                $"{totalTime.ToString("F2")},,{totalScore},,,,,,,{PlayerPrefs.GetString("TirednessRating", "")},{feedback}\n";
-        }
-        else
-        {
-            // Correctly append the feedback to the CSV content
-            // First check if ParticipantFeedback column already exists in the header
-            string[] lines = csvContent.Split('\n');
-            bool headerHasFeedback = lines[0].Contains("ParticipantFeedback");
-
-            // If the header doesn't have ParticipantFeedback, we need to add it
-            if (!headerHasFeedback)
-            {
-                Debug.Log("Adding ParticipantFeedback column to header");
-                string newHeader = lines[0] + ",ParticipantFeedback";
-
-                // Rebuild the CSV content with the modified header
-                string newCsvContent = newHeader + "\n";
-                for (int i = 1; i < lines.Length; i++)
-                {
-                    if (string.IsNullOrEmpty(lines[i])) continue;
-
-                    // For the last non-empty line, add the feedback value
-                    if (i == lines.Length - 1 || (i < lines.Length - 1 && string.IsNullOrEmpty(lines[i + 1])))
-                    {
-                        newCsvContent += lines[i] + "," + feedback + "\n";
-                    }
-                    else
-                    {
-                        newCsvContent += lines[i] + "\n";
-                    }
-                }
-                csvContent = newCsvContent;
-            }
-            else
-            {
-                // If header already has ParticipantFeedback column, ensure the feedback is in the last row
-                bool feedbackAdded = false;
-                for (int i = lines.Length - 1; i >= 1; i--)
-                {
-                    if (!string.IsNullOrEmpty(lines[i]))
-                    {
-                        // Check if this line already has a value for ParticipantFeedback
-                        string[] values = lines[i].Split(',');
-                        int feedbackIndex = Array.IndexOf(lines[0].Split(','), "ParticipantFeedback");
-
-                        if (feedbackIndex >= 0 && feedbackIndex < values.Length && string.IsNullOrEmpty(values[feedbackIndex]))
-                        {
-                            // Replace the empty feedback with the current feedback
-                            values[feedbackIndex] = feedback;
-                            lines[i] = string.Join(",", values);
-                            feedbackAdded = true;
-                        }
-                        break;
-                    }
-                }
-
-                // If we didn't add the feedback to an existing column, we need to manually add it to the last line
-                if (!feedbackAdded)
-                {
-                    for (int i = lines.Length - 1; i >= 1; i--)
-                    {
-                        if (!string.IsNullOrEmpty(lines[i]))
-                        {
-                            lines[i] += "," + feedback;
-                            break;
-                        }
-                    }
-                }
-
-                // Rebuild the CSV content
-                csvContent = string.Join("\n", lines);
-            }
-        }
-
-        // Debug log to verify content
-        Debug.Log($"Final CSV data to be submitted has {csvContent.Split('\n').Length} lines and {csvContent.Length} characters");
-
-        return csvContent;
     }
 
     private IEnumerator SubmitDataToServer(string csvContent)
@@ -442,6 +294,16 @@ public class EndExperiment : MonoBehaviour
             yield break;
         }
 
+        // Check for expected content
+        bool hasExperimentSetup = csvContent.Contains("ExperimentSetup");
+        bool hasExperimentStart = csvContent.Contains("ExperimentStart");
+
+        if (!hasExperimentSetup || !hasExperimentStart)
+        {
+            Debug.LogWarning($"CSV data may be incomplete! ExperimentSetup: {hasExperimentSetup}, ExperimentStart: {hasExperimentStart}");
+            // Continue with the submission anyway, but log the warning
+        }
+
         string herokuUploadUrl = "https://effortpatch-0b3abd136749.herokuapp.com/upload";
         Debug.Log($"Uploading to URL: {herokuUploadUrl}");
 
@@ -449,117 +311,121 @@ public class EndExperiment : MonoBehaviour
         int retryCount = 0;
         bool success = false;
 
-        // Try to break the data into chunks if it's large
-        // Heroku might have limitations on request size
-        if (csvContent.Length > 500000) // If larger than ~500KB
+        // Add validation for upload content length
+        Debug.Log($"Content to upload is {csvContent.Length} bytes");
+
+        // Try to upload data in a standard way first
+        while (!success && retryCount < maxRetries)
         {
-            Debug.Log("Data is large, will try to compress it before sending");
-            byte[] originalData = Encoding.UTF8.GetBytes(csvContent);
+            retryCount++;
+            Debug.Log($"Upload attempt {retryCount}/{maxRetries}...");
 
-            // Use compression to reduce data size
-            using (MemoryStream compressedStream = new MemoryStream())
+            // Ensure we're converting all line endings to \n for consistency
+            string normalizedContent = csvContent.Replace("\r\n", "\n").Replace('\r', '\n');
+            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(normalizedContent);
+
+            UnityWebRequest request = new UnityWebRequest(herokuUploadUrl, "POST");
+            request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "text/plain; charset=utf-8");
+            request.SetRequestHeader("Accept", "application/json");
+            request.timeout = 60; // 60 second timeout
+
+            Debug.Log($"Sending {bodyRaw.Length} bytes to server...");
+
+            // Show an informative message to the user
+            ShowMessage($"Uploading data... Attempt {retryCount}", false, false);
+
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
             {
-                using (System.IO.Compression.GZipStream gzipStream = new System.IO.Compression.GZipStream(
-                    compressedStream, System.IO.Compression.CompressionMode.Compress))
-                {
-                    gzipStream.Write(originalData, 0, originalData.Length);
-                }
-
-                byte[] compressedData = compressedStream.ToArray();
-                Debug.Log($"Compressed data from {originalData.Length} to {compressedData.Length} bytes");
-
-                // Use the compressed data for upload
-                while (!success && retryCount < maxRetries)
-                {
-                    retryCount++;
-                    Debug.Log($"Upload attempt {retryCount}/{maxRetries} with compressed data...");
-
-                    // UnityWebRequest request = new UnityWebRequest(herokuUploadUrl, "POST");
-                    // request.uploadHandler = new UploadHandlerRaw(compressedData);
-                    // request.downloadHandler = new DownloadHandlerBuffer();
-                    // request.SetRequestHeader("Content-Type", "application/gzip");
-                    // request.SetRequestHeader("Content-Encoding", "gzip");
-                    // request.timeout = 60;
-
-                    UnityWebRequest request = new UnityWebRequest(herokuUploadUrl, "POST");
-                    // Ensure we're converting all line endings to \n for consistency
-                    string normalizedContent = csvContent.Replace("\r\n", "\n").Replace('\r', '\n');
-                    byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(normalizedContent);
-                    request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-                    request.downloadHandler = new DownloadHandlerBuffer();
-                    request.SetRequestHeader("Content-Type", "text/plain; charset=utf-8");
-                    request.SetRequestHeader("Accept", "application/json");
-                    request.timeout = 60; // Increased timeout for larger data
-
-                    yield return request.SendWebRequest();
-
-                    if (request.result == UnityWebRequest.Result.Success)
-                    {
-                        Debug.Log($"Compressed upload successful! Server response: {request.downloadHandler.text}");
-                        success = true;
-                    }
-                    else
-                    {
-                        Debug.LogError($"Compressed upload attempt {retryCount} failed: {request.error}");
-                        yield return new WaitForSeconds(2f);
-                    }
-                }
+                Debug.Log($"Upload successful! Server response: {request.downloadHandler.text}");
+                success = true;
+                submissionSuccess = true;
+                PlayerPrefs.SetInt("DataSubmitted", 1);
+                PlayerPrefs.Save();
             }
-        }
-
-        // If compression upload failed or wasn't attempted, try normal upload
-        if (!success)
-        {
-            retryCount = 0;
-            while (!success && retryCount < maxRetries)
+            else
             {
-                retryCount++;
-                Debug.Log($"Upload attempt {retryCount}/{maxRetries}...");
-
-                UnityWebRequest request = new UnityWebRequest(herokuUploadUrl, "POST");
-                byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(csvContent);
-                request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-                request.downloadHandler = new DownloadHandlerBuffer();
-                request.SetRequestHeader("Content-Type", "text/plain");
-                request.SetRequestHeader("Accept", "application/json");
-                request.timeout = 60; // Increased timeout for larger data
-
-                Debug.Log($"Sending {bodyRaw.Length} bytes to server...");
-                yield return request.SendWebRequest();
-
-                if (request.result == UnityWebRequest.Result.Success)
+                Debug.LogError($"Upload attempt {retryCount} failed: {request.error}");
+                // Explicitly show the resubmit button on failure
+                if (resubmitButton != null)
                 {
-                    Debug.Log($"Upload successful! Server response: {request.downloadHandler.text}");
-                    success = true;
+                    // Ensure the button is both activated and made explicitly interactable
+                    resubmitButton.gameObject.SetActive(true);
+                    resubmitButton.interactable = true;
+
+                    Debug.Log($"Resubmit button state - Active: {resubmitButton.gameObject.activeInHierarchy}, Interactable: {resubmitButton.interactable}");
                 }
-                else
+                if (submitButton != null)
                 {
-                    Debug.LogError($"Upload attempt {retryCount} failed: {request.error}");
-                    if (request.downloadHandler != null)
-                    {
-                        Debug.LogError($"Server Response: {request.downloadHandler.text}");
-                    }
+                    submitButton.gameObject.SetActive(false);
+                }
 
-                    if (retryCount < maxRetries)
-                    {
-                        Debug.Log("Waiting before retry...");
-                        yield return new WaitForSeconds(2f);
-                    }
+                if (request.downloadHandler != null)
+                {
+                    Debug.LogError($"Server Response: {request.downloadHandler.text}");
+                }
+
+                if (retryCount < maxRetries)
+                {
+                    Debug.Log("Waiting before retry...");
+                    ShowMessage($"Upload failed, retrying in 3 seconds...", true, false);
+                    yield return new WaitForSeconds(3f);
                 }
             }
         }
 
         if (success)
         {
+            submissionSuccess = true;
+            PlayerPrefs.SetInt("DataSubmitted", 1);
+            PlayerPrefs.Save();
             ShowMessage("Thank you for your participation!", false, true, true);
-            Debug.Log("Upload successful. Local backup already saved.");
+
+            // Hide resubmit button (if submission succeeds)
+            if (resubmitButton != null)
+            {
+                resubmitButton.gameObject.SetActive(false);
+            }
         }
         else
         {
-            ShowMessage("Server submission failed, but data was saved locally!", true, true, true);
-            Debug.Log("All upload attempts failed. Using local backup.");
+            ShowMessage("Server submission failed... Please retry manually by clicking the 'Resubmit Button' button!", true, true, true);
+
+            // Show resubmit button (if submission fails)
+            if (resubmitButton != null)
+            {
+                resubmitButton.gameObject.SetActive(true);
+                resubmitButton.interactable = true;
+                Debug.Log("Resubmit button activated and made interactable.");
+            }
+            if (submitButton != null)
+            {
+                submitButton.gameObject.SetActive(false);
+                submitButton.interactable = false;
+            }
         }
 
+
+        // Final state update
+        if (!success)
+        {
+            ShowMessage("All retries failed. Click 'Resubmit' or save locally.", true);
+            isSubmitting = false; // <-- Allow resubmission
+            if (resubmitButton != null)
+                resubmitButton.gameObject.SetActive(true);
+            resubmitButton.interactable = true;
+            Debug.Log("Resubmit button forcibly activated and made interactable after final failure.");
+        }
+        else
+        {
+            if (resubmitButton != null)
+                resubmitButton.gameObject.SetActive(false);
+        }
+
+        // Enable continue button only if submission was attempted (success or failure)
         if (continueButton != null && redirectAfterSubmission)
         {
             continueButton.gameObject.SetActive(true);
@@ -567,6 +433,14 @@ public class EndExperiment : MonoBehaviour
 
         isSubmitting = false;
     }
+
+    public void ResubmitData()
+    {
+        if (isSubmitting) return;
+        StartCoroutine(DelayedSubmission()); // Reuse existing submission logic
+        ShowMessage("Resubmitting data...", false);
+    }
+
 
     private string SaveLocalBackup(string csvContent)
     {
@@ -585,15 +459,44 @@ public class EndExperiment : MonoBehaviour
             // Also save to a secondary location for redundancy
             try
             {
+                // Try Documents folder first
                 string documentsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "EffortPathBackups");
                 Directory.CreateDirectory(documentsPath);
                 string secondaryPath = Path.Combine(documentsPath, filename);
                 File.WriteAllText(secondaryPath, csvContent);
                 Debug.Log($"Secondary backup saved to: {secondaryPath}");
+
+                // Also try saving in the application directory
+                try
+                {
+                    string appPath = Path.Combine(Directory.GetCurrentDirectory(), "Backups");
+                    Directory.CreateDirectory(appPath);
+                    string tertiaryPath = Path.Combine(appPath, filename);
+                    File.WriteAllText(tertiaryPath, csvContent);
+                    Debug.Log($"Tertiary backup saved to: {tertiaryPath}");
+                }
+                catch (Exception)
+                {
+                    // Ignore errors in tertiary backup
+                }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // Ignore errors in secondary backup
+                Debug.LogWarning($"Secondary backup failed: {e.Message}, trying alternative location");
+
+                // Try desktop as fallback
+                try
+                {
+                    string desktopPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "EffortPathBackups");
+                    Directory.CreateDirectory(desktopPath);
+                    string alternativePath = Path.Combine(desktopPath, filename);
+                    File.WriteAllText(alternativePath, csvContent);
+                    Debug.Log($"Alternative backup saved to: {alternativePath}");
+                }
+                catch (Exception)
+                {
+                    // Ignore errors in alternative backup
+                }
             }
 
             return path;
@@ -602,6 +505,41 @@ public class EndExperiment : MonoBehaviour
         {
             Debug.LogError($"Failed to save local backup: {e.Message}");
             return "Failed to save";
+        }
+    }
+
+    private void EnsureLogCompleteness()
+    {
+        if (logManager != null)
+        {
+            // If we can't find ExperimentSetup in the log, add it now as a fallback
+            string currentLog = logManager.GetCsvContent();
+            if (!currentLog.Contains("ExperimentSetup"))
+            {
+                Dictionary<string, string> setupData = new Dictionary<string, string>
+            {
+                {"ParticipantID", PlayerPrefs.GetString("ParticipantID", "Unknown")},
+                {"ParticipantAge", PlayerPrefs.GetInt("ParticipantAge", 0).ToString()},
+                {"ParticipantGender", PlayerPrefs.GetString("ParticipantGender", "Unknown")},
+                {"ExperimentVersion", Application.version},
+                {"RestoredFromBackup", "True"}
+            };
+
+                logManager.LogEvent("ExperimentSetup", setupData);
+            }
+
+            // If we can't find ExperimentStart in the log, add it now as a fallback
+            if (!currentLog.Contains("ExperimentStart"))
+            {
+                Dictionary<string, string> startData = new Dictionary<string, string>
+            {
+                {"ParticipantID", PlayerPrefs.GetString("ParticipantID", "Unknown")},
+                {"StartTimeRestored", "True"},
+                {"StartTime", PlayerPrefs.GetFloat("ExperimentStartTime", Time.time).ToString()}
+            };
+
+                logManager.LogEvent("ExperimentStart", startData);
+            }
         }
     }
 
@@ -615,6 +553,9 @@ public class EndExperiment : MonoBehaviour
         // Play button click sound
         PlaySound(buttonClickSound);
 
+        // Ensure log completeness before submission
+        EnsureLogCompleteness();
+
         // Log the feedback text
         string feedback = "No feedback provided";
         if (feedbackInputField != null && !string.IsNullOrEmpty(feedbackInputField.text))
@@ -623,6 +564,15 @@ public class EndExperiment : MonoBehaviour
         }
 
         LogFeedback(feedback);
+
+        LogManager.Instance.LogEvent("FinalSubmissionData", new Dictionary<string, string>
+    {
+        {"ParticipantID", PlayerPrefs.GetString("ParticipantID", "Unknown")},
+        {"ContinueButtonClicked", continueButtonClicked.ToString()},
+        {"FeedbackProvided", (!string.IsNullOrEmpty(feedback)).ToString()},
+        {"TotalTime", totalTime.ToString("F2")},
+        {"TotalScore", totalScore.ToString()}
+    });
 
         // Save to PlayerPrefs as backup
         PlayerPrefs.SetString("ParticipantFeedback", feedback);
@@ -647,101 +597,83 @@ public class EndExperiment : MonoBehaviour
         StartCoroutine(DelayedSubmission());
     }
 
-    // private IEnumerator DelayedSubmission()
-    // {
-    //     // First ensure the log is finalized before we try to get its content
-    //     if (logManager != null && logManager.gameObject.activeInHierarchy)
-    //     {
-    //         try
-    //         {
-    //             // This ensures all buffer data is written to the file
-    //             logManager.StartCoroutine(logManager.FinalizeAndUploadLogWithDelay());
-    //             Debug.Log("Log finalized successfully.");
-    //         }
-    //         catch (Exception e)
-    //         {
-    //             Debug.LogError($"Error finalizing logs: {e.Message}");
-    //         }
-    //     }
-    //     else
-    //     {
-    //         Debug.LogWarning("LogManager is null or inactive.");
-    //     }
-
-    //     // Add a short delay to ensure file writes complete
-    //     yield return new WaitForSeconds(2f);
-
-    //     // Now read directly from the log file
-    //     string csvContent = ReadAllLogData();
-
-    //     // Debug log to check what data we're about to submit
-    //     Debug.Log($"Data to submit contains {csvContent.Split('\n').Length} rows");
-
-    //     if (config == null || string.IsNullOrEmpty(config.ServerUrl))
-    //     {
-    //         Debug.LogWarning("ExperimentConfig or ServerUrl not set, proceeding with offline mode");
-    //         ShowMessage("Thank you for your participation!", false);
-
-    //         // Show continue button instead of redirecting automatically
-    //         if (continueButton != null && redirectAfterSubmission)
-    //         {
-    //             continueButton.gameObject.SetActive(true);
-    //         }
-
-    //         isSubmitting = false;
-    //         yield break;
-    //     }
-
-
-    //     string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-    //     string participantId = PlayerPrefs.GetString("ParticipantID", "Unknown");
-    //     string fileName = $"experiment_data_{participantId}_{timestamp}.csv";
-
-    //     StartCoroutine(SubmitDataToServer(csvContent));
-
-    // }
-
-
     private IEnumerator DelayedSubmission()
     {
         Debug.Log("Starting DelayedSubmission process");
 
-        // First, ensure we force any caching or buffered writes to complete
+        // Make sure both LogManager instances have finalized their logs
+        bool logFinalized = false;
+
+        // Try finalizing with both LogManager references to be thorough
         if (logManager != null)
         {
-            Debug.Log("Forcing log finalization...");
-
-            // Call FinalizeLogFile directly to flush any pending writes
-            logManager.FinalizeLogFile();
-
-            // Allow some time for the file system to finish writing
-            yield return new WaitForSeconds(1f);
+            Debug.Log("Finalizing logs with serialized logManager...");
+            try
+            {
+                logManager.FinalizeLogFile();
+                logFinalized = true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error finalizing logs with serialized logManager: {e.Message}");
+            }
         }
-        else
-        {
-            Debug.LogError("LogManager is NULL!");
-        }
 
-        // Wait an additional moment to ensure file system operations complete
-        Debug.Log("Waiting for file system operations to complete...");
-        yield return new WaitForSeconds(2f);
-
-        // Special handling: Check if there's a LogManager.Instance that might be different from our referenced logManager
+        // Also try with LogManager.Instance if different
         if (LogManager.Instance != null && LogManager.Instance != logManager)
         {
-            Debug.Log("Using LogManager.Instance to finalize logs...");
-            LogManager.Instance.FinalizeLogFile();
+            Debug.Log("Finalizing logs with LogManager.Instance...");
+            try
+            {
+                LogManager.Instance.FinalizeLogFile();
+                logFinalized = true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error finalizing logs with LogManager.Instance: {e.Message}");
+            }
+        }
+
+        if (!logFinalized)
+        {
+            Debug.LogWarning("Could not finalize logs with either LogManager reference!");
+        }
+
+        // Wait to ensure file operations complete - increase this time
+        Debug.Log("Waiting for log files to be finalized...");
+        yield return new WaitForSeconds(3f);
+
+        // Force a final log entry to ensure we have timestamp continuity
+        if (LogManager.Instance != null)
+        {
+            LogManager.Instance.LogEvent("EndExperimentSubmission", new Dictionary<string, string> {
+            {"ParticipantID", PlayerPrefs.GetString("ParticipantID", "Unknown")},
+            {"TotalTime", totalTime.ToString("F2")},
+            {"TotalScore", totalScore.ToString()},
+            {"FeedbackProvided", (feedbackInputField != null && !string.IsNullOrEmpty(feedbackInputField.text)).ToString()}
+        });
+
+            // Wait additional time for this entry to be written
             yield return new WaitForSeconds(1f);
         }
 
-        // Read the log data using our robust approach
+        // Get the log data using our improved robust approach
         string csvContent = GetRobustLogData();
 
-        // Debug output to verify data content
-        Debug.Log($"CSV data to be submitted contains {csvContent.Split('\n').Length} rows and {csvContent.Length} characters");
-        Debug.Log($"First 100 characters: {csvContent.Substring(0, Math.Min(100, csvContent.Length))}");
+        // Detailed validation of retrieved content
+        int lineCount = csvContent.Split('\n').Length;
+        Debug.Log($"CSV data to be submitted contains {lineCount} rows and {csvContent.Length} characters");
 
-        // Create a local backup before attempting server upload
+        if (lineCount <= 2)
+        {
+            Debug.LogError("WARNING: CSV data appears to contain only headers!");
+            ShowMessage("Error: Could not read complete data", true);
+
+            // Create emergency backup with minimal info
+            csvContent = CreateEmergencyCSV();
+        }
+
+        // Always create a local backup before attempting server upload
         string backupPath = SaveLocalBackup(csvContent);
         Debug.Log($"Local backup created at: {backupPath}");
 
@@ -749,109 +681,196 @@ public class EndExperiment : MonoBehaviour
         StartCoroutine(SubmitDataToServer(csvContent));
     }
 
-    // private string GetRobustLogData()
-    // {
-    //     string csvContent = "";
-    //     Debug.Log("Attempting to get robust log data...");
+    private string CreateEmergencyCSV()
+    {
+        Debug.Log("Creating emergency minimal CSV data...");
 
-    //     // First try the path you mentioned specifically
-    //     string correctFilePath = Path.Combine(
-    //         "/Users/m.li.14@bham.ac.uk/Documents/GitHub/EffortPathTask-2D/Assets/_ExpData",
-    //         $"decision_task_log_{PlayerPrefs.GetString("ParticipantID", "Unknown")}_{DateTime.Now.ToString("yyyy-MM-dd")}*.csv");
+        string participantId = PlayerPrefs.GetString("ParticipantID", "Unknown");
+        int participantAge = PlayerPrefs.GetInt("ParticipantAge", 0);
+        string participantGender = PlayerPrefs.GetString("ParticipantGender", "Unknown");
+        string tirednessRating = PlayerPrefs.GetString("TirednessRating", "");
+        string feedback = feedbackInputField != null ? feedbackInputField.text : "No feedback provided";
 
-    //     string[] matchingFiles = Directory.GetFiles(
-    //         "/Users/m.li.14@bham.ac.uk/Documents/GitHub/EffortPathTask-2D/Assets/_ExpData",
-    //         $"decision_task_log_{PlayerPrefs.GetString("ParticipantID", "Unknown")}*.csv");
+        StringBuilder sb = new StringBuilder();
 
-    //     if (matchingFiles.Length > 0)
-    //     {
-    //         // Sort by last write time to get the most recent
-    //         System.Array.Sort(matchingFiles, (a, b) => File.GetLastWriteTime(b).CompareTo(File.GetLastWriteTime(a)));
+        // Create header
+        sb.AppendLine("Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber," +
+                     "EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration," +
+                     "TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback");
 
-    //         try
-    //         {
-    //             // Use a more robust file reading approach
-    //             using (FileStream fs = new FileStream(matchingFiles[0], FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-    //             using (StreamReader reader = new StreamReader(fs, Encoding.UTF8))
-    //             {
-    //                 csvContent = reader.ReadToEnd();
-    //             }
-    //             Debug.Log($"Successfully read {csvContent.Split('\n').Length} lines from correct log file: {matchingFiles[0]}");
-    //         }
-    //         catch (Exception e)
-    //         {
-    //             Debug.LogError($"Error reading correct log file: {e.Message}");
-    //         }
+        // Create summary data row
+        sb.AppendLine($"{DateTime.Now},Summary,{participantId},{participantAge},{participantGender},,,,,,,,," +
+                      $"{totalTime.ToString("F2")},,{totalScore},,,,,,,{tirednessRating},{feedback}");
 
+        // Create a distinct filename for this emergency backup
+        string emergencyPath = Path.Combine(Application.persistentDataPath,
+                                           $"emergency_backup_{participantId}_{DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")}.csv");
+        try
+        {
+            File.WriteAllText(emergencyPath, sb.ToString());
+            Debug.Log($"Emergency backup created at: {emergencyPath}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to write emergency backup: {e.Message}");
+        }
 
-    //     }
-
-    //     return csvContent;
-    // }
-
+        return sb.ToString();
+    }
 
     private string GetRobustLogData()
     {
         string csvContent = "";
         Debug.Log("Attempting to get robust log data...");
 
-        // Get participant ID for filename matching
+        // Get participant ID and today's date for filename matching
         string participantId = PlayerPrefs.GetString("ParticipantID", "Unknown");
+        string todayDate = DateTime.Now.ToString("yyyy-MM-dd");
 
-        // Try multiple possible locations
+        // Try multiple possible locations - add more search locations
         List<string> possiblePaths = new List<string>
     {
-        // Primary location - persistent data path (works across platforms)
         Application.persistentDataPath,
-        
-        // Secondary location - streaming assets (read-only, but works in builds)
-        Application.streamingAssetsPath,
-        
-        // Tertiary location - data path (might work in editor/standalone)
         Application.dataPath + "/_ExpData",
-        
-        // Last resort - current directory
+        Path.Combine(Application.dataPath, "../_ExpData"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "EffortPathBackups"),
         Directory.GetCurrentDirectory()
     };
+
+        // Check for LogManager path first
+        if (logManager != null && !string.IsNullOrEmpty(logManager.LogFilePath))
+        {
+            string logDirectory = Path.GetDirectoryName(logManager.LogFilePath);
+            if (!string.IsNullOrEmpty(logDirectory))
+                possiblePaths.Insert(0, logDirectory);
+        }
+
+        // Try LogManager.Instance path if different
+        if (LogManager.Instance != null && LogManager.Instance != logManager &&
+            !string.IsNullOrEmpty(LogManager.Instance.LogFilePath))
+        {
+            string instanceDirectory = Path.GetDirectoryName(LogManager.Instance.LogFilePath);
+            if (!string.IsNullOrEmpty(instanceDirectory) && !possiblePaths.Contains(instanceDirectory))
+                possiblePaths.Insert(0, instanceDirectory);
+        }
+
+        // Additional debug logging
+        Debug.Log($"Participant ID: {participantId}, Today's date: {todayDate}");
+        Debug.Log($"Searching {possiblePaths.Count} possible directories for log files");
 
         foreach (string basePath in possiblePaths)
         {
             if (!Directory.Exists(basePath))
+            {
+                Debug.Log($"Directory does not exist: {basePath}");
                 continue;
+            }
 
             Debug.Log($"Searching for log files in: {basePath}");
 
             try
             {
-                // Look for any CSV files matching the participant ID pattern
-                string[] matchingFiles = Directory.GetFiles(
-                    basePath,
-                    $"decision_task_log_{participantId}*.csv",
-                    SearchOption.AllDirectories);
+                // Search for any CSV files matching our pattern
+                string[] allCsvFiles = Directory.GetFiles(basePath, "*.csv", SearchOption.TopDirectoryOnly);
+                Debug.Log($"Found {allCsvFiles.Length} total CSV files in {basePath}");
 
-                if (matchingFiles.Length > 0)
+                // Debug all found CSV files
+                foreach (string file in allCsvFiles)
+                {
+                    Debug.Log($"Found CSV file: {Path.GetFileName(file)} - Modified: {File.GetLastWriteTime(file)}");
+                }
+
+                List<string> matchingFiles = new List<string>();
+
+                // First try exact match with participant ID and today's date
+                foreach (string file in allCsvFiles)
+                {
+                    string filename = Path.GetFileName(file);
+                    if (filename.Contains(participantId) && (filename.Contains(todayDate) || filename.Contains("decision_task_log")))
+                    {
+                        matchingFiles.Add(file);
+                        // Debug.Log($"Exact match found: {filename}");
+                    }
+                }
+
+                // If no exact matches, look for any CSV files with participant ID
+                if (matchingFiles.Count == 0)
+                {
+                    foreach (string file in allCsvFiles)
+                    {
+                        if (Path.GetFileName(file).Contains(participantId))
+                        {
+                            matchingFiles.Add(file);
+                            Debug.Log($"Participant ID match found: {Path.GetFileName(file)}");
+                        }
+                    }
+                }
+
+                // If still no matches, take any CSV files modified today as a last resort
+                if (matchingFiles.Count == 0)
+                {
+                    foreach (string file in allCsvFiles)
+                    {
+                        if (File.GetLastWriteTime(file).Date == DateTime.Now.Date)
+                        {
+                            matchingFiles.Add(file);
+                            Debug.Log($"Date match found: {Path.GetFileName(file)}");
+                        }
+                    }
+                }
+
+                if (matchingFiles.Count > 0)
                 {
                     // Sort by last write time to get the most recent
-                    System.Array.Sort(matchingFiles, (a, b) =>
-                        File.GetLastWriteTime(b).CompareTo(File.GetLastWriteTime(a)));
+                    matchingFiles.Sort((a, b) => File.GetLastWriteTime(b).CompareTo(File.GetLastWriteTime(a)));
+                    Debug.Log($"Found {matchingFiles.Count} potential log files, sorted by most recent");
 
-                    try
+                    foreach (string file in matchingFiles)
                     {
-                        // Use a file sharing approach that works even if file is open
-                        using (FileStream fs = new FileStream(matchingFiles[0], FileMode.Open,
-                            FileAccess.Read, FileShare.ReadWrite))
-                        using (StreamReader reader = new StreamReader(fs, Encoding.UTF8))
+                        try
                         {
-                            csvContent = reader.ReadToEnd();
-                        }
-                        Debug.Log($"Successfully read {csvContent.Split('\n').Length} lines from log file: {matchingFiles[0]}");
+                            string fileContent;
+                            // Use a file sharing approach that works even if file is open
+                            using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                            using (StreamReader reader = new StreamReader(fs, Encoding.UTF8))
+                            {
+                                fileContent = reader.ReadToEnd();
+                            }
 
-                        // If we successfully read data, no need to check other paths
-                        break;
+                            // Check for expected headers/content
+                            bool hasExperimentSetup = fileContent.Contains("ExperimentSetup");
+                            bool hasExperimentStart = fileContent.Contains("ExperimentStart");
+
+                            Debug.Log($"File {Path.GetFileName(file)} contains: " +
+                                     $"ExperimentSetup: {hasExperimentSetup}, " +
+                                     $"ExperimentStart: {hasExperimentStart}, " +
+                                     $"Lines: {fileContent.Split('\n').Length}");
+
+                            // Validate the content has actual data beyond just headers
+                            if (!string.IsNullOrEmpty(fileContent) && fileContent.Split('\n').Length > 2)
+                            {
+                                csvContent = fileContent;
+                                Debug.Log($"Successfully read {csvContent.Split('\n').Length} lines from log file: {file}");
+                                // Write out first 100 chars to verify content
+                                Debug.Log($"Content preview: {csvContent.Substring(0, Math.Min(100, csvContent.Length))}");
+                                break;
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"Found file {file} but content appears empty or has only headers");
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError($"Error reading log file {file}: {e.Message}");
+                        }
                     }
-                    catch (Exception e)
+
+                    // If we got content, break out of the path loop
+                    if (!string.IsNullOrEmpty(csvContent) && csvContent.Split('\n').Length > 2)
                     {
-                        Debug.LogError($"Error reading log file {matchingFiles[0]}: {e.Message}");
+                        Debug.Log("Found valid CSV content, breaking path search loop");
+                        break;
                     }
                 }
             }
@@ -862,20 +881,36 @@ public class EndExperiment : MonoBehaviour
         }
 
         // If we still don't have content, try to get it directly from LogManager
-        if (string.IsNullOrEmpty(csvContent) || csvContent.Split('\n').Length <= 1)
+        if (string.IsNullOrEmpty(csvContent) || csvContent.Split('\n').Length <= 2)
         {
             Debug.Log("Couldn't find valid log file, trying LogManager directly...");
 
-            if (logManager != null)
+            // Try LogManager instance first
+            if (LogManager.Instance != null)
+            {
+                try
+                {
+                    csvContent = LogManager.Instance.GetCsvContent();
+                    Debug.Log($"Got {csvContent.Split('\n').Length} lines from LogManager.Instance.GetCsvContent()");
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Error getting CSV content from LogManager.Instance: {e.Message}");
+                }
+            }
+
+            // Try serialized logManager if it's different
+            if ((string.IsNullOrEmpty(csvContent) || csvContent.Split('\n').Length <= 2) &&
+                logManager != null && logManager != LogManager.Instance)
             {
                 try
                 {
                     csvContent = logManager.GetCsvContent();
-                    Debug.Log($"Got {csvContent.Split('\n').Length} lines from LogManager.GetCsvContent()");
+                    Debug.Log($"Got {csvContent.Split('\n').Length} lines from serialized logManager.GetCsvContent()");
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"Error getting CSV content from LogManager: {e.Message}");
+                    Debug.LogError($"Error getting CSV content from serialized logManager: {e.Message}");
                 }
             }
         }
@@ -888,6 +923,15 @@ public class EndExperiment : MonoBehaviour
             {
                 csvContent = AddFeedbackToCSV(csvContent, feedback);
             }
+        }
+
+        // Final content check
+        if (!string.IsNullOrEmpty(csvContent))
+        {
+            bool hasExperimentSetup = csvContent.Contains("ExperimentSetup");
+            bool hasExperimentStart = csvContent.Contains("ExperimentStart");
+            Debug.Log($"Final CSV contains: ExperimentSetup: {hasExperimentSetup}, " +
+                     $"ExperimentStart: {hasExperimentStart}, Lines: {csvContent.Split('\n').Length}");
         }
 
         return csvContent;
@@ -981,6 +1025,36 @@ public class EndExperiment : MonoBehaviour
 
     public void ContinueToSurvey()
     {
+        // Auto-resubmit if enabled and data isn't submitted
+        if (autoResubmitOnContinue && !submissionSuccess && PlayerPrefs.GetInt("DataSubmitted", 0) != 1)
+        {
+            ResubmitData(); // Trigger resubmission
+            ShowMessage("Submitting data...", false);
+            return; // Exit early (user can click Continue again later)
+        }
+
+        // Block redirection if still not submitted
+        if (!submissionSuccess && PlayerPrefs.GetInt("DataSubmitted", 0) != 1)
+        {
+            ShowMessage("Please submit data first!", true);
+            return;
+        }
+
+        // Proceed to redirection if submitted
+        continueButtonClicked = true;
+        PlaySound(continueButtonSound);
+        StartCoroutine(RedirectAndQuit());
+
+        // Log the button click
+        LogManager.Instance.LogEvent("ContinueButtonClicked", new Dictionary<string, string>
+    {
+        {"ParticipantID", PlayerPrefs.GetString("ParticipantID", "Unknown")},
+        {"ButtonAction", "RedirectToSurvey"},
+        {"RedirectURL", redirectUrl},
+        {"TimeSinceStart", totalTime.ToString("F2")}
+    });
+
+
         // Disable the button to prevent multiple clicks
         if (continueButton != null)
         {
@@ -991,7 +1065,7 @@ public class EndExperiment : MonoBehaviour
         PlaySound(continueButtonSound);
 
         // Show a thank you message without playing a sound and make it persist
-        ShowMessage("Thank you! Closing application...", false, false, true);
+        ShowMessage("Thank you! Closing now...", false, false, true);
 
         // Open the URL and then quit the application
         StartCoroutine(RedirectAndQuit());
@@ -1025,7 +1099,6 @@ public class EndExperiment : MonoBehaviour
     Application.Quit();
 #endif
     }
-
 
     private void ShowMessage(string message, bool isError = false, bool playSound = true, bool persist = false)
     {
@@ -1135,25 +1208,71 @@ public class EndExperiment : MonoBehaviour
         }
     }
 
+
+    // Supports both English and Chinese input
     public void LogFeedback(string feedback)
     {
-        // Use the existing LogManager to log the tiredness rating
+        // Validate and sanitize feedback input
+        if (string.IsNullOrWhiteSpace(feedback))
+        {
+            Debug.Log("No feedback provided");
+            return;
+        }
+
+        // Ensure the feedback is properly encoded to support Unicode characters
+        string sanitizedFeedback = System.Text.Encoding.UTF8.GetString(
+            System.Text.Encoding.UTF8.GetBytes(feedback)
+        );
+
+        // Use the existing LogManager to log the feedback
         if (LogManager.Instance != null)
         {
             // Log feedback to the main experiment log file
             LogManager.Instance.LogEvent("ParticipantFeedback", new Dictionary<string, string>
         {
-        {"ParticipantID", PlayerPrefs.GetString("ParticipantID", "Unknown")},
-        {"ParticipantFeedback", feedback}, // Add the feedback text to the log
-        {"AdditionalInfo", "Feedback collected on EndExperiment scene"}
+            {"ParticipantID", PlayerPrefs.GetString("ParticipantID", "Unknown")},
+            {"ParticipantFeedback", sanitizedFeedback}, // Encoded feedback
+            {"FeedbackLanguage", DetectLanguage(sanitizedFeedback)},
+            {"AdditionalInfo", "Feedback collected on EndExperiment scene"}
         });
-            Debug.Log($"ParticipantFeedback logged: {feedback}");
+            Debug.Log($"ParticipantFeedback logged: {sanitizedFeedback}");
         }
         else
         {
-            // Also save to PlayerPrefs as fallback
-            PlayerPrefs.SetString("ParticipantFeedback", feedback);
+            // Fallback to PlayerPrefs
+            PlayerPrefs.SetString("ParticipantFeedback", sanitizedFeedback);
             PlayerPrefs.Save();
         }
+    }
+
+    private string DetectLanguage(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "Unknown";
+
+        // Simple Unicode block detection for language
+        bool hasChinese = text.Any(c =>
+            // CJK (Chinese, Japanese, Korean) Unified Ideographs
+            (c >= 0x4E00 && c <= 0x9FFF) ||
+            // CJK Unified Ideographs Extension A
+            (c >= 0x3400 && c <= 0x4DBF) ||
+            // CJK Unified Ideographs Extension B-G
+            (c >= 0x20000 && c <= 0x2FFFF)
+        );
+
+        bool hasEnglish = text.Any(c =>
+            (c >= 'A' && c <= 'Z') ||
+            (c >= 'a' && c <= 'z')
+        );
+
+        // Determine language
+        if (hasChinese && !hasEnglish)
+            return "Chinese";
+        else if (hasEnglish && !hasChinese)
+            return "English";
+        else if (hasChinese && hasEnglish)
+            return "Mixed";
+        else
+            return "Other";
     }
 }

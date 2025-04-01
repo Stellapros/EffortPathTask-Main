@@ -79,7 +79,8 @@ public class BlockPreInstructions : MonoBehaviour
         if (instructionText != null)
         {
             instructionText.text = "Practice complete! Now, the real challenge begins.\n\n" +
-                       "Collect as many fruits as possible within the available time. Choose wisely—each island has a unique fruit distribution. Some fruits are rarer than others, and the more you collect, the higher your score!";
+                       "Choose when to work for fruit within the time available. Choose wisely—each island will differ in how often you see each kind of fruit, and some fruits are rarer than others. Remember, skipping all options won't make the journey end any sooner. Every choice matters. Let's go!\n\n";
+            //    "Pay attention: in some trials, you will be required to make specific Work/Skip choices.";
 
             // instructionText.text = "Practice complete! Now, it's time for the real challenge.\n\n" +
             //              "Your goal is to collect as many fruits as possible. Choose when to work for fruit " +

@@ -184,7 +184,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: xxx
+  m_text: xxxxxx
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8887514be60924b0ba1319bd10d63d0f, type: 2}
   m_sharedMaterial: {fileID: 21010144202549244, guid: 8887514be60924b0ba1319bd10d63d0f,
@@ -904,7 +904,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &816214068
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1224,11 +1224,6 @@ PrefabInstance:
       objectReference: {fileID: 1532968556}
     - target: {fileID: 1492054073069948039, guid: 75d829630af0145eea06c852afe9af22,
         type: 3}
-      propertyPath: skipButton
-      value: 
-      objectReference: {fileID: 955518394}
-    - target: {fileID: 1492054073069948039, guid: 75d829630af0145eea06c852afe9af22,
-        type: 3}
       propertyPath: welcomeText
       value: 
       objectReference: {fileID: 518839023}
@@ -1275,7 +1270,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &955518393
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1520,9 +1515,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: xx
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8887514be60924b0ba1319bd10d63d0f, type: 2}
-  m_sharedMaterial: {fileID: 21010144202549244, guid: 8887514be60924b0ba1319bd10d63d0f,
-    type: 2}
+  m_fontAsset: {fileID: 11400000, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
+  m_sharedMaterial: {fileID: 2140032, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2241,7 +2235,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1532968555
 RectTransform:
   m_ObjectHideFlags: 0

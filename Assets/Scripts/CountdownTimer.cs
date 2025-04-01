@@ -8,7 +8,7 @@ public class CountdownTimer : MonoBehaviour
     public bool IsInitialized { get; private set; }
 
     [SerializeField] private TextMeshProUGUI timerText;
-    [SerializeField] private float totalTime = 5.0f;
+    [SerializeField] private float totalTime = 10.0f;
     // [SerializeField] private Color warningColor = new Color(0.6f, 0.2f, 0.2f); // dard red
 
     // ToRGB: 0.4 × 255 = 102; 1.0 × 255 = 255; 0.4 × 255 = 102
@@ -57,7 +57,6 @@ public class CountdownTimer : MonoBehaviour
             float elapsedTime = stopwatch.ElapsedMilliseconds / 1000f;
             timeLeft = Mathf.Max(totalTime - elapsedTime, 0);
 
-            // 检查是否进入警告阶段（3秒）
             if (timeLeft <= 2f && !isInWarningPhase)
             {
                 isInWarningPhase = true;
@@ -75,7 +74,7 @@ public class CountdownTimer : MonoBehaviour
 
         if (Time.frameCount % 60 == 0)
         {
-            Debug.Log($"Timer Update: timeLeft = {timeLeft:F2}s, isRunning = {isRunning}, totalTime = {totalTime}");
+            // Debug.Log($"Timer Update: timeLeft = {timeLeft:F2}s, isRunning = {isRunning}, totalTime = {totalTime}");
         }
     }
 
@@ -165,7 +164,7 @@ public class CountdownTimer : MonoBehaviour
         {
             float actualTime = stopwatch.ElapsedMilliseconds / 1000f;
             float timerTime = totalTime - timeLeft;
-            Debug.Log($"Actual time passed: {actualTime:F2}s, Timer time: {timerTime:F2}s, Difference: {(actualTime - timerTime):F2}s");
+            // Debug.Log($"Actual time passed: {actualTime:F2}s, Timer time: {timerTime:F2}s, Difference: {(actualTime - timerTime):F2}s");
         }
         else
         {

@@ -433,11 +433,13 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "Now, let's practice! Get your hands ready on the keyboard\u2014use your
-    RIGHT hand (\u2191 \u2193 \u2190 \u2192) to move the character and your LEFT
-    hand (A / D) to make decisions.\n\nYou have two chances to practice! After practice,
-    a set of questions awaits. Fail once, and you get another shot. Fail twice, and
-    your journey ends here.\n\nPress A to Work / Press D to Skip."
+  m_text: "Welcome to Practice Island! Get your hands ready on the keyboard\u2014use
+    your RIGHT hand (\u2191 \u2193 \u2190 \u2192) to move your character and your
+    LEFT hand (A / D) to make decisions.\n\r\nYou have two chances to practice! After
+    practice, a set of questions awaits. Fail once, and you get another shot. Fail
+    twice, and your journey ends here.\n\r\nTry to WORK for some offers and SKIP
+    for some offers. Don't worry\u2014your practice score won\u2019t count toward
+    your final bonus.\n\r\nPress 'A' to Work / Press 'D' to Skip.\r"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8887514be60924b0ba1319bd10d63d0f, type: 2}
   m_sharedMaterial: {fileID: 21010144202549244, guid: 8887514be60924b0ba1319bd10d63d0f,
@@ -465,8 +467,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 19
-  m_fontSizeBase: 19
+  m_fontSize: 16
+  m_fontSizeBase: 16
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -684,8 +686,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 14
-  m_fontSizeBase: 14
+  m_fontSize: 16
+  m_fontSizeBase: 16
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1598,7 +1600,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: -15}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1558479029

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -10,33 +11,32 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     public static PlayerController Instance { get; private set; }
+    [SerializeField] private int gridWidth = 18;
+    [SerializeField] private int gridHeight = 10;
+    [SerializeField] private float maxTrialDuration = 5.0f; // Configurable timeout
+                                                            // private float trialStartTime;
+    private bool hasLoggedTrialOutcome = false;
     public event System.Action OnRewardCollected;
-
     [SerializeField] private float moveStepSize = 1.0f;
     [SerializeField] private int pressesPerStep = 1;
     [SerializeField] private AudioClip errorSound;
     [SerializeField] private AudioClip rewardSound;
     [SerializeField] private AudioClip stepSound; //step sound
+    [SerializeField] private ExperimentManager experimentManager;
     [SerializeField] private GridManager gridManager;
     [SerializeField] private PracticeManager practiceManager;
-    private Vector2 lastMoveDirection = Vector2.right; // Initialize facing right
-    private Vector2 lastNonZeroMovement = Vector2.right; // Initialize facing right
+    // private Vector2 lastMoveDirection = Vector2.right; // Initialize facing right
+    // private Vector2 lastNonZeroMovement = Vector2.right; // Initialize facing right
     private SpriteRenderer spriteRenderer;
     private Vector2 lastHorizontalDirection = Vector2.right; // To keep track of last horizontal movement; Initialize facing right
-
     private bool isTrialRunning = false;
     private bool isMoving = false;
-
     private int[] directionCounters = new int[4]; // 0: Up, 1: Down, 2: Left, 3: Right
     private int totalButtonPresses = 0;
-
     private Vector2 initialPosition;
     private Vector2 currentPosition;
-
     private Rigidbody playerRigidbody;
     private AudioSource audioSource;
-
-    // Add new delegate for movement tracking
     public delegate void MovementRecordedHandler(Vector2 startPos, Vector2 endPos);
     public event MovementRecordedHandler OnMovementRecorded;
 
@@ -48,6 +48,7 @@ public class PlayerController : MonoBehaviour
     private float movementStartTime;
     private bool movementTimerStarted = false;
 
+    public bool IsInitialized { get; private set; }
 
     private void Awake()
     {
@@ -77,6 +78,10 @@ public class PlayerController : MonoBehaviour
     {
         PlayerController.Instance.OnMovementRecorded += HandleMovementRecorded;
         UpdatePressesPerStep(); // Ensure pressesPerStep is set correctly at the start
+
+        experimentManager = ExperimentManager.Instance;
+
+        IsInitialized = true;
     }
 
 
@@ -116,14 +121,11 @@ public class PlayerController : MonoBehaviour
         gridManager = gridManager ?? FindAnyObjectByType<GridManager>();
         if (gridManager == null) Debug.LogError("GridManager not found in the scene!");
 
-        // Modified PracticeManager initialization
+        // Initialize PracticeManager
+        practiceManager = FindAnyObjectByType<PracticeManager>();
         if (practiceManager == null)
         {
-            practiceManager = FindAnyObjectByType<PracticeManager>();
-            if (practiceManager == null)
-            {
-                Debug.LogWarning("PracticeManager not found - defaulting to ExperimentManager values");
-            }
+            Debug.LogWarning("PracticeManager not found - defaulting to ExperimentManager values");
         }
     }
 
@@ -146,6 +148,20 @@ public class PlayerController : MonoBehaviour
     {
         if (!isTrialRunning) return;
         HandleInput();
+
+        // Add trial timeout check
+        if (!hasLoggedTrialOutcome && (Time.time - trialStartTime) > maxTrialDuration)
+        {
+            Debug.Log("Trial timed out - logging movement failure");
+            LogMovementFailure();
+
+            // Notify GameController
+            GameController.Instance?.RewardCollected(false);
+
+            // Prevent multiple logging
+            hasLoggedTrialOutcome = true;
+            DisableMovement();
+        }
     }
 
     private void IncrementCounter(int index, Vector2 direction)
@@ -235,62 +251,111 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // private void AttemptMove(Vector2 direction)
+    // {
+    //     Vector2 startPosition = transform.position;
+    //     Vector2 newPosition = (Vector2)transform.position + (direction * moveStepSize);
+    //     float stepStartTime = Time.time; // Record the start time of the step
+
+    //     Debug.Log($"Attempting move from {startPosition} to {newPosition}");
+    //     Debug.Log($"Step start time: {stepStartTime}");
+
+    //     // Log the start of movement
+    //     LogMovementStart(startPosition);
+
+    //     if (gridManager != null && gridManager.IsValidPosition(newPosition))
+    //     {
+    //         // Record movement before executing it
+    //         OnMovementRecorded?.Invoke(startPosition, newPosition);
+
+    //         // Move the character and calculate the step duration
+    //         MoveCharacter(newPosition);
+    //         UpdateFacingDirection(direction);
+    //         PlayStepSound();
+
+    //         currentPosition = newPosition;
+    //         float stepDuration = Time.time - stepStartTime; // Calculate the step duration
+    //         Debug.Log($"Player moved. New position: {currentPosition}, Step duration: {stepDuration}s");
+
+    //         // Log individual steps with the correct step duration
+    //         LogMovementStep(startPosition, newPosition, stepDuration);
+    //     }
+    //     else
+    //     {
+    //         Debug.Log("Invalid move attempted. Playing error sound.");
+    //         PlaySound(errorSound);
+    //     }
+    // }
+
+    private IEnumerator SmoothMove(Vector2 startPos, Vector2 endPos, float moveDuration, float stepStartTime)
+    {
+        float elapsedTime = 0f;
+
+        Debug.Log($"SmoothMove started. Start: {startPos}, End: {endPos}, Duration: {moveDuration}");
+
+        while (elapsedTime < moveDuration)
+        {
+            // Interpolate the position over time
+            transform.position = Vector2.Lerp(startPos, endPos, elapsedTime / moveDuration);
+            elapsedTime += Time.deltaTime;
+            Debug.Log($"Elapsed time: {elapsedTime}");
+            yield return null; // Wait for the next frame
+        }
+
+        // Ensure the player reaches the exact end position
+        transform.position = endPos;
+        Debug.Log($"SmoothMove completed. Final position: {endPos}");
+
+        // Calculate the step duration after the movement is complete
+        float stepDuration = Time.time - stepStartTime;
+        Debug.Log($"Step duration: {stepDuration}s");
+
+        // Log individual steps with the correct step duration
+        LogMovementStep(startPos, endPos, stepDuration);
+    }
+
     private void AttemptMove(Vector2 direction)
     {
         Vector2 startPosition = transform.position;
         Vector2 newPosition = (Vector2)transform.position + (direction * moveStepSize);
-        float stepStartTime = Time.time;
+        float stepStartTime = Time.time; // Record the start time of the step
 
+        // Convert to grid position first for more accurate checking
+        Vector2Int gridPos = gridManager.WorldToGridPosition(newPosition);
+
+        // Snap the new position to the grid
+        // newPosition.x = Mathf.Round(newPosition.x * 100) / 100; // Round to 2 decimal places
+        // newPosition.y = Mathf.Round(newPosition.y * 100) / 100; // Round to 2 decimal places
         Debug.Log($"Attempting move from {startPosition} to {newPosition}");
+        Debug.Log($"Attempting move to: World={newPosition}, Grid={gridPos}");
+        Debug.Log($"World={newPosition} → Grid={gridPos} | Valid? {gridManager.IsValidFloorPosition(gridPos)}");
+
 
         // Log the start of movement
         LogMovementStart(startPosition);
 
-        if (gridManager != null && gridManager.IsValidPosition(newPosition))
+        // if (gridManager != null && gridManager.IsValidPosition(newPosition))
+        if (gridManager != null && gridManager.IsValidFloorPosition(gridPos))
         {
             // Record movement before executing it
             OnMovementRecorded?.Invoke(startPosition, newPosition);
 
-            MoveCharacter(newPosition);
+            // Start the smooth movement coroutine and pass the stepStartTime
+            StartCoroutine(SmoothMove(startPosition, newPosition, 0.1f, stepStartTime)); // Adjust the duration as needed
+
             UpdateFacingDirection(direction);
             PlayStepSound();
 
             currentPosition = newPosition;
-            float stepDuration = Time.time - stepStartTime;
-            Debug.Log($"Player moved. New position: {currentPosition}, Step duration: {stepDuration}s");
-
-            // Only log individual steps but don't reset the main movement timer
-            LogMovementStep(startPosition, newPosition, stepDuration);
         }
         else
         {
             Debug.Log("Invalid move attempted. Playing error sound.");
+            Debug.Log("BLOCKED: Trying to move into a wall!");
             PlaySound(errorSound);
         }
     }
 
-    // Add a new method for logging individual steps
-    private void LogMovementStep(Vector2 startPos, Vector2 endPos, float stepDuration)
-    {
-        // Get trial index based on trial type
-        int trialIndex = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1
-            ? PracticeManager.Instance.GetCurrentPracticeTrialIndex()
-            : ExperimentManager.Instance.GetCurrentTrialIndex();
-
-        if (LogManager.Instance != null)
-        {
-            LogManager.Instance.LogEvent("MovementStep", new Dictionary<string, string>
-            {
-                {"TrialNumber", (trialIndex + 1).ToString()},
-                {"StartX", startPos.x.ToString("F2")},
-                {"StartY", startPos.y.ToString("F2")},
-                {"EndX", endPos.x.ToString("F2")},
-                {"EndY", endPos.y.ToString("F2")},
-                {"StepDuration", stepDuration.ToString("F3")},
-                {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
-            });
-        }
-    }
 
     private void MoveCharacter(Vector2 newPosition)
     {
@@ -298,9 +363,15 @@ public class PlayerController : MonoBehaviour
         Debug.Log($"Moving from {transform.position} to {targetPosition}");
 
         if (playerRigidbody != null)
+        {
+            // Use Rigidbody.MovePosition for smooth movement
             playerRigidbody.MovePosition(targetPosition);
+        }
         else
+        {
+            // Fallback to direct position update if Rigidbody is missing
             transform.position = targetPosition;
+        }
 
         Debug.Log($"Player moved. New position: {transform.position}");
     }
@@ -310,7 +381,7 @@ public class PlayerController : MonoBehaviour
         if (clip != null && audioSource != null)
         {
             audioSource.PlayOneShot(clip);
-            audioSource.volume = 0.5f;
+            audioSource.volume = 4.0f;
             Debug.Log($"Played sound: {clip.name}");
         }
         else
@@ -332,6 +403,10 @@ public class PlayerController : MonoBehaviour
 
     public void ResetPosition(Vector2 position)
     {
+        // If you want to ensure absolute grid center
+        Vector2 gridCenterPosition = gridManager.GridToWorldPosition(
+            new Vector2Int(gridWidth / 2, gridHeight / 2)
+        );
         transform.position = new Vector3(position.x, position.y, transform.position.z);
         initialPosition = position;
         currentPosition = position;
@@ -372,6 +447,13 @@ public class PlayerController : MonoBehaviour
 
     public void SetPressesPerStep(int presses)
     {
+        // Check if experimentManager is initialized
+        if (ExperimentManager.Instance == null)
+        {
+            Debug.LogError("ExperimentManager is null in SetPressesPerStep!");
+            return;
+        }
+
         pressesPerStep = presses;
         ResetCounters();
         Debug.Log($"PlayerController: Presses per step set to {pressesPerStep}");
@@ -389,35 +471,37 @@ public class PlayerController : MonoBehaviour
             // Try to use PracticeManager
             if (practiceManager != null)
             {
-                int effortLevel = practiceManager.GetCurrentTrialEffortLevel();
-                pressesPerStep = effortLevel;
-                Debug.Log($"Practice trial - using effort level: {effortLevel}");
-            }
-            else if (ExperimentManager.Instance != null)
-            {
-                // Fallback to ExperimentManager if PracticeManager is not available
-                pressesPerStep = ExperimentManager.Instance.GetCurrentTrialEV();
-                Debug.Log($"Practice trial but no PracticeManager - using ExperimentManager value: {pressesPerStep}");
+                // Ensure the trial index is valid
+                if (practiceManager.GetCurrentPracticeTrialIndex() >= 0)
+                {
+                    // Use PracticeManager to get presses required
+                    pressesPerStep = practiceManager.GetCurrentTrialPressesRequired();
+                    Debug.Log($"Practice trial - using presses required: {pressesPerStep}");
+                }
+                else
+                {
+                    Debug.LogError("Invalid practice trial index. Defaulting to 1 press per step.");
+                    pressesPerStep = 1;
+                }
             }
             else
             {
-                // Ultimate fallback
+                Debug.LogError("PracticeManager not found. Defaulting to 1 press per step.");
                 pressesPerStep = 1;
-                Debug.LogError("No managers found - defaulting to 1 press per step");
             }
         }
         else
         {
-            // Normal trial logic
+            // Normal trial logic - use ExperimentManager
             if (ExperimentManager.Instance != null)
             {
                 pressesPerStep = ExperimentManager.Instance.GetCurrentTrialEV();
-                Debug.Log($"Normal trial - using ExperimentManager value: {pressesPerStep}");
+                Debug.Log($"Formal trial - using presses required: {pressesPerStep}");
             }
             else
             {
-                pressesPerStep = 1;
                 Debug.LogError("ExperimentManager not found - defaulting to 1 press per step");
+                pressesPerStep = 1;
             }
         }
 
@@ -432,6 +516,7 @@ public class PlayerController : MonoBehaviour
         isMoving = false;
 
         trialStartTime = Time.time;
+        hasLoggedTrialOutcome = false;
         isTrialRunning = false;
         totalButtonPresses = 0;
         ResetCounters();
@@ -473,12 +558,18 @@ public class PlayerController : MonoBehaviour
         Debug.Log("Player movement disabled from PlayerController");
     }
 
-    // Modify OnTriggerEnter
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Reward") && isTrialRunning)
         {
+            // Mark as logged to prevent duplicate logs
+            hasLoggedTrialOutcome = true;
+
+            // Record collision time
             float collisionTime = Time.time;
+
+            // Calculate total trial duration
+            float trialDuration = collisionTime - trialStartTime;
 
             // Calculate the actual movement duration from when movement first started
             float movementDuration = 0f;
@@ -492,62 +583,92 @@ public class PlayerController : MonoBehaviour
                 Debug.LogWarning("Movement timer was never started, duration will be 0");
             }
 
-            // Get trial index based on trial type
+            // Determine if this is a practice trial
             bool isPracticeTrial = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1;
+
+            // Get trial index based on trial type
             int trialIndex = isPracticeTrial
                 ? PracticeManager.Instance.GetCurrentPracticeTrialIndex()
                 : ExperimentManager.Instance.GetCurrentTrialIndex();
 
-            // Log final decision outcome with accurate movement data
+            // Get block number based on trial type
+            int blockNumber = isPracticeTrial ? -1 : ExperimentManager.Instance.GetCurrentBlockNumber();
+
+            Debug.Log($"Logging decision outcome - Trial: {trialIndex}, Block: {blockNumber}, isPractice: {isPracticeTrial}");
+
+            // Get decision time, effort level, and required presses based on trial type
+            float decisionTime = isPracticeTrial
+                ? PlayerPrefs.GetFloat("PracticeDecisionTime", 0f) // Retrieve decision time for practice trials
+                : PlayerPrefs.GetFloat("DecisionTime", 0f); // Retrieve decision time for formal trials
+
+            int effortLevel = isPracticeTrial
+                ? PracticeManager.Instance.GetCurrentTrialEffortLevel() // Retrieve effort level for practice trials
+                : ExperimentManager.Instance.GetCurrentTrialEffortLevel(); // Retrieve effort level for formal trials
+
+            int requiredPresses = isPracticeTrial
+                ? PracticeManager.Instance.GetCurrentTrialPressesRequired() // Retrieve required presses for practice trials
+                : ExperimentManager.Instance.GetCurrentTrialEV(); // Retrieve required presses for formal trials
+
+            // Log the collision time with detailed information
+            LogManager.Instance.LogEvent("CollisionTime", new Dictionary<string, string>
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()},
+            {"Time", collisionTime.ToString("F3")},
+            {"TrialDuration", trialDuration.ToString("F3")},
+            {"MovementDuration", movementDuration.ToString("F3")},
+            {"IsPractice", isPracticeTrial.ToString()},
+            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
+
+            // Pass the movement duration (collision timing) to LogDecisionOutcome
             LogManager.Instance.LogDecisionOutcome(
                 trialIndex,
-                PlayerPrefs.GetInt("CurrentBlock", 0),
+                blockNumber,
                 PlayerPrefs.GetString("DecisionType", "Work"),
                 true, // rewardCollected
-                PlayerPrefs.GetFloat("DecisionTime", 0f),
+                decisionTime,
                 movementDuration,
                 totalButtonPresses,
-                PlayerPrefs.GetInt("EffortLevel", 1),
-                PlayerPrefs.GetInt("RequiredPresses", 1)
+                effortLevel,
+                requiredPresses,
+                false, // skipAdjustment
+                string.Join("|", buttonPressList.Select(bp => $"{bp.Key:F3}:{bp.Value}")), // pressData
+                movementDuration / Mathf.Max(1, totalButtonPresses), // timePerPress
+                10 // points
             );
+
+            Debug.Log($"Logging trial outcome - Trial: {trialIndex}, Block: {blockNumber}");
 
             // Log final movement details
             LogMovementEnd(currentPosition, true, true); // This is the final move
 
             // Log movement duration
             LogManager.Instance.LogEvent("MovementDuration", new Dictionary<string, string>
-            {
-                {"TrialNumber", (trialIndex + 1).ToString()},
-                {"MovementDuration", movementDuration.ToString("F3")},
-                {"OutcomeType", "Success"}
-            });
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()},
+            {"MovementDuration", movementDuration.ToString("F3")},
+            {"OutcomeType", "Success"}
+        });
 
             // Log success outcome
             LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
-            {
-                {"TrialNumber", (trialIndex + 1).ToString()},
-                {"OutcomeType", "Success"}
-            });
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()},
+            {"OutcomeType", "Success"}
+        });
 
             // Log reward collection
             LogManager.Instance.LogEvent("RewardCollected", new Dictionary<string, string>
-            {
-                {"TrialNumber", (trialIndex + 1).ToString()},
-                {"Collected", "True"}
-            });
-
-            // Log collision timing
-            LogManager.Instance.LogEvent("CollisionTime", new Dictionary<string, string>
-            {
-                {"TrialNumber", (trialIndex + 1).ToString()},
-                {"Time", collisionTime.ToString("F3")}
-            });
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()},
+            {"Collected", "True"}
+        });
 
             // Handle reward collection
             GameController gameController = GameController.Instance;
             if (gameController != null)
             {
-                gameController.LogRewardCollectionTiming(collisionTime, movementDuration);
+                // gameController.LogRewardCollectionTiming(collisionTime, movementDuration);
                 gameController.RewardCollected(true);
             }
 
@@ -559,15 +680,15 @@ public class PlayerController : MonoBehaviour
             OnRewardCollected?.Invoke();
             LogButtonPressesAtTrialEnd(trialIndex);
             DisableMovement();
+            return;
         }
     }
-
     #region Movement Logging
-    private Vector2 movementStartPosition;
-
     private void LogMovementStart(Vector2 startPosition)
     {
-        movementStartPosition = startPosition;
+        // Round the start position to 2 decimal places
+        float startX = Mathf.Round(startPosition.x * 100) / 100; // Round to 2 decimal places
+        float startY = Mathf.Round(startPosition.y * 100) / 100; // Round to 2 decimal places
 
         // Get trial index based on trial type
         int trialIndex = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1
@@ -577,21 +698,47 @@ public class PlayerController : MonoBehaviour
         if (LogManager.Instance != null)
         {
             LogManager.Instance.LogEvent("MovementStart", new Dictionary<string, string>
-            {
-                {"TrialNumber", (trialIndex + 1).ToString()},
-                {"StartX", startPosition.x.ToString("F2")},
-                {"StartY", startPosition.y.ToString("F2")},
-                {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
-            });
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()},
+            {"StartX", startX.ToString("F2")}, // Use rounded value
+            {"StartY", startY.ToString("F2")}, // Use rounded value
+            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
         }
     }
 
-    public int GetTotalButtonPresses()
+    // Add a new method for logging individual steps
+    private void LogMovementStep(Vector2 startPos, Vector2 endPos, float stepDuration)
     {
-        return totalButtonPresses;
+        // Get trial index based on trial type
+        int trialIndex = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1
+            ? PracticeManager.Instance.GetCurrentPracticeTrialIndex()
+            : ExperimentManager.Instance.GetCurrentTrialIndex();
+
+        // Round the coordinates to 2 decimal places
+        float startX = Mathf.Round(startPos.x * 100) / 100; // Round to 2 decimal places
+        float startY = Mathf.Round(startPos.y * 100) / 100; // Round to 2 decimal places
+        float endX = Mathf.Round(endPos.x * 100) / 100;     // Round to 2 decimal places
+        float endY = Mathf.Round(endPos.y * 100) / 100;     // Round to 2 decimal places
+
+        Debug.Log($"Original Start: ({startPos.x}, {startPos.y}), Rounded Start: ({startX}, {startY})");
+        Debug.Log($"Original End: ({endPos.x}, {endPos.y}), Rounded End: ({endX}, {endY})");
+
+        if (LogManager.Instance != null)
+        {
+            LogManager.Instance.LogEvent("MovementStep", new Dictionary<string, string>
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()},
+            {"StartX", startX.ToString("F2")}, // Use rounded value
+            {"StartY", startY.ToString("F2")}, // Use rounded value
+            {"EndX", endX.ToString("F2")},     // Use rounded value
+            {"EndY", endY.ToString("F2")},     // Use rounded value
+            {"StepDuration", stepDuration.ToString("F3")}, // Log the actual step duration
+            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
+        }
     }
 
-    // Replace LogMovementEnd with a simpler version that doesn't reset the timer
     private void LogMovementEnd(Vector2 endPosition, bool rewardCollected, bool isFinalMove = false)
     {
         // Calculate total movement time if this is the final move and timer was started
@@ -602,64 +749,125 @@ public class PlayerController : MonoBehaviour
             ? PracticeManager.Instance.GetCurrentPracticeTrialIndex()
             : ExperimentManager.Instance.GetCurrentTrialIndex();
 
+
         if (LogManager.Instance != null && isFinalMove)
         {
             LogManager.Instance.LogEvent("MovementComplete", new Dictionary<string, string>
-            {
-                {"TrialNumber", (trialIndex + 1).ToString()},
-                {"TotalMovementDuration", totalTime.ToString("F3")},
-                {"TotalButtonPresses", totalButtonPresses.ToString()},
-                {"RewardCollected", rewardCollected.ToString()},
-                {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
-            });
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()},
+            {"TotalMovementDuration", totalTime.ToString("F3")},
+            {"TotalButtonPresses", totalButtonPresses.ToString()},
+            {"RewardCollected", rewardCollected.ToString()},
+            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
 
             // Only log this for the final outcome, not intermediate steps
             if (isFinalMove)
             {
                 // Add separate reward collection event
                 LogManager.Instance.LogEvent("RewardCollected", new Dictionary<string, string>
-                {
-                    {"TrialNumber", (trialIndex + 1).ToString()},
-                    {"Collected", rewardCollected.ToString()}
-                });
+            {
+                {"TrialNumber", (trialIndex + 1).ToString()},
+                {"Collected", rewardCollected.ToString()}
+            });
             }
         }
     }
 
     public void LogMovementFailure()
     {
+        if (hasLoggedTrialOutcome) return;
+
         if (movementTimerStarted)
         {
             float movementDuration = Time.time - movementStartTime;
 
+            // Determine if this is a practice trial
+            bool isPracticeTrial = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1;
+
             // Get trial index based on trial type
-            int trialIndex = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1
+            int trialIndex = isPracticeTrial
                 ? PracticeManager.Instance.GetCurrentPracticeTrialIndex()
                 : ExperimentManager.Instance.GetCurrentTrialIndex();
 
+            // Get block number based on trial type - FIXED: use -1 for practice trials
+            int blockNumber = isPracticeTrial
+                ? -1 // Use -1 for practice blocks (consistent with PracticeDecisionManager)
+                : ExperimentManager.Instance.GetCurrentBlockNumber();
+
             // Log movement duration for failure
             LogManager.Instance.LogEvent("MovementDuration", new Dictionary<string, string>
-            {
-                {"TrialNumber", (trialIndex + 1).ToString()},
-                {"MovementDuration", movementDuration.ToString("F3")},
-                {"OutcomeType", "Fail"}
-            });
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()},
+            {"MovementDuration", movementDuration.ToString("F3")},
+            {"OutcomeType", "Failure"}
+        });
 
-            // Log decision outcome for failure
+            // Log failure outcome
+            LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()},
+            {"OutcomeType", "Failure"}
+        });
+
+            // Log reward collection (not collected)
+            LogManager.Instance.LogEvent("RewardCollected", new Dictionary<string, string>
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()},
+            {"Collected", "False"}
+        });
+
+            // Log button presses
+            LogButtonPressesAtTrialEnd(trialIndex);
+
+            // Get decision time, effort level, and required presses based on trial type
+            float decisionTime = isPracticeTrial
+                ? PlayerPrefs.GetFloat("PracticeDecisionTime", 0f)
+                : PlayerPrefs.GetFloat("DecisionTime", 0f);
+
+            int effortLevel = isPracticeTrial
+                ? PracticeManager.Instance.GetCurrentTrialEffortLevel()
+                : ExperimentManager.Instance.GetCurrentTrialEffortLevel();
+
+            int requiredPresses = isPracticeTrial
+                ? PracticeManager.Instance.GetCurrentTrialPressesRequired()
+                : ExperimentManager.Instance.GetCurrentTrialEV();
+
+            // Log decision outcome for failure - use the SAME method as success
             LogManager.Instance.LogDecisionOutcome(
                 trialIndex,
-                PlayerPrefs.GetInt("CurrentBlock", 0),
-                PlayerPrefs.GetString("DecisionType", "NoDecision"),
+                blockNumber,
+                PlayerPrefs.GetString("DecisionType", "Work"),
                 false, // rewardCollected
-                PlayerPrefs.GetFloat("DecisionTime", 0f),
+                decisionTime,
                 movementDuration,
                 totalButtonPresses,
-                PlayerPrefs.GetInt("EffortLevel", 1),
-                PlayerPrefs.GetInt("RequiredPresses", 1)
+                effortLevel,
+                requiredPresses,
+                false, // skipAdjustment
+                string.Join("|", buttonPressList.Select(bp => $"{bp.Key:F3}:{bp.Value}")), // pressData
+                movementDuration / Mathf.Max(1, totalButtonPresses), // timePerPress
+                0 // points for failure
             );
+
+            // Mark as logged to prevent duplicate logs
+            hasLoggedTrialOutcome = true;
+
+            // Log movement end
+            LogMovementEnd(currentPosition, false, true);
 
             // Reset movement tracking
             movementTimerStarted = false;
+
+            // Notify GameController about failure
+            GameController gameController = GameController.Instance;
+            if (gameController != null)
+            {
+                // gameController.LogRewardCollectionTiming(Time.time, movementDuration);
+                gameController.RewardCollected(false);
+            }
+
+            DisableMovement();
         }
     }
     #endregion

@@ -99,7 +99,7 @@ public class ScoreManager : MonoBehaviour
             Debug.Log($"Practice trial: Added {points} points. New practice score: {practiceScore}");
         }
 
-        // Get current trial number from TrialManager if available
+        // Get current trial number from ExperimentManager if available
         int trialNumber = 0;
         if (ExperimentManager.Instance != null)
         {
@@ -117,17 +117,17 @@ public class ScoreManager : MonoBehaviour
         }
 
         // Get block number - for practice always use 0, for formal trials get from ExperimentManager
-        // int blockNumber = 0;
-        int blockNumber = 1;
+        int blockNumber = 0;
         if (isFormalTrial && ExperimentManager.Instance != null)
         {
-            // blockNumber = PlayerPrefs.GetInt("CurrentBlock", 0);              
-            blockNumber = ExperimentManager.Instance.GetCurrentBlockNumber();
+            // Add 1 to convert zero-based index to one-based index
+            blockNumber = ExperimentManager.Instance.GetCurrentBlockNumber() + 1;
+            Debug.Log($"Formal trial block number: {blockNumber}");
         }
 
         // Log the score update with complete information
         LogManager.Instance.LogScoreUpdateComplete(trialNumber, !isFormalTrial, points, "ScoreAdded",
-                                                   currentTotalScore, currentPracticeScore, blockNumber);
+                                                  currentTotalScore, currentPracticeScore, blockNumber);
 
         if (scoreText == null)
         {

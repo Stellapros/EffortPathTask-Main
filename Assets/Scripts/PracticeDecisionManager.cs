@@ -209,7 +209,7 @@ public class PracticeDecisionManager : MonoBehaviour
     public void SetupDecisionPhase()
     {
         Debug.Log($"SetupDecisionPhase CALLED");
-        Debug.Log($"Current Practice Trial Index: {practiceManager.GetCurrentPracticeTrialIndex()}");
+        Debug.Log($"Current Practice Trial Index: {practiceManager.GetCurrentPracticeTrialIndex() + 1}"); // Add 1 for display
 
         if (practiceManager == null)
         {
@@ -305,6 +305,8 @@ public class PracticeDecisionManager : MonoBehaviour
 
             if (pressesRequiredText != null)
             {
+                // Use PracticeManager to get the correct presses required
+                pressesRequired = practiceManager.GetCurrentTrialPressesRequired();
                 pressesRequiredText.text = $"Presses Required: {pressesRequired}";
                 Debug.Log($"Setting Presses Required Text to: {pressesRequiredText.text}");
             }
@@ -319,12 +321,12 @@ public class PracticeDecisionManager : MonoBehaviour
     {
         switch (effortLevel)
         {
-            case 1: return "Apple - Low Effort";
-            case 3: return "Grapes - Medium Effort";
-            case 5: return "Watermelon - High Effort";
+            case 1: return "Apple - 1 Press";
+            case 2: return "Grapes - 3 Presses";
+            case 3: return "Watermelon - 5 Presses";
             default:
                 Debug.LogWarning($"Unexpected effort level: {effortLevel}");
-                return "Unknown Effort";
+                return $"Unknown - {effortLevel} Presses";
         }
     }
 
@@ -333,8 +335,8 @@ public class PracticeDecisionManager : MonoBehaviour
         switch (effortLevel)
         {
             case 1: return 1; // Apple - 1 press per step
-            case 3: return 3; // Grapes - 3 presses per step
-            case 5: return 5; // Watermelon - 5 presses per step
+            case 2: return 3; // Grapes - 3 presses per step
+            case 3: return 5; // Watermelon - 5 presses per step
             default:
                 Debug.LogWarning($"Unexpected effort level: {effortLevel}. Defaulting to 1.");
                 return 1;
@@ -344,13 +346,23 @@ public class PracticeDecisionManager : MonoBehaviour
     private void OnDecisionMade(bool workDecision)
     {
         float decisionRT = Time.time - decisionPhaseStartTime;
+
+        // Store decision type and time for practice trials
+        PlayerPrefs.SetString("DecisionType", workDecision ? "Work" : "Skip");
+        PlayerPrefs.SetFloat("PracticeDecisionTime", decisionRT);
+        PlayerPrefs.Save();
+
         int trialIndex = PracticeManager.Instance.GetCurrentPracticeTrialIndex();
-        LogManager.Instance.LogEvent("DecisionRT", new Dictionary<string, string>
-    {
-         {"TrialNumber", (trialIndex + 1).ToString()}, // Adjust to 1-based index
-        {"DecisionRT", decisionRT.ToString("F3")},
-        {"Decision", workDecision ? "Work" : "Skip"}
-    });
+        const int PRACTICE_BLOCK_NUMBER = -1; // or -1, depending on your preference
+
+        //     // Log only the decision reaction time
+        //     LogManager.Instance.LogEvent("DecisionRT", new Dictionary<string, string>
+        // {
+        //     {"TrialNumber", (trialIndex + 1).ToString()}, // Adjust to 1-based index
+        //     {"DecisionRT", decisionRT.ToString("F3")},
+        //     {"Decision", workDecision ? "Work" : "Skip"},
+        //     {"BlockNumber", PRACTICE_BLOCK_NUMBER.ToString()}
+        // });
 
         // Reset the trial processing flag
         hasProcessedCurrentTrial = false;
@@ -368,47 +380,52 @@ public class PracticeDecisionManager : MonoBehaviour
             }
         }
 
-        // Log the decision
-        LogDecision(workDecision);
-
-        // Log the decision outcome
-        int currentTrial = practiceManager.GetCurrentPracticeTrialIndex();
-        int effortLevel = practiceManager.GetCurrentTrialEffortLevel();
-        int requiredPresses = GetPracticePressesByEffortLevel(effortLevel);
-
-        // LogManager.Instance.LogDecisionOutcome(
-        //     currentTrial,
-        //     -1, // Block number is -1 for practice trials
-        //     workDecision ? "Work" : "Skip",
-        //     false, // rewardCollected will be updated in the movement phase
-        //     0, // decisionTime will be updated in the movement phase
-        //     // 0, // movementTime will be updated in the movement phase
-        //     // 0, // buttonPresses will be updated in the movement phase
-        //     effortLevel,
-        //     requiredPresses
-        // );
-
-        // Add these debug lines
-        Debug.Log($"OnDecisionMade called. WorkDecision: {workDecision}");
-        Debug.Log($"Current Score Before Adding: {PracticeScoreManager.Instance?.GetCurrentScore()}");
-
         if (workDecision)
         {
+            // For Work decisions, outcome will be logged in PlayerController
+            // when the trial completes (success or failure)
             StartCoroutine(DelayedSceneTransition("GetReadyEveryTrialPractice", 0.1f));
-            // // Flag to indicate that the trial was not skipped,
-            // PlayerPrefs.SetInt("SkippedTrial", 0);
         }
         else
         {
-            // Only add score here if absolutely necessary
-            Debug.Log("Skip decision - adding 1 point");
+            // For Skip decisions, log the outcome immediately
+            int effortLevel = PracticeManager.Instance.GetCurrentTrialEffortLevel();
+            int requiredPresses = PracticeManager.Instance.GetCurrentTrialPressesRequired();
+
+            // // Log skip outcome with consistent PRACTICE_BLOCK_NUMBER
+            // LogManager.Instance.LogDecisionOutcome(
+            //     trialIndex,
+            //     PRACTICE_BLOCK_NUMBER,  // Use -1 consistently for practice trials
+            //     "Skip",
+            //     false, // rewardCollected
+            //     decisionRT,
+            //     0f, // movementDuration (0 for skips)
+            //     0, // buttonPresses (0 for skips)
+            //     effortLevel,
+            //     requiredPresses
+            // );
+
+            LogManager.Instance.LogDecisionOutcome(
+    trialIndex,
+    PRACTICE_BLOCK_NUMBER,
+    "Skip",
+    false, // rewardCollected
+    decisionRT,
+    0f, // movementDuration
+    0, // buttonPresses
+    effortLevel,
+    requiredPresses,
+    true, // skipAdjustment
+    "-", // pressData
+    -1f, // timePerPress
+    SKIP_SCORE // points
+);
+
+            Debug.Log("Skip decision - adding 0 point");
             PracticeScoreManager.Instance?.AddScore(SKIP_SCORE);
             ActivateSkipDelay();
         }
-        Debug.Log($"Current Score After Adding: {PracticeScoreManager.Instance?.GetCurrentScore()}");
     }
-
-
     private System.Collections.IEnumerator DelayedSceneTransition(string sceneName, float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -462,9 +479,10 @@ public class PracticeDecisionManager : MonoBehaviour
             timerText.text = "";
         }
 
-        Debug.Log($"CompleteSkipDelay - Current Practice Trial Index BEFORE Completion: {practiceManager.GetCurrentPracticeTrialIndex()}");
+        Debug.Log("CompleteSkipDelay - Moving to next practice trial");
+        // Debug.Log($"CompleteSkipDelay - Current Practice Trial Index BEFORE Completion: {practiceManager.GetCurrentPracticeTrialIndex()}");
         practiceManager.HandleGridWorldOutcome(true);
-        Debug.Log($"CompleteSkipDelay - Current Practice Trial Index AFTER Completion: {practiceManager.GetCurrentPracticeTrialIndex()}");
+        // Debug.Log($"CompleteSkipDelay - Current Practice Trial Index AFTER Completion: {practiceManager.GetCurrentPracticeTrialIndex()}");
     }
 
     private void EnableButtons()
@@ -482,15 +500,5 @@ public class PracticeDecisionManager : MonoBehaviour
     {
         if (workButton != null) workButton.interactable = false;
         if (skipButton != null) skipButton.interactable = false;
-    }
-
-    private void LogDecision(bool workDecision)
-    {
-        string trialType = "Practice";
-        int currentTrialIndex = practiceManager.GetCurrentPracticeTrialIndex();
-
-        string logEntry = $"{System.DateTime.Now}: {trialType} Trial {currentTrialIndex + 1} - Player decided to {(workDecision ? "Work" : "Skip")}";
-        System.IO.File.AppendAllText("practice_decision_log.txt", logEntry + System.Environment.NewLine);
-        Debug.Log(logEntry);
     }
 }

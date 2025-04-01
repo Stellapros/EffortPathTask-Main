@@ -8,7 +8,7 @@ public class PracticeScoreManager : MonoBehaviour
 
     [SerializeField] private TextMeshProUGUI practiceScoreText;
     private int currentPracticeScore = 0;
-    private ScoreAnimationManager animationManager;
+    private ScoreAnimationManager scoreAnimationManager;
     public PracticeManager practiceManager;
 
     // List of scenes where practice score should be displayed
@@ -36,7 +36,7 @@ public class PracticeScoreManager : MonoBehaviour
 
     private void Start()
     {
-        animationManager = gameObject.AddComponent<ScoreAnimationManager>();
+        scoreAnimationManager = gameObject.AddComponent<ScoreAnimationManager>();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -86,58 +86,64 @@ public class PracticeScoreManager : MonoBehaviour
         }
     }
 
-public void AddScore(int points)
-{
-    if (Instance == null)
+    public void AddScore(int points)
     {
-        Debug.LogError("PracticeScoreManager.Instance is null!");
-        return;
+        if (Instance == null)
+        {
+            Debug.LogError("PracticeScoreManager.Instance is null!");
+            return;
+        }
+
+        if (PracticeManager.Instance == null)
+        {
+            Debug.LogError("PracticeManager.Instance is null!");
+            return;
+        }
+
+        if (LogManager.Instance == null)
+        {
+            Debug.LogError("LogManager.Instance is null!");
+            return;
+        }
+
+        Debug.Log($"AddScore called with {points} points");
+        Debug.Log($"Current Practice Score BEFORE adding: {currentPracticeScore}");
+
+        currentPracticeScore += points;
+
+        Debug.Log($"Current Practice Score AFTER adding: {currentPracticeScore}");
+
+        // Persistently store score using PlayerPrefs
+        PlayerPrefs.SetInt("PersistentPracticeScore", currentPracticeScore);
+        PlayerPrefs.Save();
+
+        // Log the score update
+        int trialIndex = PracticeManager.Instance.GetCurrentPracticeTrialIndex();
+
+        // Get both scores for logging (using different variable names)
+        int currentPracticeScoreValue = this.currentPracticeScore;
+        int currentTotalScoreValue = 0;
+
+        // Get the formal trial score if possible
+        if (ScoreManager.Instance != null)
+        {
+            currentTotalScoreValue = ScoreManager.Instance.GetTotalScore();
+        }
+
+        // For practice, always use block 0
+        int blockNumber = 0;
+
+        LogManager.Instance.LogScoreUpdateComplete(trialIndex + 1, true, points, "PracticeScoreAdded",
+                                                  currentTotalScoreValue, currentPracticeScoreValue, blockNumber);
+
+        UpdateScoreDisplay();
+
+        // Play animation if possible
+        if (practiceScoreText != null && scoreAnimationManager != null)
+        {
+            scoreAnimationManager.PlayScoreAnimation(practiceScoreText, points);
+        }
     }
-
-    if (PracticeManager.Instance == null)
-    {
-        Debug.LogError("PracticeManager.Instance is null!");
-        return;
-    }
-
-    if (LogManager.Instance == null)
-    {
-        Debug.LogError("LogManager.Instance is null!");
-        return;
-    }
-
-    Debug.Log($"AddScore called with {points} points");
-    Debug.Log($"Current Practice Score BEFORE adding: {currentPracticeScore}");
-
-    currentPracticeScore += points;
-
-    Debug.Log($"Current Practice Score AFTER adding: {currentPracticeScore}");
-
-    // Persistently store score using PlayerPrefs
-    PlayerPrefs.SetInt("PersistentPracticeScore", currentPracticeScore);
-    PlayerPrefs.Save();
-
-    // Log the score update
-    int trialIndex = PracticeManager.Instance.GetCurrentPracticeTrialIndex();
-    
-    // Get both scores for logging (using different variable names)
-    int currentPracticeScoreValue = this.currentPracticeScore;
-    int currentTotalScoreValue = 0;
-    
-    // Get the formal trial score if possible
-    if (ScoreManager.Instance != null)
-    {
-        currentTotalScoreValue = ScoreManager.Instance.GetTotalScore();
-    }
-    
-    // For practice, always use block 0
-    int blockNumber = 0;
-    
-    LogManager.Instance.LogScoreUpdateComplete(trialIndex+1, true, points, "PracticeScoreAdded", 
-                                              currentTotalScoreValue, currentPracticeScoreValue, blockNumber);
-
-    UpdateScoreDisplay();
-}
 
     // private void UpdateScoreDisplay()
     // {

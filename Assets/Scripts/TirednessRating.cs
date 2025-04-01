@@ -48,7 +48,7 @@ public class TirednessRatingScreen : MonoBehaviour
         // Set up space instruction text
         if (spaceInstructionText != null)
         {
-            spaceInstructionText.text = "Press 'Space' to continue";
+            spaceInstructionText.text = "Use your mouse to move the slider. \n Press 'Space' to continue";
         }
         else
         {

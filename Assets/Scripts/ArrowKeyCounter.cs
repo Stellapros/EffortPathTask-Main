@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine.SceneManagement;
 using System.Collections;
 using System.Linq;
+using System.Collections.Generic;
 
 public class ArrowKeyCounter : MonoBehaviour
 {
@@ -23,6 +24,7 @@ public class ArrowKeyCounter : MonoBehaviour
     [Header("Calibration Settings")]
     private float calibrationTime = 5f;
     private float breakTime = 5f;
+    private float webGLTimeScale = 1.0f; // Add this to adjust for potential time scaling issues
 
     // For slower filling, use a smaller number (e.g., 0.01f means 100 presses)
     // For faster filling, use a larger number (e.g., 0.02f means 50 presses)
@@ -40,12 +42,35 @@ public class ArrowKeyCounter : MonoBehaviour
     private string nextSceneName = "TourGame";
     private string previousSceneName = "StartScreen";
 
+    [Header("Sound Effects")]
+    public AudioClip keyPressSound;  // Assign in Inspector
+    [Range(0, 1)] public float keyPressVolume = 0.5f; // Volume slider in Inspector
+    private AudioSource audioSource; // Will create dynamically
+
+    // private string[] instructions = new string[]
+    // {
+    //     "Before you embark on your adventure, let's calibrate your explorer's energy levels! For the next 5 seconds, press the RIGHT direction button (→) using your RIGHT hand as fast as you can. The more you press, the more your progress bar fills. Push it to the max!",
+    //     "Great effort! But can you go even faster? Now, TRY TO BEAT YOUR SCORE and push the bar even HIGHER! Get ready... and start pressing when you're prepared.",
+    //     "This is your LAST CHANCE to reach the top! Give it your all. Every tap counts! GO! Explorer!"
+    // };
+    //     private string[] instructions = new string[]
+    // {
+    //         "Before you embark on your adventure, let's calibrate your explorer's energy levels! For the next 5 seconds, press the RIGHT direction button (→) using your RIGHT hand as fast as you can. The more you press, the more your progress bar fills. Push it to the max!",
+    //         "Now, TRY TO BEAT YOUR SCORE and push the bar even HIGHER! Get ready... go.",
+    //         "LAST CHANCE to reach the top! Give it your all. Every tap counts! GO! Explorer!"
+    // };
+
+    // Modify the instructions array to include the GO signal
     private string[] instructions = new string[]
     {
-        "Before you embark on your adventure, let's calibrate your explorer's energy levels! For the next 5 seconds, press the RIGHT direction button (→) using your RIGHT hand as fast as you can. The more you press, the more your progress bar fills. Push it to the max!",
-        "Great effort! But can you go even faster? Now, TRY TO BEAT YOUR SCORE and push the bar even HIGHER! Get ready... and start pressing when you're prepared.",
-        "This is your LAST CHANCE to reach the top! Give it your all. Every tap counts! GO! Explorer!"
+    "Before you embark on your adventure, let's calibrate your explorer's energy levels!\n\nFor the next 5 seconds, press the RIGHT direction button (→) using your RIGHT hand as fast as you can.\n\nPress RIGHT ARROW when ready...",
+    "Now, TRY TO BEAT YOUR SCORE and push the bar even HIGHER!\n\nPress RIGHT ARROW when ready to GO!",
+    "LAST CHANCE to reach the top! Give it your all!\n\nPress RIGHT ARROW when ready to GO!"
     };
+
+    // Add this new variable
+    private string goSignal = "GO!";
+
     private class CalibrationStats
     {
         public int MaximumPresses { get; set; }
@@ -55,6 +80,19 @@ public class ArrowKeyCounter : MonoBehaviour
 
     private void Start()
     {
+        // Add this check for WebGL platform
+        if (Application.platform == RuntimePlatform.WebGLPlayer)
+        {
+            // Adjust time scale if needed (can tweak based on testing)
+            webGLTimeScale = 1.0f;
+
+            // WebGL might need different audio settings
+            if (audioSource != null)
+            {
+                audioSource.ignoreListenerPause = true;
+            }
+        }
+
         logManager = LogManager.Instance;
         if (logManager == null)
         {
@@ -71,6 +109,13 @@ public class ArrowKeyCounter : MonoBehaviour
         {
             previousButton.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(GoToPreviousScene);
         }
+
+        audioSource = gameObject.GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+        audioSource.playOnAwake = false;
     }
 
     private void Update()
@@ -86,7 +131,9 @@ public class ArrowKeyCounter : MonoBehaviour
         {
             if (keyPressed)
             {
-                StartCalibration();
+                // Show GO signal and start calibration after a brief delay
+                instructionText.text = goSignal;
+                StartCoroutine(StartCalibrationAfterDelay(0.5f));
             }
         }
         else
@@ -102,7 +149,8 @@ public class ArrowKeyCounter : MonoBehaviour
             }
             else
             {
-                elapsedTime += Time.deltaTime;
+                // Modified to use unscaled delta time for WebGL
+                elapsedTime += Time.unscaledDeltaTime * webGLTimeScale;
                 UpdateTimerText();
 
                 if (keyPressed)
@@ -119,21 +167,19 @@ public class ArrowKeyCounter : MonoBehaviour
         }
     }
 
+    // Add this new coroutine
+    private IEnumerator StartCalibrationAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        StartCalibration();
+    }
+
     private void GoToPreviousScene()
     {
         SceneManager.LoadScene(previousSceneName);
     }
 
 
-    // private void UpdateProgressBar()
-    // {
-    //     if (progressBarFill != null)
-    //     {
-    //         // Update based on number of presses relative to target
-    //         float progress = (float)counter / targetPresses;
-    //         progressBarFill.fillAmount = Mathf.Clamp01(progress);
-    //     }
-    // }
 
     private void UpdateProgressBar()
     {
@@ -141,6 +187,12 @@ public class ArrowKeyCounter : MonoBehaviour
         {
             currentProgress = (float)counter / targetPresses;
             progressBarFill.fillAmount = Mathf.Clamp01(currentProgress);
+
+            // Play sound with volume control
+            if (keyPressSound != null)
+            {
+                audioSource.PlayOneShot(keyPressSound, keyPressVolume);
+            }
         }
     }
 
@@ -165,10 +217,6 @@ public class ArrowKeyCounter : MonoBehaviour
         ResetProgressBar();
         UpdateCounterText();
         UpdateTimerText();
-
-        // Log phase start
-        // logManager?.LogCalibrationPhaseStart(calibrationPhaseNumber + 1, calibrationTime);
-        // Debug.Log($"Calibration phase {currentPhase + 1} ready to start");
     }
 
     private void IncrementCounter()
@@ -226,44 +274,27 @@ public class ArrowKeyCounter : MonoBehaviour
         }
     }
 
-    // private void CalculateFinalResultsAndProceed()
-    // {
-    //     int averageKeyPresses = Mathf.RoundToInt((float)phaseResults.Average());
-    //     PlayerPrefs.SetInt("totalKeyPresses", averageKeyPresses);
-
-    //     CalculateAndSetPressesPerEffortLevel(averageKeyPresses);
-
-    //     // Log final calibration results
-    //     logManager?.LogCalibrationResults(
-    //         phaseResults[0],
-    //         phaseResults[1],
-    //         phaseResults[2],
-    //         averageKeyPresses,
-    //         PlayerPrefs.GetInt("PressesPerEffortLevel_0"),
-    //         PlayerPrefs.GetInt("PressesPerEffortLevel_1"),
-    //         PlayerPrefs.GetInt("PressesPerEffortLevel_2")
-    //     );
-
-    //     SceneManager.LoadScene(nextSceneName);
-    // }
-
     private IEnumerator BreakBetweenPhases()
     {
         isInBreak = true;
         float breakTimeLeft = breakTime;
+        float lastUpdateTime = Time.unscaledTime;
 
         while (breakTimeLeft > 0)
         {
-            instructionText.text = $"Great job! Next chance to beat your score starts in {breakTimeLeft:F0} seconds...";
-            yield return new WaitForSeconds(0.1f);
-            breakTimeLeft -= 0.1f;
+            // More reliable timing for WebGL
+            float currentTime = Time.unscaledTime;
+            float delta = currentTime - lastUpdateTime;
+            lastUpdateTime = currentTime;
+
+            breakTimeLeft -= delta;
+            instructionText.text = $"Great job! Next round starts in {Mathf.Ceil(breakTimeLeft)} seconds...";
+            yield return null; // Simpler yield for WebGL
         }
 
         isInBreak = false;
-        StartCalibration();
         ShowCurrentInstruction();
     }
-
     // Revised calibration = 1:3:5 till the press rate reaches 10
     // Using 10%, 30%, and 50% of the average press rate
     // private void CalculateAndSetPressesPerEffortLevel(int averageKeyPresses)
@@ -298,6 +329,24 @@ public class ArrowKeyCounter : MonoBehaviour
     // }
 
 
+    // Add this new method to handle potential WebGL focus issues
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (Application.platform == RuntimePlatform.WebGLPlayer)
+        {
+            if (hasFocus)
+            {
+                // Resume timing if we regain focus
+                webGLTimeScale = 1.0f;
+            }
+            else
+            {
+                // Pause timing if we lose focus
+                webGLTimeScale = 0.0f;
+            }
+        }
+    }
+
     private void CalculateFinalResultsAndProceed()
     {
         // Calculate both maximum and average
@@ -307,7 +356,7 @@ public class ArrowKeyCounter : MonoBehaviour
         PlayerPrefs.SetInt("totalKeyPresses", stats.MaximumPresses);
         PlayerPrefs.SetInt("averageKeyPresses", stats.AveragePresses);
 
-        // Calculate and save effort levels based on maximum
+        // Calculate and save effort levels based on MAXIMUM
         int[] pressesPerEffortLevel = CalculateEffortLevels(stats.MaxPressRate);
         SaveEffortLevels(pressesPerEffortLevel);
 
@@ -334,25 +383,11 @@ public class ArrowKeyCounter : MonoBehaviour
         int maxPresses = phaseResults.Max();
         float pressesPerMovement = maxPresses / 5f;
 
-        // // Calculate effort levels based on press rate percentages
-        // pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(maxPressRate * 0.49f));
-        // pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(maxPressRate * 0.56f));
-        // pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(maxPressRate * 0.70f));
-
-        // // Calculate effort levels based on press rate percentages
-        // pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(maxPressRate * 0.10f));
-        // pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(maxPressRate * 0.30f));
-        // pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(maxPressRate * 0.50f));
-
-        // // Calculate effort levels based on press rate percentages
-        // pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(maxPressRate * 0.30f));
-        // pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(maxPressRate * 0.60f));
-        // pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(maxPressRate * 0.90f));
-
         // Calculate effort levels based on presses per movement
-        pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressesPerMovement * 0.30f));
-        pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressesPerMovement * 0.60f));
-        pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressesPerMovement * 0.90f));
+        pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressesPerMovement * 0.20f));
+        pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressesPerMovement * 0.40f));
+        pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressesPerMovement * 0.60f));
+
 
         // // Ensure minimum difference of 2 between levels
         // for (int i = 1; i < pressesPerEffortLevel.Length; i++)
@@ -370,37 +405,49 @@ public class ArrowKeyCounter : MonoBehaviour
     {
         for (int i = 0; i < pressesPerEffortLevel.Length; i++)
         {
-            PlayerPrefs.SetInt($"PressesPerEffortLevel_{i}", pressesPerEffortLevel[i]);
-            Debug.Log($"Saved PressesPerEffortLevel_{i}: {pressesPerEffortLevel[i]}");
+            PlayerPrefs.SetInt($"PressesPerEffortLevel_{i + 1}", pressesPerEffortLevel[i]);
+            Debug.Log($"Saved PressesPerEffortLevel_{i + 1}: {pressesPerEffortLevel[i]}");
+
+            Debug.Log($"PressesPerEffortLevel_1: {PlayerPrefs.GetInt("PressesPerEffortLevel_1")}");
+            Debug.Log($"PressesPerEffortLevel_2: {PlayerPrefs.GetInt("PressesPerEffortLevel_2")}");
+            Debug.Log($"PressesPerEffortLevel_3: {PlayerPrefs.GetInt("PressesPerEffortLevel_3")}");
         }
         PlayerPrefs.Save();
     }
 
     private void LogCalibrationResults(int[] pressesPerEffortLevel, CalibrationStats stats)
     {
-        // Console logging
-        string effortLevelsString = string.Join(", ", pressesPerEffortLevel);
-        Debug.Log($"Calibration completed. Maximum press rate: {stats.MaxPressRate}, " +
-                  $"Maximum presses: {stats.MaximumPresses}, Average presses: {stats.AveragePresses}, " +
-                  $"Final presses per effort level: {effortLevelsString}");
+        float phase1Rate = (float)phaseResults[0] / calibrationTime;
+        float phase2Rate = (float)phaseResults[1] / calibrationTime;
+        float phase3Rate = (float)phaseResults[2] / calibrationTime;
 
-        // File logging
-        string logEntry = $"{System.DateTime.Now}: Calibration - " +
-                         $"Maximum press rate: {stats.MaxPressRate}, " +
-                         $"Maximum presses: {stats.MaximumPresses}, " +
-                         $"Average presses: {stats.AveragePresses}, " +
-                         $"Effort levels: {effortLevelsString}";
-        System.IO.File.AppendAllText("calibration_log.txt", logEntry + System.Environment.NewLine);
+        logManager?.LogEvent("CalibrationComplete", new Dictionary<string, string>
+    {
+        {"CalibrationPhase1", phaseResults[0].ToString()},
+        {"CalibrationPhase2", phaseResults[1].ToString()},
+        {"CalibrationPhase3", phaseResults[2].ToString()},
+        {"CalibrationMax", stats.MaximumPresses.ToString()},
+        {"CalibrationAvg", stats.AveragePresses.ToString()},
+        {"CalibrationEasy", pressesPerEffortLevel[0].ToString()},
+        {"CalibrationMedium", pressesPerEffortLevel[1].ToString()},
+        {"CalibrationHard", pressesPerEffortLevel[2].ToString()},
+        {"CalibrationPhase1Rate", phase1Rate.ToString("F2")},
+        {"CalibrationPhase2Rate", phase2Rate.ToString("F2")},
+        {"CalibrationPhase3Rate", phase3Rate.ToString("F2")},
+        {"CalibrationMaxRate", stats.MaxPressRate.ToString("F2")}
+    });
+        Debug.Log(
+        $"Easy: {pressesPerEffortLevel[0]}, " +
+        $"Medium: {pressesPerEffortLevel[1]}, " +
+        $"Hard: {pressesPerEffortLevel[2]}"
+    );
 
-        // LogManager logging
-        logManager?.LogCalibrationResults(
-            phaseResults[0],
-            phaseResults[1],
-            phaseResults[2],
-            stats.MaximumPresses,  // Using maximum for calibration
-            pressesPerEffortLevel[0],
-            pressesPerEffortLevel[1],
-            pressesPerEffortLevel[2]
-        );
+        Debug.Log(
+        $"Total Presses: {phaseResults.Max()} | " +
+        $"No Clamping: {pressesPerEffortLevel[0]}/{pressesPerEffortLevel[1]}/{pressesPerEffortLevel[2]} | " +
+        $"With Clamping: {pressesPerEffortLevel[0]}/{pressesPerEffortLevel[1]}/" +
+        $"{Mathf.Max(pressesPerEffortLevel[2], pressesPerEffortLevel[1] + 2)}"
+    );
+
     }
 }

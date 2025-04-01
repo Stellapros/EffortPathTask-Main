@@ -1,0 +1,5 @@
+Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber,EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration,TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback
+2025-03-10 19:24:09.250,ExperimentSetup,1,20,Male,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-
+2025-03-10 19:24:09.784,ExperimentStart,1,20,Male,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-
+2025-03-10 19:24:14.279,ParticipantFeedback,1,20,Male,-,-,-,-,-,-,-,-,-,-,-,-,Feedback collected on EndExperiment scene,-,-,-,-,-,-,jkbjh
+2025-03-10 19:24:19.201,EndExperimentSubmission,1,20,Male,-,-,-,-,-,-,-,-,-,-,0,-,-,-,-,-,-,-,-,jkbjh

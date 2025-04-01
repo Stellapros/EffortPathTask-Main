@@ -9,29 +9,73 @@ public class TitlePage : MonoBehaviour
     [SerializeField] private TextMeshProUGUI titleText;
     [SerializeField] private TextMeshProUGUI subtitleText;
     [SerializeField] private TextMeshProUGUI instructionText;
-    [SerializeField] private Button startButton;
+    // [SerializeField] private Button startButton;
+    // [SerializeField] private Button fullscreenButton;
     [SerializeField] private string nextSceneName = "BeforeStartingScreen";
+    private bool _hasStarted = false; // Prevents duplicate triggers
+
+
+    private void Update()
+    {
+        if (!_hasStarted && (Input.anyKeyDown || Input.GetMouseButtonDown(0)))
+        {
+            _hasStarted = true;
+            StartCoroutine(EnterFullscreenAndStart());
+        }
+    }
+
 
     private void Start()
     {
-        // Add in Start() method
-        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-        navigationController.AddElement(startButton);
+        // WebGL-specific setup
+#if UNITY_WEBGL && !UNITY_EDITOR
+        WebGLInput.captureAllKeyboardInput = true;
+#endif
 
-        // Set up the title
+        // Set the initial resolution (optional)
+        Screen.SetResolution(1980, 1080, false);
+
+        // Handle WebGL fullscreen properly
+        if (Application.platform == RuntimePlatform.WebGLPlayer)
+        {
+            // WebGL specific fullscreen handling
+            if (Screen.fullScreen)
+            {
+                ToggleFullscreen();
+            }
+        }
+
+        // Set up text
         titleText.text = "Neuronauts";
-
-        // Set up the subtitle
         subtitleText.text = "The Motivation Expedition";
+        instructionText.text = "Maximize the screen for an immersive experience.\n\n Press any key or click to begin your journey.";
 
-        // Set up the instruction text
-        instructionText.text = "Press any key to begin your journey";
-        StartCoroutine(PulseInstructionText());
-
-        // // Set up the start button
-        // startButton.GetComponentInChildren<TextMeshProUGUI>().text = "Start Journey";
+        // // Set up buttons
         // startButton.onClick.AddListener(StartJourney);
+        // fullscreenButton.onClick.AddListener(OnFullscreenButtonClick);
+        // fullscreenButton.GetComponentInChildren<TextMeshProUGUI>().text = "Go Fullscreen";
+
+        StartCoroutine(PulseInstructionText());
         // StartCoroutine(BounceButton(startButton.gameObject));
+    }
+
+    private void ToggleFullscreen()
+    {
+        Screen.fullScreen = !Screen.fullScreen;
+    }
+
+    private IEnumerator EnterFullscreenAndStart()
+    {
+        // Enter fullscreen first
+        if (!Screen.fullScreen)
+        {
+            Screen.fullScreen = true;
+            yield return new WaitForSeconds(0.1f); // Small delay for fullscreen to engage
+        }
+
+        // Then start the game
+        yield return StartCoroutine(FadeText(1f, 0f, 0.3f)); // Fade to black
+        SceneManager.LoadScene(nextSceneName);
     }
 
     private IEnumerator PulseInstructionText()
@@ -60,43 +104,5 @@ public class TitlePage : MonoBehaviour
             instructionText.color = Color.Lerp(startColor, endColor, t);
             yield return null;
         }
-    }
-
-    private IEnumerator BounceButton(GameObject button)
-    {
-        Vector3 startPosition = button.transform.position;
-        while (true)
-        {
-            yield return StartCoroutine(MoveButton(button, startPosition, startPosition + Vector3.up * 10f, 0.5f));
-            yield return StartCoroutine(MoveButton(button, startPosition + Vector3.up * 10f, startPosition, 0.5f));
-        }
-    }
-
-    private IEnumerator MoveButton(GameObject button, Vector3 startPos, Vector3 endPos, float duration)
-    {
-        float elapsedTime = 0f;
-        while (elapsedTime < duration)
-        {
-            float t = elapsedTime / duration;
-            button.transform.position = Vector3.Lerp(startPos, endPos, t);
-            elapsedTime += Time.deltaTime;
-            yield return null;
-        }
-        button.transform.position = endPos;
-    }
-
-    private void Update()
-    {
-        // Check for any key press
-        if (Input.anyKeyDown)
-        {
-            StartJourney();
-        }
-    }
-
-    private void StartJourney()
-    {
-        Debug.Log("Starting Journey! Loading next scene...");
-        SceneManager.LoadScene(nextSceneName);
     }
 }

@@ -104,6 +104,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   scoreValue: 10
   pressesRequired: 0
+  audioSource: {fileID: 0}
+  rewardAppearSound: {fileID: 8300000, guid: 5af05e2a388534ed69c4c85661af3091, type: 3}
 --- !u!54 &-83534271672295469
 Rigidbody:
   m_ObjectHideFlags: 0

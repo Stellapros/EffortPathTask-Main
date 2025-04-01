@@ -1,0 +1,5 @@
+Timestamp,EventType,ParticipantID,ParticipantAge,ParticipantGender,BlockNumber,TrialNumber,EffortLevel,RequiredPresses,DecisionType,DecisionTime,OutcomeType,RewardCollected,MovementDuration,TotalPresses,TotalScore,PracticeScore,AdditionalInfo,StartX,StartY,EndX,EndY,StepDuration,TirednessRating,ParticipantFeedback
+2025-03-22 16:46:32.454,ExperimentSetup,hdxuiw,18,Male,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,2,-1,-2,1,2,Block1=1;Block2=1,2025-03-22 16:46:32,True,274E183A,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-
+2025-03-22 16:46:32.894,ExperimentStart,hdxuiw,18,Male,0,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,True,2025-03-22 16:46:32,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-
+2025-03-22 16:46:37.676,ParticipantFeedback,hdxuiw,18,Male,-,-,-,-,-,-,-,-,-,-,-,-,Feedback collected on EndExperiment scene,-,-,-,-,-,-,fci wuhfihwiu ifq kfpo'eqk \[dq ,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-
+2025-03-22 16:46:42.606,EndExperimentSubmission,hdxuiw,18,Male,-,-,-,-,-,-,-,-,-,-,0,-,-,-,-,-,-,-,-,qo ,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,0.95,True,-,-,-

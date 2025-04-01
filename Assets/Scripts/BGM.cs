@@ -34,7 +34,7 @@ public class BackgroundMusicManager : MonoBehaviour
             audioSources[i].clip = backgroundMusic;
             audioSources[i].loop = false;
             audioSources[i].playOnAwake = false;
-            audioSources[i].volume = 0.3f;
+            audioSources[i].volume = 0.05f;
         }
     }
 
@@ -83,7 +83,7 @@ public class BackgroundMusicManager : MonoBehaviour
 
     public void SetVolume(float volume)
     {
-        float clampedVolume = Mathf.Clamp01(volume);
+        float clampedVolume = Mathf.Clamp01(volume * 0.1f); // Reduce volume even further
         foreach (var source in audioSources)
         {
             source.volume = clampedVolume;

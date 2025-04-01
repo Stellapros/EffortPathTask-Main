@@ -1175,50 +1175,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 0
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!1 &1419008344
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1419008346}
-  - component: {fileID: 1419008345}
-  m_Layer: 0
-  m_Name: SceneDebugger
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1419008345
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1419008344}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d9fcbe0da77784863b2f3216b8a50935, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!4 &1419008346
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1419008344}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1554895329 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5523429329608969703, guid: 2dcb99774aa5a4b7589cd7eaa595c514,
@@ -1715,7 +1671,6 @@ MonoBehaviour:
   practiceManager: {fileID: 5028154936095916163, guid: cf96765f7320747d3a1db6abff587e85,
     type: 3}
   maxTrialDuration: 10
-  startTrialDelay: 0.5
   endTrialDelay: 0.5
   pressesPerEffortLevel: 010000000200000003000000
 --- !u!1001 &1065090123916010027
@@ -2101,21 +2056,6 @@ PrefabInstance:
       propertyPath: timerText
       value: 
       objectReference: {fileID: 1002826858}
-    - target: {fileID: 6147619588066064679, guid: 9f4b9aa786842499cb36a077ac3dcc47,
-        type: 3}
-      propertyPath: warningColor.b
-      value: 0.18039216
-      objectReference: {fileID: 0}
-    - target: {fileID: 6147619588066064679, guid: 9f4b9aa786842499cb36a077ac3dcc47,
-        type: 3}
-      propertyPath: warningColor.g
-      value: 0.9254902
-      objectReference: {fileID: 0}
-    - target: {fileID: 6147619588066064679, guid: 9f4b9aa786842499cb36a077ac3dcc47,
-        type: 3}
-      propertyPath: warningColor.r
-      value: 0.69411767
-      objectReference: {fileID: 0}
     - target: {fileID: 9035995663180086946, guid: 9f4b9aa786842499cb36a077ac3dcc47,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -2426,6 +2366,5 @@ SceneRoots:
   - {fileID: 2126247863}
   - {fileID: 18693602}
   - {fileID: 1984109437}
-  - {fileID: 1419008346}
   - {fileID: 1179770193}
   - {fileID: 773474561}

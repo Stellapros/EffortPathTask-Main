@@ -13,7 +13,8 @@ public class CountdownAnimationManager : MonoBehaviour
     [SerializeField] private float pulseDuration = 0.5f;
     [SerializeField] private float maxScale = 1.4f;
     // [SerializeField] private Color warningColor = new Color(1f, 0.3f, 0.3f); // red
-    [SerializeField] private Color warningColor = new Color(0.4f, 1f, 0.4f);  // green
+    // [SerializeField] private Color warningColor = new Color(0.4f, 1f, 0.4f);  // green
+    [SerializeField] private Color warningColor = new Color(0.694f, 0.925f, 0.180f); // #B1EC2E
     [SerializeField] private Color normalColor = Color.white;
 
     private TextMeshProUGUI timerText;

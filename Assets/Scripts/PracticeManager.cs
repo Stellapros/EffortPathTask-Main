@@ -17,10 +17,8 @@ public class PracticeManager : MonoBehaviour
     [SerializeField] private string getReadyCheckScene = "GetReadyCheck";
 
     [Header("UI Elements")]
-    [SerializeField] private Button startPracticeButton;
-    [SerializeField] private Button skipButton;
     [SerializeField] private TextMeshProUGUI instructionText;
-    private bool buttonsInitialized = false;
+    private bool sceneInitialized = false;
 
     [Header("Sprite Configuration")]
     [SerializeField] private Sprite appleSprite; // Sprite for effort level 1
@@ -67,50 +65,49 @@ public class PracticeManager : MonoBehaviour
     // Track practice attempts
     private int practiceAttempts = 0;
     private const int MaxPracticeAttempts = 2;
-
     public event Action OnPracticeCompleted;
+
 
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
-
-            // Check if we're returning from a failed check
-            bool needsRetry = PlayerPrefs.GetInt("NeedsPracticeRetry", 0) == 1;
-            if (needsRetry)
-            {
-                Debug.Log("Detected failed check, preparing for retry");
-                practiceAttempts = PlayerPrefs.GetInt("PracticeAttempts", 0);
-                // Reset the retry flag immediately
-                PlayerPrefs.SetInt("NeedsPracticeRetry", 0);
-                PlayerPrefs.Save();
-            }
-            else
-            {
-                // Fresh start
-                practiceAttempts = 0;
-                PlayerPrefs.SetInt("PracticeAttempts", 0);
-                PlayerPrefs.Save();
-            }
-
-            ValidateSprites();
-            PrepareDifficulties();
-            GeneratePracticeTrials();
-
-            // Subscribe to scene loading event
-            SceneManager.sceneLoaded += OnSceneLoaded;
+            DontDestroyOnLoad(gameObject); // Ensure the manager persists across scenes
+            InitializePracticeManager(); // Initialize trials and state
         }
-        else
+        else if (Instance != this)
         {
-            Destroy(gameObject);
+            Debug.LogWarning("Duplicate PracticeManager detected. Destroying duplicate.");
+            Destroy(gameObject); // Destroy duplicate instances
         }
+    }
+
+    public void InitializePracticeManager()
+    {
+        ValidateSprites();
+        PrepareDifficulties();
+        GeneratePracticeTrials();
+        SceneManager.sceneLoaded += OnSceneLoaded;
+
+        // Retrieve the trial index from PlayerPrefs or set it to 0 if not found
+        currentPracticeTrialIndex = PlayerPrefs.GetInt("CurrentPracticeTrialIndex", 0);
+
+        Debug.Log("PracticeManager initialized with trials: " + practiceTrials.Count);
+        Debug.Log("Current practice trial index: " + currentPracticeTrialIndex);
+    }
+
+    public void SetCurrentPracticeTrialIndex(int index)
+    {
+        Debug.Log($"Setting currentPracticeTrialIndex from {currentPracticeTrialIndex} to {index}");
+        currentPracticeTrialIndex = index;
+        PlayerPrefs.SetInt("CurrentPracticeTrialIndex", index);
+        PlayerPrefs.Save(); // Ensure the value is saved immediately
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space) && buttonsInitialized)
+        if (Input.GetKeyDown(KeyCode.Space) && sceneInitialized)
         {
             StartPracticeMode();
         }
@@ -120,84 +117,53 @@ public class PracticeManager : MonoBehaviour
     {
         // Remove scene loading event listener
         SceneManager.sceneLoaded -= OnSceneLoaded;
-
-        // Clean up button listeners and clear references
-        CleanupButtonListeners();
-    }
-
-    private void CleanupButtonListeners()
-    {
-        if (startPracticeButton != null)
-        {
-            startPracticeButton.onClick.RemoveAllListeners();
-            startPracticeButton = null;
-        }
-        if (skipButton != null)
-        {
-            skipButton.onClick.RemoveAllListeners();
-            skipButton = null;
-        }
-
-        // Reset initialization flags
-        buttonsInitialized = false;
-
-        // Remove any existing navigation controller
-        ButtonNavigationController navigationController = GetComponent<ButtonNavigationController>();
-        if (navigationController != null)
-        {
-            navigationController.ClearElements();
-            Destroy(navigationController);
-        }
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         Debug.Log($"Scene loaded: {scene.name}");
 
-        // Only initialize buttons if we're in the PracticePhase scene
+        // Ensure trials exist regardless of scene
+        EnsurePracticeTrialsExist();
+
+        // Only initialize if we're in the PracticePhase scene
         if (scene.name == "PracticePhase")
         {
-            Debug.Log("PracticePhase scene loaded - Initializing buttons");
-            CleanupButtonListeners(); // Clean up any existing listeners first
-            StartCoroutine(InitializeButtonsAfterSceneLoad());
+            Debug.Log("PracticePhase scene loaded - Initializing scene");
+            StartCoroutine(InitializeSceneAfterLoad());
         }
         else
         {
-            // If we're not in PracticePhase, ensure all listeners are cleaned up
-            CleanupButtonListeners();
+            sceneInitialized = false;
         }
     }
 
-    private IEnumerator InitializeButtonsAfterSceneLoad()
+    public void EnsurePracticeTrialsExist()
     {
-        Debug.Log("Starting button initialization...");
+        if (practiceTrials == null || practiceTrials.Count == 0)
+        {
+            Debug.Log("Ensuring practice trials exist - regenerating trials");
+            PrepareDifficulties();
+            GeneratePracticeTrials();
+        }
+    }
+
+    private IEnumerator InitializeSceneAfterLoad()
+    {
+        Debug.Log("Starting scene initialization...");
         yield return new WaitForSeconds(0.2f);
 
         int retryAttempts = 0;
         const int maxRetryAttempts = 5;
 
-        while (!buttonsInitialized && retryAttempts < maxRetryAttempts)
+        while (!sceneInitialized && retryAttempts < maxRetryAttempts)
         {
-            startPracticeButton = GameObject.Find("StartPracticeButton")?.GetComponent<Button>();
-            skipButton = GameObject.Find("SkipButton")?.GetComponent<Button>();
             instructionText = GameObject.Find("InstructionText")?.GetComponent<TextMeshProUGUI>();
 
-            if (startPracticeButton != null && skipButton != null && instructionText != null)
+            if (instructionText != null)
             {
-                startPracticeButton.gameObject.SetActive(true);
-                skipButton.gameObject.SetActive(true);
                 instructionText.text = "Press 'Space' to continue";
-
-                // Clear any existing listeners
-                startPracticeButton.onClick.RemoveAllListeners();
-                skipButton.onClick.RemoveAllListeners();
-
-                // Add new listeners
-                startPracticeButton.onClick.AddListener(() => StartPracticeMode());
-                skipButton.onClick.AddListener(() => GoToGetReadyCheck());
-
-                SetupButtonNavigation();
-                buttonsInitialized = true;
+                sceneInitialized = true;
                 break;
             }
 
@@ -205,25 +171,10 @@ public class PracticeManager : MonoBehaviour
             yield return new WaitForSeconds(0.2f);
         }
 
-        if (!buttonsInitialized)
+        if (!sceneInitialized)
         {
-            Debug.LogError("Failed to initialize buttons after multiple attempts!");
+            Debug.LogError("Failed to initialize scene after multiple attempts!");
         }
-    }
-
-    private void SetupButtonNavigation()
-    {
-        // Remove any existing navigation controller
-        ButtonNavigationController existingController = GetComponent<ButtonNavigationController>();
-        if (existingController != null)
-        {
-            Destroy(existingController);
-        }
-
-        // Add new navigation controller
-        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-        if (startPracticeButton != null) navigationController.AddElement(startPracticeButton);
-        if (skipButton != null) navigationController.AddElement(skipButton);
     }
 
     public void ResetPracticeForNewAttempt()
@@ -231,39 +182,15 @@ public class PracticeManager : MonoBehaviour
         Debug.Log("Resetting practice for new attempt");
 
         // Reset trial tracking
-        currentPracticeTrialIndex = -1;
-        practiceTrials.Clear();
-        GeneratePracticeTrials();
+        SetCurrentPracticeTrialIndex(0); // Reset the trial index to 0
+        GeneratePracticeTrials(); // Regenerate trials
 
         // Reset PlayerPrefs for practice state
-        PlayerPrefs.SetInt("IsPracticeTrial", 0);
-        PlayerPrefs.DeleteKey("CurrentPracticeTrialIndex");
-        PlayerPrefs.DeleteKey("CurrentPracticeEffortLevel");
+        PlayerPrefs.SetInt("IsPracticeTrial", 1);
+        PlayerPrefs.SetInt("CurrentPracticeTrialIndex", currentPracticeTrialIndex);
         PlayerPrefs.Save();
 
-        // Reset button state
-        buttonsInitialized = false;
-        startPracticeButton = null;
-        skipButton = null;
-
-        // Load PracticePhase scene
-        SceneManager.LoadScene("PracticePhase");
-    }
-
-    public void ReinitializeButtons()
-    {
-        InitializeButtonListeners();
-
-        // Remove existing ButtonNavigationController and add a new one
-        ButtonNavigationController existingController = GetComponent<ButtonNavigationController>();
-        if (existingController != null)
-        {
-            Destroy(existingController);
-        }
-
-        ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
-        navigationController.AddElement(startPracticeButton);
-        navigationController.AddElement(skipButton);
+        Debug.Log("Practice state reset. Current trial index: " + currentPracticeTrialIndex);
     }
 
     private void ValidateSprites()
@@ -280,23 +207,25 @@ public class PracticeManager : MonoBehaviour
         // Create trial difficulties with specific sprites for each effort level
         trialDifficulties = new List<TrialDifficulty>
         {
-            // Effortlevel 1: 6 trials with Apple sprite
+            // Effortlevel 1: 4 trials with Apple sprite
             new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite },
             new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite },
             new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite },
             new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite },
-            new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite },
-            new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite },
+            // new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite },
+            // new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite },
 
-            // Effortlevel 3: 4 trials with Grapes sprite
-            new TrialDifficulty { effortLevel = 3, rewardValue = 10f, rewardSprite = grapesSprite },
-            new TrialDifficulty { effortLevel = 3, rewardValue = 10f, rewardSprite = grapesSprite },
-            new TrialDifficulty { effortLevel = 3, rewardValue = 10f, rewardSprite = grapesSprite },
-            new TrialDifficulty { effortLevel = 3, rewardValue = 10f, rewardSprite = grapesSprite },
+            // Effortlevel 2: 4 trials with Grapes sprite
+            new TrialDifficulty { effortLevel = 2, rewardValue = 10f, rewardSprite = grapesSprite },
+            new TrialDifficulty { effortLevel = 2, rewardValue = 10f, rewardSprite = grapesSprite },
+            new TrialDifficulty { effortLevel = 2, rewardValue = 10f, rewardSprite = grapesSprite },
+            new TrialDifficulty { effortLevel = 2, rewardValue = 10f, rewardSprite = grapesSprite },
 
-            // Effortlevel 5: 2 trials with Watermelon sprite
-            new TrialDifficulty { effortLevel = 5, rewardValue = 10f, rewardSprite = watermelonSprite },
-            new TrialDifficulty { effortLevel = 5, rewardValue = 10f, rewardSprite = watermelonSprite },
+            // Effortlevel 2: 4 trials with Watermelon sprite
+            new TrialDifficulty { effortLevel = 3, rewardValue = 10f, rewardSprite = watermelonSprite },
+            new TrialDifficulty { effortLevel = 3, rewardValue = 10f, rewardSprite = watermelonSprite },
+            new TrialDifficulty { effortLevel = 3, rewardValue = 10f, rewardSprite = watermelonSprite },
+            new TrialDifficulty { effortLevel = 3, rewardValue = 10f, rewardSprite = watermelonSprite },
         };
     }
 
@@ -304,16 +233,20 @@ public class PracticeManager : MonoBehaviour
     {
         practiceTrials.Clear();
 
-        if (trialDifficulties == null || trialDifficulties.Count == 0)
-        {
-            Debug.LogError("No trial difficulties configured. Cannot generate practice trials.");
-            return;
-        }
+        // Define trial difficulties with effort levels and sprites
+        trialDifficulties = new List<TrialDifficulty>
+    {
+        new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite }, // Apple
+        new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite }, // Apple
+        // new TrialDifficulty { effortLevel = 1, rewardValue = 10f, rewardSprite = appleSprite }, // Apple
+        new TrialDifficulty { effortLevel = 2, rewardValue = 10f, rewardSprite = grapesSprite }, // Grapes
+        new TrialDifficulty { effortLevel = 2, rewardValue = 10f, rewardSprite = grapesSprite }, // Grapes
+        new TrialDifficulty { effortLevel = 3, rewardValue = 10f, rewardSprite = watermelonSprite }, // Watermelon
+        new TrialDifficulty { effortLevel = 3, rewardValue = 10f, rewardSprite = watermelonSprite }, // Watermelon
+    };
 
-        // Create a copy of trial difficulties to randomize
+        // Shuffle and generate trials
         List<TrialDifficulty> shuffledDifficulties = new List<TrialDifficulty>(trialDifficulties);
-
-        // Use Fisher-Yates shuffle algorithm to randomize the difficulties
         for (int i = shuffledDifficulties.Count - 1; i > 0; i--)
         {
             int j = UnityEngine.Random.Range(0, i + 1);
@@ -322,77 +255,22 @@ public class PracticeManager : MonoBehaviour
             shuffledDifficulties[j] = temp;
         }
 
-        // Generate trials using shuffled difficulties
         for (int i = 0; i < totalPracticeTrials; i++)
         {
             TrialDifficulty difficulty = shuffledDifficulties[i % shuffledDifficulties.Count];
-
-            PracticeTrial newTrial = new PracticeTrial
+            practiceTrials.Add(new PracticeTrial
             {
                 effortLevel = difficulty.effortLevel,
                 rewardValue = difficulty.rewardValue,
                 rewardSprite = difficulty.rewardSprite,
-                wasSkipped = false,
                 wasAttempted = false
-            };
-
-            practiceTrials.Add(newTrial);
+            });
         }
 
         Debug.Log($"Generated {practiceTrials.Count} randomized practice trials");
-
-        // Debug log to verify sprite and effort level assignments
         foreach (var trial in practiceTrials)
         {
             Debug.Log($"Trial - Effort Level: {trial.effortLevel}, Sprite: {trial.rewardSprite.name}");
-        }
-    }
-
-    private void Start()
-    {
-        // Find buttons if not already assigned
-        if (startPracticeButton == null)
-            startPracticeButton = GameObject.Find("StartPracticeButton").GetComponent<Button>();
-
-        if (skipButton == null)
-            skipButton = GameObject.Find("SkipButton").GetComponent<Button>();
-
-        // Reinitialize buttons
-        ReinitializeButtons();
-    }
-
-    private void InitializeButtonListeners()
-    {
-        Debug.Log("Initializing button listeners");
-
-        if (startPracticeButton != null)
-        {
-            // Remove all previous listeners before adding new ones
-            startPracticeButton.onClick.RemoveAllListeners();
-            startPracticeButton.onClick.AddListener(() =>
-            {
-                Debug.Log("Start Practice button clicked");
-                StartPracticeMode();
-            });
-        }
-        else
-        {
-            Debug.LogError("StartPracticeButton is null during listener initialization!");
-        }
-
-        if (skipButton != null)
-        {
-            // Remove all previous listeners before adding new ones
-            skipButton.onClick.RemoveAllListeners();
-            skipButton.onClick.AddListener(() =>
-            {
-                Debug.Log("Skip button clicked");
-                GoToGetReadyCheck();
-            });
-        }
-        else
-        {
-            Debug.LogError("SkipButton is null during listener initialization!");
         }
     }
 
@@ -400,9 +278,16 @@ public class PracticeManager : MonoBehaviour
     {
         Debug.Log($"StartPracticeMode called! Practice attempts: {practiceAttempts}");
 
+        // Reset practice state
+        SetCurrentPracticeTrialIndex(0); // Reset the trial index to 0
+        GeneratePracticeTrials(); // Regenerate trials
+
+        // Ensure PlayerPrefs flags are set
+        PlayerPrefs.SetInt("IsPracticeTrial", 1); // ✅ Critical for RewardSpawner and PlayerController to detect practice
+        PlayerPrefs.Save();
+
         // Reset score at the start of practice mode
         PracticeScoreManager.Instance?.ResetScore();
-
         Debug.Log($"StartPracticeMode - Score Reset. Current Score: {PracticeScoreManager.Instance?.GetCurrentScore()}");
 
         if (practiceAttempts >= MaxPracticeAttempts)
@@ -412,17 +297,22 @@ public class PracticeManager : MonoBehaviour
             return;
         }
 
-        // Initialize practice state
+        // Log the start of the first practice trial
+        LogPracticeTrialStart(currentPracticeTrialIndex);
+
+        Debug.Log($"Starting practice attempt {practiceAttempts + 1}");
+        SceneManager.LoadScene(decisionPhaseScene);
+    }
+
+    public void ResetPracticeState()
+    {
         currentPracticeTrialIndex = 0;
+        GeneratePracticeTrials(); // Regenerate trials
         PlayerPrefs.SetInt("IsPracticeTrial", 1);
         PlayerPrefs.SetInt("CurrentPracticeTrialIndex", currentPracticeTrialIndex);
         PlayerPrefs.Save();
 
-        // Log the start of the first practice trial
-        LogPracticeTrialStart(currentPracticeTrialIndex + 1); // adjusted for 0-based index
-
-        Debug.Log($"Starting practice attempt {practiceAttempts + 1}");
-        SceneManager.LoadScene(decisionPhaseScene);
+        Debug.Log("Practice state reset. Current trial index: " + currentPracticeTrialIndex);
     }
 
     public void HandleChecksFailed()
@@ -447,7 +337,6 @@ public class PracticeManager : MonoBehaviour
     private void OnDestroy()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
-        CleanupButtonListeners();
 
         // Clean up all practice-related PlayerPrefs
         PlayerPrefs.DeleteKey("PracticeAttempts");
@@ -461,6 +350,8 @@ public class PracticeManager : MonoBehaviour
     {
         Debug.Log($"HandleDecisionPhaseOutcome called. isWorking: {isWorking}. Current Score: {PracticeScoreManager.Instance?.GetCurrentScore()}");
 
+        // Ensure trials exist
+        EnsurePracticeTrialsExist();
 
         if (currentPracticeTrialIndex < 0 || currentPracticeTrialIndex >= practiceTrials.Count)
         {
@@ -470,23 +361,18 @@ public class PracticeManager : MonoBehaviour
         }
 
         PracticeTrial currentTrial = practiceTrials[currentPracticeTrialIndex];
-
         if (!isWorking)
         {
-            // Trial was skipped
-            // PracticeScoreManager.Instance?.AddScore(1);
             currentTrial.wasSkipped = true;
-            LogPracticeTrialOutcome(currentPracticeTrialIndex, true, false, 0f); // Log skipped trial
+            LogPracticeTrialOutcome(currentPracticeTrialIndex, true, false, 0f);
             AdvanceToNextTrial();
             return;
         }
 
-        // If working, go to GridWorld
         currentTrial.wasAttempted = true;
-        // currentTrialState = PracticeTrialState.GridWorld;
         PlayerPrefs.SetInt("CurrentPracticeEffortLevel", currentTrial.effortLevel);
         PlayerPrefs.SetInt("CurrentPracticeTrialIndex", currentPracticeTrialIndex);
-        PlayerPrefs.Save(); // Ensure PlayerPrefs are written immediately
+        PlayerPrefs.Save();
 
         Debug.Log($"Transitioning to GridWorld. Effort Level: {currentTrial.effortLevel}, Trial Index: {currentPracticeTrialIndex}");
         SceneManager.LoadScene(gridWorldScene);
@@ -506,41 +392,39 @@ public class PracticeManager : MonoBehaviour
     private void AdvanceToNextTrial()
     {
         currentPracticeTrialIndex++;
-        PlayerPrefs.SetInt("CurrentPracticeTrialIndex", currentPracticeTrialIndex);
+        Debug.Log($"Advancing to trial {currentPracticeTrialIndex}");
 
-        // Check if practice is complete
+        // Check if trials exist
+        if (practiceTrials == null || practiceTrials.Count == 0)
+        {
+            Debug.LogWarning("Practice trials list is empty. Regenerating trials.");
+            GeneratePracticeTrials();
+        }
+
+        PlayerPrefs.SetInt("CurrentPracticeTrialIndex", currentPracticeTrialIndex);
+        PlayerPrefs.Save();
+
         if (currentPracticeTrialIndex >= totalPracticeTrials)
         {
             EndPracticeMode();
             return;
         }
 
-        // Reset trial state and move to next Decision Phase
-        // currentTrialState = PracticeTrialState.DecisionPhase;
         SceneManager.LoadScene(decisionPhaseScene);
-    }
-
-    public void GoToGetReadyCheck()
-    {
-        EndPracticeMode();
     }
 
     public void EndPracticeMode()
     {
         currentPracticeTrialIndex = -1;
-
-        PlayerPrefs.SetInt("IsPracticeTrial", 0);
+        // When transitioning from practice trials to formal trials, ensure the IsPracticeTrial flag is reset to 0:
+        PlayerPrefs.SetInt("IsPracticeTrial", 0); // Reset the flag
         PlayerPrefs.DeleteKey("CurrentPracticeTrialIndex");
         PlayerPrefs.DeleteKey("CurrentPracticeEffortLevel");
-
-        // Clean up listeners before transitioning
-        CleanupButtonListeners();
 
         OnPracticeCompleted?.Invoke();
         SceneManager.LoadScene(getReadyCheckScene);
         RestoreExperimentControllers();
     }
-
 
     // Getters for current trial information
     public Sprite GetCurrentPracticeTrialSprite()
@@ -552,10 +436,90 @@ public class PracticeManager : MonoBehaviour
 
     public PracticeTrial GetCurrentPracticeTrial()
     {
-        return (currentPracticeTrialIndex >= 0 && currentPracticeTrialIndex < practiceTrials.Count)
-            ? practiceTrials[currentPracticeTrialIndex]
-            : null;
+        Debug.Log($"GetCurrentPracticeTrial called. Current index: {currentPracticeTrialIndex}, Total trials: {practiceTrials.Count}");
+
+        // Check if trials exist
+        if (practiceTrials == null || practiceTrials.Count == 0)
+        {
+            // Debug.LogWarning("Practice trials list is empty. Regenerating trials.");
+            GeneratePracticeTrials();
+        }
+
+        if (currentPracticeTrialIndex >= 0 && currentPracticeTrialIndex < practiceTrials.Count)
+        {
+            return practiceTrials[currentPracticeTrialIndex];
+        }
+        else
+        {
+            // Debug.LogError($"Invalid practice trial index: {currentPracticeTrialIndex}. Total trials: {practiceTrials.Count}");
+            // Return a default trial to prevent null reference exceptions
+            return new PracticeTrial
+            {
+                effortLevel = 1,
+                rewardValue = 10f,
+                rewardSprite = appleSprite,
+                wasAttempted = false
+            };
+        }
     }
+
+    // public int GetCurrentTrialPressesRequired()
+    // {
+    //     PracticeTrial currentTrial = GetCurrentPracticeTrial();
+    //     if (currentTrial != null)
+    //     {
+    //         // Map effort level to presses required
+    //         switch (currentTrial.effortLevel)
+    //         {
+    //             case 1: return 1; // Apple - 1 press per step
+    //             case 2: return 3; // Grapes - 3 presses per step
+    //             case 3: return 5; // Watermelon - 5 presses per step
+    //             default:
+    //                 Debug.LogWarning($"Unexpected effort level: {currentTrial.effortLevel}. Defaulting to 1.");
+    //                 return 1;
+    //         }
+    //     }
+
+    //     Debug.LogError("No current practice trial found. Defaulting to 1 press per step.");
+    //     return 1;
+    // }
+
+    // Now also using the calibrated PressesPerEffortLevel 
+public int GetCurrentTrialPressesRequired()
+{
+    PracticeTrial currentTrial = GetCurrentPracticeTrial();
+    if (currentTrial != null)
+    {
+        // Get the effort level directly from the current trial
+        int effortLevel = currentTrial.effortLevel;
+        
+        // Use PlayerPrefs to retrieve the calibrated presses per effort level
+        // Subtract 1 from effortLevel to match the PlayerPrefs keys (which are 0-indexed)
+        int pressesRequired = PlayerPrefs.GetInt($"PressesPerEffortLevel_{effortLevel}", 0);
+
+        Debug.Log($"Practice Trial - Effort Level: {effortLevel}, Calibrated Presses Required: {pressesRequired}");
+
+        // Fallback to default values if no calibrated value is found
+        if (pressesRequired == 0)
+        {
+            switch (effortLevel)
+            {
+                case 1: return 1; // Apple - 1 press per step
+                case 2: return 3; // Grapes - 3 presses per step
+                case 3: return 5; // Watermelon - 5 presses per step
+                default:
+                    Debug.LogWarning($"Unexpected effort level: {effortLevel}. Defaulting to 1.");
+                    return 1;
+            }
+        }
+
+        return pressesRequired;
+    }
+
+    Debug.LogError("No current practice trial found. Defaulting to 1 press per step.");
+    return 1;
+}
+
 
     // Ensure this method consistently identifies practice trials
     public bool IsPracticeTrial()
@@ -565,8 +529,21 @@ public class PracticeManager : MonoBehaviour
                PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1;
     }
 
-    public int GetCurrentPracticeTrialIndex() => currentPracticeTrialIndex;
-    // public int GetCurrentTrialEffortLevel() => GetCurrentPracticeTrial()?.effortLevel ?? 0;
+    public int GetCurrentPracticeTrialIndex()
+    {
+        if (PlayerPrefs.HasKey("CurrentPracticeTrialIndex"))
+        {
+            currentPracticeTrialIndex = PlayerPrefs.GetInt("CurrentPracticeTrialIndex");
+            Debug.Log($"Retrieved currentPracticeTrialIndex from PlayerPrefs: {currentPracticeTrialIndex + 1}"); // Add 1 for display
+        }
+        else
+        {
+            Debug.LogWarning("CurrentPracticeTrialIndex not found in PlayerPrefs. Defaulting to 0.");
+            currentPracticeTrialIndex = 0;
+        }
+        return currentPracticeTrialIndex;
+    }
+
     public int GetTotalPracticeTrials() => totalPracticeTrials;
 
     public int GetCurrentTrialEffortLevel()
@@ -577,9 +554,9 @@ public class PracticeManager : MonoBehaviour
             // Map effort level to presses per step
             switch (currentTrial.effortLevel)
             {
-                case 1: return 1; // Effort level 1 = 1 press per step
-                case 3: return 3; // Effort level 3 = 3 presses per step
-                case 5: return 5; // Effort level 5 = 5 presses per step
+                case 1: return 1; // Apple - 1 press per step
+                case 2: return 2; // Grapes - 3 presses per step
+                case 3: return 3; // Watermelon - 5 presses per step
                 default:
                     Debug.LogWarning($"Unexpected effort level: {currentTrial.effortLevel}. Defaulting to 1.");
                     return 1;
@@ -593,24 +570,57 @@ public class PracticeManager : MonoBehaviour
     public int GetCurrentTrialEV()
     {
         int effortLevel = GetCurrentTrialEffortLevel();
-        int pressesRequired = PlayerPrefs.GetInt($"PressesPerEffortLevel_{effortLevel - 1}", 0); // Subtract 1 to match the PlayerPrefs keys
+        int pressesRequired = PlayerPrefs.GetInt($"PressesPerEffortLevel_{effortLevel}", 0);
 
-        Debug.Log($"Current practice trial (index: {currentPracticeTrialIndex}) Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
+        Debug.Log($"Current practice trial (index: {currentPracticeTrialIndex}) " +
+                  $"Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
+
+        if (pressesRequired <= 0)
+        {
+            // Fallback to defaults if no calibration found
+            Debug.LogWarning("Using default presses for practice trial");
+            switch (effortLevel)
+            {
+                case 1: return 1;
+                case 2: return 3;
+                case 3: return 5;
+                default: return 1;
+            }
+        }
 
         return pressesRequired;
     }
 
-    // Experiment controller management
-    // private void DisableExperimentControllers()
+    // public int GetCurrentTrialEV()
     // {
-    //     var experimentManager = FindAnyObjectByType<ExperimentManager>();
-    //     var gameController = FindAnyObjectByType<GameController>();
+    //     int effortLevel = GetCurrentTrialEffortLevel();
+    //     int pressesRequired = PlayerPrefs.GetInt($"PressesPerEffortLevel_{effortLevel - 1}", 0); // Subtract 1 to match the PlayerPrefs keys
 
-    //     if (experimentManager != null)
-    //         experimentManager.enabled = false;
+    //     Debug.Log($"Current practice trial (index: {currentPracticeTrialIndex}) Effort Level: {effortLevel}, Presses Required: {pressesRequired}");
 
-    //     if (gameController != null)
-    //         gameController.enabled = false;
+    //     return pressesRequired;
+    // }
+
+    // public int GetCurrentTrialEV()
+    // {
+    //     // Get the effort level directly from the current trial
+    //     PracticeTrial currentTrial = GetCurrentPracticeTrial();
+    //     if (currentTrial != null)
+    //     {
+    //         // Direct mapping based on effort level
+    //         switch (currentTrial.effortLevel)
+    //         {
+    //             case 1: return 1; // Apple: 1 press per step
+    //             case 2: return 3; // Grapes: 3 presses per step
+    //             case 3: return 5; // Watermelon: 5 presses per step
+    //             default:
+    //                 Debug.LogWarning($"Unexpected effort level: {currentTrial.effortLevel}. Defaulting to 1.");
+    //                 return 1;
+    //         }
+    //     }
+
+    //     Debug.LogError("No current practice trial found. Defaulting to 1 press per step.");
+    //     return 1;
     // }
 
     private void RestoreExperimentControllers()
@@ -627,93 +637,88 @@ public class PracticeManager : MonoBehaviour
 
     private void OnEnable()
     {
-        // Ensure buttons are initialized when scene becomes active
-        if (Instance != null)
-        {
-            Instance.ReinitializeButtons();
-        }
-
-        Debug.Log("Practice Phase Scene Enabled - Checking Buttons");
-        if (startPracticeButton != null)
-            Debug.Log("Start Practice Button is assigned");
-        else
-            Debug.LogError("Start Practice Button is NOT assigned!");
+        Debug.Log("Practice Phase Scene Enabled");
     }
 
-public void LogPracticeTrialStart(int trialIndex)
-{
-    int effortLevel = GetCurrentTrialEffortLevel();
-    int requiredPresses = GetCurrentTrialEV();
-
-    LogManager.Instance.LogEvent("TrialStart", new Dictionary<string, string>
+    public void LogPracticeTrialStart(int trialIndex)
     {
-        {"TrialNumber", trialIndex.ToString()}, // Adjust to 1-based index
-        {"BlockNumber", "0"}, // Assuming practice trials are in block 0
-        {"EffortLevel", effortLevel.ToString()},
-        {"RequiredPresses", requiredPresses.ToString()},
-        {"AdditionalInfo", "Practice"}
-    });
-}
+        // int effortLevel = GetCurrentTrialEffortLevel();
+        // int requiredPresses = GetCurrentTrialEV();
+        //  int requiredPresses = PracticeManager.Instance.GetCurrentTrialPressesRequired();
 
-public void LogPracticeTrialOutcome(int trialIndex, bool wasSkipped, bool rewardCollected, float completionTime)
-{
-    string outcome = wasSkipped ? "Skipped" : (rewardCollected ? "Success" : "Failure");
+        LogManager.Instance.LogEvent("TrialStart", new Dictionary<string, string>
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()}, // Adjust to 1-based index
+            {"BlockNumber", "0"}, // Assuming practice trials are in block 0
+            // {"EffortLevel", effortLevel.ToString()},
+            // {"RequiredPresses", requiredPresses.ToString()},
+            {"AdditionalInfo", "Practice"}
+        });
+    }
 
-    LogManager.Instance.LogEvent("TrialEnd", new Dictionary<string, string>
+
+    public void LogPracticeTrialOutcome(int trialIndex, bool wasSkipped, bool rewardCollected, float completionTime)
     {
-        {"TrialNumber", (trialIndex + 1).ToString()},
-        {"BlockNumber", "0"}, // Assuming practice trials are in block 0
-        {"DecisionType", wasSkipped ? "Skip" : "Work"},
-        {"OutcomeType", outcome},
-        {"RewardCollected", rewardCollected.ToString()},
-        {"MovementDuration", completionTime.ToString("F3")},
-        {"ButtonPresses", "0"}, // Assuming no button presses are logged here
-        {"AdditionalInfo", "Practice"}
-    });
-}
+        // Since we've removed skip functionality, wasSkipped should always be false
+        string outcome = rewardCollected ? "Success" : "Failure";
 
-    private const string PRACTICE_BLOCK_ID = "Practice";
+        LogManager.Instance.LogEvent("TrialEnd", new Dictionary<string, string>
+        {
+            {"TrialNumber", (trialIndex + 1).ToString()},
+            {"BlockNumber", "0"}, // Assuming practice trials are in block 0
+            {"DecisionType", "Work"}, // Always "Work" now since skipping is removed
+            {"OutcomeType", outcome},
+            {"RewardCollected", rewardCollected.ToString()},
+            {"MovementDuration", completionTime.ToString("F3")},
+            {"ButtonPresses", "0"}, // Assuming no button presses are logged here
+            {"AdditionalInfo", "Practice"}
+        });
+    }
+
+    // public void LogPracticeDecisionOutcome(int trialIndex, string decisionType, bool rewardCollected, 
+    //     float decisionTime, float movementTime, int buttonPresses, int effortLevel, int requiredPresses, int blockNumber = 0)
+    // {
+    //     // Use the provided blockNumber parameter, defaulting to 0 for practice trials
+    //     Debug.Log($"Logging practice trial outcome - Trial: {trialIndex}, Block: {blockNumber}, Decision: {decisionType}");
+
+    //     // IMPORTANT: Modify how LogManager is called to ensure block number isn't adjusted
+    //     // Option 1: If you can modify LogManager.LogDecisionOutcome, add a parameter to skip adjustment
+    //     LogManager.Instance.LogDecisionOutcome(
+    //         trialIndex,
+    //         blockNumber, // Use the provided block number
+    //         decisionType,
+    //         rewardCollected,
+    //         decisionTime,
+    //         movementTime,
+    //         buttonPresses,
+    //         effortLevel,
+    //         requiredPresses,
+    //         true // Add a parameter to skip adjustment (if possible)
+    //     );
+
+    //     // Option 2: If you can't modify LogManager, directly log the event
+    //     /*
+    //     LogManager.Instance.LogEvent("DecisionOutcome", new Dictionary<string, string>
+    //     {
+    //         {"TrialNumber", (trialIndex + 1).ToString()}, // Manually adjust to 1-based index
+    //         {"BlockNumber", blockNumber.ToString()}, // Use raw block number (0 for practice)
+    //         {"DecisionType", decisionType},
+    //         {"ReactionTime", decisionTime.ToString("F3")},
+    //         {"RewardCollected", rewardCollected.ToString()},
+    //         {"MovementTime", movementTime.ToString("F3")},
+    //         {"ButtonPresses", buttonPresses.ToString()},
+    //         {"EffortLevel", effortLevel.ToString()},
+    //         {"RequiredPresses", requiredPresses.ToString()},
+    //         {"OutcomeType", DetermineOutcomeType(decisionType, rewardCollected)}
+    //     });
+    //     */
+    // }
+
+    // private const string PRACTICE_BLOCK_ID = "Practice";
     private int baseTrialIndex = 1000; // Offset for practice trials to distinguish from formal trials
 
     public int GetCurrentTrialIndex()
     {
         return baseTrialIndex + currentPracticeTrialIndex;
     }
-
-    // public void LogTrialStart(int trialIndex)
-    // {
-    //     int effortLevel = GetCurrentTrialEffortLevel();
-        
-    //     LogManager.Instance.LogEvent("TrialStart", new Dictionary<string, string>
-    //     {
-    //         {"TrialNumber", trialIndex.ToString()},
-    //         {"BlockType", PRACTICE_BLOCK_ID},
-    //         {"EffortLevel", effortLevel.ToString()},
-    //         {"RequiredPresses", GetCurrentTrialEV().ToString()}
-    //     });
-    // }
-
-    // public void LogTrialCompletion(int trialIndex, bool skipped, bool rewardCollected, float duration, int buttonPresses)
-    // {
-    //     LogManager.Instance.LogEvent("TrialEnd", new Dictionary<string, string>
-    //     {
-    //         {"TrialNumber", (trialIndex + 1).ToString()},
-    //         {"BlockType", PRACTICE_BLOCK_ID},
-    //         {"Skipped", skipped.ToString()},
-    //         {"RewardCollected", rewardCollected.ToString()},
-    //         {"Duration", duration.ToString("F3")},
-    //         {"TotalPresses", buttonPresses.ToString()}
-    //     });
-    // }
-
-    // public void LogButtonPress(int trialIndex, int pressCount, string direction)
-    // {
-    //     LogManager.Instance.LogEvent("ButtonPress", new Dictionary<string, string>
-    //     {
-    //         {"TrialNumber", (trialIndex + 1).ToString()},
-    //         {"BlockType", PRACTICE_BLOCK_ID},
-    //         {"PressNumber", pressCount.ToString()},
-    //         {"Direction", direction}
-    //     });
-    // }
 }

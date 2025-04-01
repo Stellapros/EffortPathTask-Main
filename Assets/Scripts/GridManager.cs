@@ -20,7 +20,7 @@ public class GridManager : MonoBehaviour
     [SerializeField] private int gridWidth = 18;
     [SerializeField] private int gridHeight = 10;
     [SerializeField] public float cellSize = 1f;
-    [SerializeField] private bool centerCells = true;
+    // [SerializeField] private bool centerCells = true;
     [SerializeField] private TextAsset gridLayoutFile;
 
     [SerializeField] private GameObject floorTilePrefab;
@@ -136,8 +136,7 @@ public class GridManager : MonoBehaviour
         availableFloorPositions = new List<Vector2Int>();
         gridObjects = new GameObject[gridWidth, gridHeight];
         gridSize = new Vector2Int(gridWidth, gridHeight);
-        occupiedPositions = new bool[gridWidth, gridHeight]; // Initialize the occupiedPositions array
-
+        occupiedPositions = new bool[gridWidth, gridHeight];
 
         if (gridLayoutFile != null)
         {
@@ -148,14 +147,8 @@ public class GridManager : MonoBehaviour
             CreateDefaultGrid();
         }
 
-        // Reset all positions to unoccupied
-        for (int x = 0; x < gridWidth; x++)
-        {
-            for (int y = 0; y < gridHeight; y++)
-            {
-                occupiedPositions[x, y] = false;
-            }
-        }
+        // Debug log to check available positions
+        Debug.Log($"Grid initialized with {availableFloorPositions.Count} available floor positions.");
     }
 
     public bool IsValidGridPosition(Vector2Int gridPos)
@@ -193,9 +186,27 @@ public class GridManager : MonoBehaviour
 
     private void LoadGridFromFile()
     {
+        if (gridLayoutFile == null)
+        {
+            Debug.LogError("Grid layout file is not assigned!");
+            return;
+        }
+
         string[] rows = gridLayoutFile.text.Split('\n');
+        Debug.Log($"Loaded grid layout with {rows.Length} rows");
+
         for (int y = 0; y < gridHeight; y++)
         {
+            if (y >= rows.Length)
+            {
+                Debug.LogWarning($"Row {y} is missing in the layout file. Filling with walls.");
+                for (int x = 0; x < gridWidth; x++)
+                {
+                    grid[x, y] = CellType.Wall;
+                }
+                continue;
+            }
+
             for (int x = 0; x < gridWidth; x++)
             {
                 if (x < rows[y].Length)
@@ -208,10 +219,11 @@ public class GridManager : MonoBehaviour
                 }
                 else
                 {
-                    grid[x, y] = CellType.Empty;
+                    grid[x, y] = CellType.Wall; // Fill missing columns with walls
                 }
             }
         }
+        Debug.Log($"Available floor positions after loading layout: {availableFloorPositions.Count}");
     }
 
     private void CreateDefaultGrid()
@@ -355,14 +367,18 @@ public class GridManager : MonoBehaviour
         Debug.Log($"Reset available positions. New count: {availableFloorPositions.Count}");
     }
 
+
     public Vector2 GetRandomAvailablePosition()
     {
-        Debug.Log($"Available positions count: {availableFloorPositions.Count}");
-        Debug.Log($"Grid size: {gridWidth}x{gridHeight}");
+        if (availableFloorPositions.Count == 0)
+        {
+            Debug.LogWarning("No available floor positions left! Resetting grid.");
+            ResetAvailablePositions();
+        }
 
         if (availableFloorPositions.Count == 0)
         {
-            Debug.LogWarning("No available floor positions left!");
+            Debug.LogError("No positions available even after resetting the grid!");
             return Vector2.zero;
         }
 
@@ -373,6 +389,15 @@ public class GridManager : MonoBehaviour
         return GridToWorldPosition(gridPos);
     }
 
+    public void ReleasePosition(Vector2 worldPosition)
+    {
+        Vector2Int gridPos = WorldToGridPosition(worldPosition);
+        if (IsValidFloorPosition(gridPos) && !availableFloorPositions.Contains(gridPos))
+        {
+            availableFloorPositions.Add(gridPos);
+            Debug.Log($"Released position: {gridPos}");
+        }
+    }
 
     /// <summary>
     /// find a position exactly 5 cells away
@@ -429,17 +454,6 @@ public class GridManager : MonoBehaviour
         }
     }
 
-    private bool IsValidPosition(Vector2Int testPos)
-    {
-        // Implement your specific grid validation logic
-        return testPos.x >= 0 &&
-               testPos.x < gridWidth &&
-               testPos.y >= 0 &&
-               testPos.y < gridHeight &&
-               grid[testPos.x, testPos.y] == CellType.Floor &&
-               !occupiedPositions[testPos.x, testPos.y];
-    }
-
     private Vector2 FindAlternativePosition(Vector2 startPosition, int exactDistance)
     {
         // More flexible search strategy
@@ -479,15 +493,6 @@ public class GridManager : MonoBehaviour
     }
 
 
-    public void ReleasePosition(Vector2 worldPosition)
-    {
-        Vector2Int gridPos = WorldToGridPosition(worldPosition);
-        if (IsValidFloorPosition(gridPos) && !availableFloorPositions.Contains(gridPos))
-        {
-            availableFloorPositions.Add(gridPos);
-        }
-    }
-
     public bool IsValidPosition(Vector2 worldPosition)
     {
         Vector2Int gridPos = WorldToGridPosition(worldPosition);
@@ -519,45 +524,128 @@ public class GridManager : MonoBehaviour
         }
     }
 
-    // Modify IsValidFloorPosition to include null check
+    private bool IsValidPosition(Vector2Int testPos)
+    {
+        // Implement your specific grid validation logic
+        return testPos.x >= 0 &&
+               testPos.x < gridWidth &&
+               testPos.y >= 0 &&
+               testPos.y < gridHeight &&
+               grid[testPos.x, testPos.y] == CellType.Floor &&
+               !occupiedPositions[testPos.x, testPos.y];
+    }
+
+
+    // // Modify IsValidFloorPosition to include null check
+    // public bool IsValidFloorPosition(Vector2Int gridPos)
+    // {
+    //     EnsureInitialization();
+
+    //     if (grid == null)
+    //     {
+    //         Debug.LogError("Grid is null! Ensure GridManager is properly initialized.");
+    //         return false;
+    //     }
+
+    // // Ensure position is within walkable area (1-16 x 1-8 for 18x10 grid)
+    // return gridPos.x >= 1 && gridPos.x < gridWidth - 1 &&
+    //        gridPos.y >= 1 && gridPos.y < gridHeight - 1 &&
+    //        grid[gridPos.x, gridPos.y] == CellType.Floor;
+    // }
+
+
     public bool IsValidFloorPosition(Vector2Int gridPos)
     {
-        EnsureInitialization();
+        // Walls are at columns 0,17 and rows 0,9 → Walkable area is (1-16, 1-8)
+        bool isInsideWalkableArea =
+            gridPos.x > 0 && gridPos.x < gridWidth - 1 &&  // Columns 1-16
+            gridPos.y > 0 && gridPos.y < gridHeight - 1;   // Rows 1-8
 
-        if (grid == null)
-        {
-            Debug.LogError("Grid is null! Ensure GridManager is properly initialized.");
-            return false;
-        }
+        // Also ensure the cell is a floor (not a wall)
+        bool isFloor = grid[gridPos.x, gridPos.y] == CellType.Floor;
 
-        return gridPos.x >= 0 && gridPos.x < gridWidth &&
-               gridPos.y >= 0 && gridPos.y < gridHeight &&
-               grid[gridPos.x, gridPos.y] == CellType.Floor;
+        return isInsideWalkableArea && isFloor;
     }
+
+    // public Vector2 GridToWorldPosition(Vector2Int gridPos)
+    // {
+    //     Vector2 worldPos = new Vector2(gridPos.x * cellSize, gridPos.y * cellSize);
+    //     if (centerCells)
+    //     {
+    //         worldPos += new Vector2(cellSize * 0.5f, cellSize * 0.5f);
+    //     }
+    //     Vector2 gridCenter = new Vector2(gridWidth * 0.5f, gridHeight * 0.5f) * cellSize;
+    //     return worldPos - gridCenter;
+    // }
+
+    // public Vector2Int WorldToGridPosition(Vector2 worldPosition)
+    // {
+    //     Vector2 gridCenter = new Vector2(gridWidth * 0.5f, gridHeight * 0.5f) * cellSize;
+    //     Vector2 offsetPosition = worldPosition + gridCenter;
+    //     if (centerCells)
+    //     {
+    //         offsetPosition -= new Vector2(cellSize * 0.5f, cellSize * 0.5f);
+    //     }
+    //     return new Vector2Int(
+    //         Mathf.FloorToInt(offsetPosition.x / cellSize),
+    //         Mathf.FloorToInt(offsetPosition.y / cellSize)
+    //     );
+    // }
 
     public Vector2 GridToWorldPosition(Vector2Int gridPos)
     {
-        Vector2 worldPos = new Vector2(gridPos.x * cellSize, gridPos.y * cellSize);
-        if (centerCells)
-        {
-            worldPos += new Vector2(cellSize * 0.5f, cellSize * 0.5f);
-        }
-        Vector2 gridCenter = new Vector2(gridWidth * 0.5f, gridHeight * 0.5f) * cellSize;
-        return worldPos - gridCenter;
+        // Calculate the exact center of the grid
+        float gridCenterX = (gridWidth - 1) * cellSize * 0.5f;
+        float gridCenterY = (gridHeight - 1) * cellSize * 0.5f;
+
+        // Calculate world position, accounting for grid center
+        Vector2 worldPos = new Vector2(
+            gridPos.x * cellSize - gridCenterX,
+            gridPos.y * cellSize - gridCenterY
+        );
+
+        return worldPos;
     }
+
+    // public Vector2Int WorldToGridPosition(Vector2 worldPosition)
+    // {
+    //     // Calculate the exact center of the grid
+    //     float gridCenterX = (gridWidth - 1) * cellSize * 0.5f;
+    //     float gridCenterY = (gridHeight - 1) * cellSize * 0.5f;
+
+    //     // Offset the world position by the grid center
+    //     Vector2 offsetPosition = worldPosition + new Vector2(gridCenterX, gridCenterY);
+
+    //     return new Vector2Int(
+    //         Mathf.FloorToInt(offsetPosition.x / cellSize),
+    //         Mathf.FloorToInt(offsetPosition.y / cellSize)
+    //     );
+    // }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.green;
+        Vector2 walkableMin = GridToWorldPosition(new Vector2Int(1, 1));
+        Vector2 walkableMax = GridToWorldPosition(new Vector2Int(gridWidth - 2, gridHeight - 2));
+        Gizmos.DrawWireCube((walkableMin + walkableMax) * 0.5f, walkableMax - walkableMin);
+    }
+
 
     public Vector2Int WorldToGridPosition(Vector2 worldPosition)
     {
-        Vector2 gridCenter = new Vector2(gridWidth * 0.5f, gridHeight * 0.5f) * cellSize;
-        Vector2 offsetPosition = worldPosition + gridCenter;
-        if (centerCells)
-        {
-            offsetPosition -= new Vector2(cellSize * 0.5f, cellSize * 0.5f);
-        }
-        return new Vector2Int(
-            Mathf.FloorToInt(offsetPosition.x / cellSize),
-            Mathf.FloorToInt(offsetPosition.y / cellSize)
-        );
+        // Calculate grid center (accounting for cellSize)
+        float gridCenterX = (gridWidth * cellSize) / 2f;
+        float gridCenterY = (gridHeight * cellSize) / 2f;
+
+        // Convert world position to grid space (with proper offset)
+        float gridX = (worldPosition.x + gridCenterX) / cellSize;
+        float gridY = (worldPosition.y + gridCenterY) / cellSize;
+
+        // Clamp to ensure it stays within grid bounds
+        int x = Mathf.Clamp(Mathf.FloorToInt(gridX), 0, gridWidth - 1);
+        int y = Mathf.Clamp(Mathf.FloorToInt(gridY), 0, gridHeight - 1);
+
+        return new Vector2Int(x, y);
     }
 
     public class ObjectPool

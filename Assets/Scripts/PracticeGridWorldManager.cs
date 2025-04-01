@@ -1,6 +1,4 @@
 using UnityEngine;
-using System.Collections;
-using UnityEngine.SceneManagement;
 using System;
 using System.Collections.Generic;
 
@@ -135,14 +133,14 @@ public class PracticeGridWorldManager : MonoBehaviour
         }
     }
 
-    private void EndTrialOnTimeUp()
-    {
-        if (isTrialActive)
-        {
-            // EndPracticeGridWorldTrial(false);
-            EndTrial(false);
-        }
-    }
+    // private void EndTrialOnTimeUp()
+    // {
+    //     if (isTrialActive)
+    //     {
+    //         // EndPracticeGridWorldTrial(false);
+    //         EndTrial(false);
+    //     }
+    // }
 
     private void HandleTimerExpired()
     {
@@ -153,36 +151,36 @@ public class PracticeGridWorldManager : MonoBehaviour
 
     public void EndTrial(bool rewardCollected)
     {
-    Debug.Log($"Practice GridWorld EndTrial called. Reward Collected: {rewardCollected}");
+        Debug.Log($"Practice GridWorld EndTrial called. Reward Collected: {rewardCollected}");
 
-    // Log trial end
-    int currentTrial = practiceManager?.GetCurrentPracticeTrialIndex() ?? 0;
-    LogTrialEnd(currentTrial, rewardCollected);
+        // Log trial end
+        int currentTrial = practiceManager?.GetCurrentPracticeTrialIndex() ?? 0;
+        LogTrialEnd(currentTrial, rewardCollected);
 
-    // Log outcome type
-    LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
-    {
-        {"TrialNumber", (currentTrial + 1).ToString()},
-        {"OutcomeType", rewardCollected ? "Success" : "Failure"}
-    });
-    
-    if (rewardCollected)
-    {
-        LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
-        {
-            {"TrialNumber", currentTrial.ToString()},
-            {"OutcomeType", "Success"}
-        });
-    }
-    else
-    {
-        LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
-        {
-            {"TrialNumber", currentTrial.ToString()},
-            {"OutcomeType", "Failure"}
-        });
-    }
-    
+        // // Log outcome type
+        // LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
+        // {
+        //     {"TrialNumber", (currentTrial + 1).ToString()},
+        //     {"OutcomeType", rewardCollected ? "Success" : "Failure"}
+        // });
+
+        // if (rewardCollected)
+        // {
+        //     LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
+        //     {
+        //         {"TrialNumber", currentTrial.ToString()},
+        //         {"OutcomeType", "Success"}
+        //     });
+        // }
+        // else
+        // {
+        //     LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
+        //     {
+        //         {"TrialNumber", currentTrial.ToString()},
+        //         {"OutcomeType", "Failure"}
+        //     });
+        // }
+
         // If reward is collected but timer hasn't expired, just mark it
         if (rewardCollected && countdownTimer != null && countdownTimer.TimeLeft > 0)
         {

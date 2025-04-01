@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 172709932944690270}
   - component: {fileID: 5828329932356455589}
-  - component: {fileID: 4440403732713323322}
   m_Layer: 0
   m_Name: PlayerRed
   m_TagString: Untagged
@@ -50,6 +49,9 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -85,18 +87,3 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!111 &4440403732713323322
-Animation:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6402514903385949886}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Animation: {fileID: 7400012, guid: 6e4b26fde7f77c046bed3bb532de26f1, type: 3}
-  m_Animations: []
-  m_WrapMode: 0
-  m_PlayAutomatically: 1
-  m_AnimatePhysics: 0
-  m_CullingType: 0

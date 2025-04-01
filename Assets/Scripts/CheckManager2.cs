@@ -14,9 +14,9 @@ public class CheckManager2 : MonoBehaviour
     [SerializeField] private Image fruitImage;
 
     [Header("UI Elements")]
+    [SerializeField] private Button choice17Button;
+    [SerializeField] private Button choice33Button;
     [SerializeField] private Button choice50Button;
-    [SerializeField] private Button choice70Button;
-    [SerializeField] private Button choice90Button;
     [SerializeField] private TextMeshProUGUI questionText;
     [SerializeField] private TextMeshProUGUI debugText;
     [SerializeField] private TextMeshProUGUI trialIndexText;
@@ -36,7 +36,7 @@ public class CheckManager2 : MonoBehaviour
     private int correctChoiceScore = 0;
 
     private int currentSelection = -1; // Start with no selection
-    private readonly int[] thresholdOptions = { 50, 70, 90 };
+    private readonly int[] thresholdOptions = { 17, 33, 50 };
     private Color defaultButtonColor;
     private Color selectedButtonColor = new Color(0.87f, 0.86f, 0.67f);
     [SerializeField] private Color normalColor = new Color(0.67f, 0.87f, 0.86f);
@@ -50,7 +50,7 @@ public class CheckManager2 : MonoBehaviour
         InitializeChoiceRecords();
         SetupButtons();
         fruitPrefabs.AddRange(new[] { applePrefab, grapesPrefab, watermelonPrefab });
-        defaultButtonColor = choice50Button.GetComponent<Image>().color;
+        defaultButtonColor = choice17Button.GetComponent<Image>().color;
         SpawnRandomFruit();
         UpdateButtonHighlight();
     }
@@ -83,44 +83,44 @@ public class CheckManager2 : MonoBehaviour
     private void SetupButtons()
     {
         Debug.Log("Setting up choice buttons");
+        choice17Button.onClick.AddListener(() =>
+        {
+            Debug.Log("17 button clicked");
+            RecordChoice(17);
+        });
+        choice33Button.onClick.AddListener(() =>
+        {
+            Debug.Log("33 button clicked");
+            RecordChoice(33);
+        });
         choice50Button.onClick.AddListener(() =>
         {
             Debug.Log("50 button clicked");
             RecordChoice(50);
         });
-        choice70Button.onClick.AddListener(() =>
-        {
-            Debug.Log("70 button clicked");
-            RecordChoice(70);
-        });
-        choice90Button.onClick.AddListener(() =>
-        {
-            Debug.Log("90 button clicked");
-            RecordChoice(90);
-        });
     }
     private void DisableAllButtons()
     {
+        choice17Button.interactable = false;
+        choice33Button.interactable = false;
         choice50Button.interactable = false;
-        choice70Button.interactable = false;
-        choice90Button.interactable = false;
 
         // Set all buttons to disabled color
+        choice17Button.GetComponent<Image>().color = disabledColor;
+        choice33Button.GetComponent<Image>().color = disabledColor;
         choice50Button.GetComponent<Image>().color = disabledColor;
-        choice70Button.GetComponent<Image>().color = disabledColor;
-        choice90Button.GetComponent<Image>().color = disabledColor;
     }
 
     private void EnableAllButtons()
     {
+        choice17Button.interactable = true;
+        choice33Button.interactable = true;
         choice50Button.interactable = true;
-        choice70Button.interactable = true;
-        choice90Button.interactable = true;
 
         // Reset all buttons to normal color
+        choice17Button.GetComponent<Image>().color = normalColor;
+        choice33Button.GetComponent<Image>().color = normalColor;
         choice50Button.GetComponent<Image>().color = normalColor;
-        choice70Button.GetComponent<Image>().color = normalColor;
-        choice90Button.GetComponent<Image>().color = normalColor;
     }
 
     private void SpawnRandomFruit()
@@ -150,10 +150,6 @@ public class CheckManager2 : MonoBehaviour
         fruitPrefabs.RemoveAt(randomIndex);
         trialCount++;
 
-        // if (LogManager.Instance != null)
-        // {
-        //     LogManager.Instance.LogTrialStart(currentTrialIndex + 1, 1, 0, 0, false);
-        // }
 
         if (trialIndexText != null)
         {
@@ -179,40 +175,34 @@ public class CheckManager2 : MonoBehaviour
         float responseTime = Time.time - questionStartTime;
 
         bool isCorrect = false;
-        string correctThreshold = "";
 
         switch (currentFruitName)
         {
             case "Apple":
-                isCorrect = threshold == 90;
-                correctThreshold = "90";
+                isCorrect = threshold == 33;
                 break;
             case "Grapes":
-                isCorrect = threshold == 70;
-                correctThreshold = "70";
+                isCorrect = threshold == 33;
                 break;
             case "Watermelon":
-                isCorrect = threshold == 50;
-                correctThreshold = "50";
+                isCorrect = threshold == 33;
                 break;
         }
 
-        // Log the question response with additional context
+        // Simplified logging with T/F for correct/incorrect
         LogManager.Instance.LogCheckQuestionResponse(
             trialNumber: currentTrialIndex,
             checkPhase: 2,
-            questionNumber: currentTrialIndex + 1,
+            questionNumber: currentTrialIndex,
             questionType: "FruitFrequency",
             questionText: questionText.text,
-            selectedAnswer: threshold.ToString(),
-            correctAnswer: correctThreshold,
+            selectedAnswer: isCorrect ? "T" : "F",
+            correctAnswer: "T",
             isCorrect: isCorrect,
             responseTime: responseTime,
             new Dictionary<string, string>
             {
-            {"FruitType", currentFruitName},
-            {"TotalTrials", totalTrials.ToString()},
-            {"CurrentScore", correctChoiceScore.ToString()}
+            {"FruitType", currentFruitName}
             }
         );
 
@@ -221,28 +211,42 @@ public class CheckManager2 : MonoBehaviour
             correctChoiceScore++;
         }
 
+        // // If this was the last question, log the phase completion
+        // if (currentTrialIndex == totalTrials - 1)
+        // {
+        //     LogManager.Instance.LogCheckPhaseComplete(
+        //         checkPhase: 2,
+        //         totalQuestions: totalTrials,
+        //         correctAnswers: correctChoiceScore,
+        //         completionTime: Time.time - phaseStartTime,
+        //         phaseType: "FrequencyCheck",
+        //         new Dictionary<string, string>
+        //         {
+        //         {"PercentageCorrect", ((float)correctChoiceScore / totalTrials * 100).ToString("F1") + "%"}
+        //         }
+        //     );
+        // }
+
         PlayerPrefs.SetInt("Check2Score", Mathf.Min(correctChoiceScore, 3));
         PlayerPrefs.Save();
 
-        // If this was the last question, log the phase completion
-        if (currentTrialIndex == totalTrials - 1)
-        {
-            float averageResponseTime = (Time.time - phaseStartTime) / totalTrials;
-            LogManager.Instance.LogCheckPhaseComplete(
-                checkPhase: 2,
-                totalQuestions: totalTrials,
-                correctAnswers: correctChoiceScore,
-                completionTime: Time.time - phaseStartTime,
-                phaseType: "FrequencyCheck",
-                new Dictionary<string, string>
-                {
-                {"AverageResponseTime", averageResponseTime.ToString("F2")},
-                {"CompletionStatus", "Finished"}
-                }
-            );
-        }
-
         Invoke("ProcessNextTrial", 0.5f);
+    }
+
+    private string GetExpectedFrequencyText(string fruitName)
+    {
+        switch (fruitName)
+        {
+            case "Apple": return "High (90%)";
+            case "Grapes": return "Medium (70%)";
+            case "Watermelon": return "Low (50%)";
+            default: return "Unknown";
+        }
+    }
+
+    private string GetFrequencyText(int threshold)
+    {
+        return $"{threshold}%";
     }
 
     private void ProcessNextTrial()
@@ -277,18 +281,18 @@ public class CheckManager2 : MonoBehaviour
     private void UpdateButtonHighlight()
     {
         // Reset all buttons to normal color first
+        choice17Button.GetComponent<Image>().color = normalColor;
+        choice33Button.GetComponent<Image>().color = normalColor;
         choice50Button.GetComponent<Image>().color = normalColor;
-        choice70Button.GetComponent<Image>().color = normalColor;
-        choice90Button.GetComponent<Image>().color = normalColor;
 
         // If there's a selection, highlight the selected button
         if (currentSelection >= 0 && currentSelection <= 2)
         {
             Button selectedButton = currentSelection switch
             {
-                0 => choice50Button,
-                1 => choice70Button,
-                2 => choice90Button,
+                0 => choice17Button,
+                1 => choice33Button,
+                2 => choice50Button,
                 _ => null
             };
 

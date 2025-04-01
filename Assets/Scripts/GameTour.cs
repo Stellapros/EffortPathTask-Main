@@ -11,7 +11,7 @@ public class InstructionManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI pageIndicatorText;
     [SerializeField] private Button nextButton;
     [SerializeField] private Button previousButton;
-    [SerializeField] private Button skipButton;
+    // [SerializeField] private Button skipButton; 
 
     //     private string[] instructions = new string[]
     //      {
@@ -53,31 +53,61 @@ public class InstructionManager : MonoBehaviour
     //     "16 That's it! You're ready to start with some practice. Good luck, and may the juiciest fruits be ever in your favor!"
     // };
 
+    // private string[] instructions = new string[]
+    // {
+    //     "Welcome to the Motivation Expedition, a strategic fruit-collecting adventure across two unique islands!",
+    //     "Each island presents different challenges and rewards. Your mission: navigate, collect fruits, maximize your score, and minimize the efforts.",
+    //     "Now, let's explore how to play.",
+    //     "You will decide whether to collect fruits. Each Fruit = 10 POINTS.",
+    //     "You will use the keyboard to make your choice: Press 'A' to 'Work' (collect fruit) or 'D' to 'Skip' (rest). You will see an example on the next screen—no need to choose now.",
+    //     "You have 2.5 seconds to decide — fail to choose in time, and you'll get 0 points plus a time penalty!",
+    //     "If you choose WORK: A fruit will appear on the grid—your target! Time is limited, you will have to press quickly to collect fruits before they disappear.",
+    //     "Use arrow keys to move your character. Some fruits are harder to reach, you may need to press the keys multiple times to take a single step.",
+    //     "If you choose SKIP: Earn 0 points.",
+    //     "Your time on each island is LIMITED, so sometimes it might be better to SKIP, if the fruit feels hard to reach.",
+    //     "You will have to decide which fruits are worth collecting in this time limit.",
+    //     "You will visit two different islands TWICE, with 5 minutes on each island each time. The islands will differ in how often you see different kinds of fruit.",
+    //     "Remember, your goal is to explore the island, collect fruits, and decide which fruits are worth the effort. Each fruit is worth the same (10 points).",
+    //     "Points will be converted to a bonus payment. Your choices will remain completely anonymous and confidential.",
+    //     "If you're unsure about the instructions, feel free to press the LEFT '←' button to read them again.",
+    //     "That's it! You're ready to start with some practice. Good luck, and may the juiciest fruits be ever in your favor!"
+    // };
+
+    // Suggested by Matt 2025/03/26
     private string[] instructions = new string[]
     {
-        "Welcome to the Motivation Expedition, a strategic fruit-collecting adventure across two unique islands!",
-        "Each island offers different challenges and rewards. Your mission is to navigate, collect fruits, and maximize your score and minimize the efforts.",
-        "Now, let's explore how to play.",
-        "You will decide whether to collect fruits. Each Fruit = 10 POINTS.",
-        "Use the keyboard: Press 'A' to 'Work' (collect fruit) or 'D' to 'Skip' (rest). You have 2.5 seconds to decide — fail to choose in time, and you'll get 0 points plus a time penalty!",
-        "If you choose WORK: See that apple on the grid? That's your target! Time is limited, so act quickly to collect fruits before they disappear.",
-        "Use arrow keys to move your character. Some fruits are difficult to reach, you may need to press the keys multiple times to take a single step.",
-        "If you choose SKIP: Earn 0 points.",
-        "Your time on each island is LIMITED, so sometimes it might be better to SKIP, if the fruit feels hard to reach.",
-        "You will have to decide which fruits are worth collecting in this time limit.",
-        "You will visit two different islands, with 5 minutes on each island. The islands will differ in how often you see different kinds of fruit.",
-        "Remember, your goal is to explore the island, collect fruits, and decide which fruits are worth the effort.",
-        "Points will be converted to a bonus payment. Your choices will remain completely anonymous and confidential.",
-        "If you're unsure about the instructions, feel free to press the LEFT '←' button to read them again.",
-        "That's it! You're ready to start with some practice. Good luck, and may the juiciest fruits be ever in your favor!"
+    "Welcome to the Motivation Expedition, a strategic fruit-collecting adventure across two unique islands!",
+    "Each island presents different challenges and rewards. Your mission: navigate, collect fruits, and maximize your score.",
+    "Now, let's explore how to play.",
+    "You will be collecting fruit on islands. Each fruit gives you points and increases your bonus payment! But collecting fruit requires effort. Try to maximize your score while minimizing effort.",
+    "Each fruit is worth 10 points, but some may require more effort (button presses) to reach than others. Each time you see a fruit, you must decide whether to work for it or skip it to find another.",
+    "These decisions work as follows: Press 'A' to 'Work' (collect fruit) or 'D' to 'Skip' (rest). You will see an example on the next screen—no need to choose now.",
+    "You have 2.5 seconds to decide—fail to choose in time, and you'll get 0 points plus a time penalty of 3 seconds!",
+    "If you choose WORK: A fruit will appear on the grid—your target! Time is limited. You have 5 seconds to move your character and collect it. Press the direction buttons repetitively to navigate and reach the fruit before time runs out.",
+    "Use the arrow keys to move your character. Some fruits are harder to reach, and you may need to press the keys multiple times to take a single step.",
+    "If you choose SKIP: You earn 0 points but get to the next fruit faster.",
+    "Your time on each island is LIMITED, so choose wisely which fruits are worth your effort.",
+    "You must decide which fruits you would like to collect before time runs out.",
+    "You will visit two different islands TWICE, spending 5 minutes on each island per visit. The islands will differ in how often you encounter different types of fruit.",
+    "Remember, your goal is to explore the island, collect fruits, and decide which ones are worth the effort. Each fruit is worth the same (10 points).",
+    "Points will be converted into a bonus payment. Your choices will remain completely anonymous and confidential.",
+    "If you're unsure about the instructions, press the LEFT '←' button to read them again.",
+    "That's it! You're all set to begin with some practice. Once you start, please don't quit the game midway. Make sure you have approximately 60 minutes available to finish the task in one go. Good luck, and may the juiciest fruits always be within your reach!"
     };
 
+ 
     private int currentInstructionIndex = 0;
     private bool isTransitioning = false;
 
     void Awake()
     {    // Make the InstructionManager persist across scene transitions
         DontDestroyOnLoad(gameObject);
+
+        // Debug check
+        if (instructionText == null)
+        {
+            Debug.LogError("InstructionManager: instructionText is null! Please assign in Inspector.");
+        }
     }
 
     void Start()
@@ -87,7 +117,7 @@ public class InstructionManager : MonoBehaviour
         if (previousButton != null) previousButton.onClick.AddListener(ShowPreviousInstruction);
 
         Debug.Log("LoadScene GetReadyPractice from the GameTour");
-        if (skipButton != null) skipButton.onClick.AddListener(() => LoadScene("GetReadyPractice"));
+        // if (skipButton != null) skipButton.onClick.AddListener(() => LoadScene("GetReadyPractice"));
 
         // Show first instruction
         UpdateInstructionDisplay();
@@ -128,7 +158,7 @@ public class InstructionManager : MonoBehaviour
     {
         if (nextButton != null) nextButton.onClick.RemoveListener(ShowNextInstruction);
         if (previousButton != null) previousButton.onClick.RemoveListener(ShowPreviousInstruction);
-        if (skipButton != null) skipButton.onClick.RemoveAllListeners();
+        // if (skipButton != null) skipButton.onClick.RemoveAllListeners();
     }
 
     private void EndTourAndLoadScene(string sceneName)
@@ -155,11 +185,11 @@ public class InstructionManager : MonoBehaviour
     {
         if (isTransitioning) return;
 
-        if (currentInstructionIndex == 4)
+        if (currentInstructionIndex == 5)
         {
             StartCoroutine(ShowDecisionPhaseDemo());
         }
-        else if (currentInstructionIndex == 5)
+        else if (currentInstructionIndex == 7)
         {
             StartCoroutine(ShowGridWorldDemo());
         }
@@ -199,10 +229,10 @@ public class InstructionManager : MonoBehaviour
             nextButton.interactable = !isTransitioning;
         }
 
-        if (skipButton != null && skipButton.gameObject != null)
-        {
-            skipButton.gameObject.SetActive(true);
-        }
+        // if (skipButton != null && skipButton.gameObject != null)
+        // {
+        //     skipButton.gameObject.SetActive(true);
+        // }
     }
     // private void UpdateInstructionDisplay()
     // {
@@ -212,6 +242,26 @@ public class InstructionManager : MonoBehaviour
 
     private void UpdateInstructionDisplay()
     {
+        // Find the TextMeshProUGUI component if it's null
+        if (instructionText == null)
+        {
+            instructionText = GetComponent<TextMeshProUGUI>();
+
+            // If still null, try finding in children
+            if (instructionText == null)
+            {
+                instructionText = GetComponentInChildren<TextMeshProUGUI>();
+            }
+        }
+
+        // If still null after searching, log more detailed error
+        if (instructionText == null)
+        {
+            Debug.LogError("InstructionManager: Cannot find TextMeshProUGUI component. " +
+                "Ensure the script is on the correct GameObject and a TextMeshProUGUI exists.");
+            return;
+        }
+
         if (instructionText == null)
         {
             Debug.LogError("InstructionManager: instructionText is null!");
@@ -229,11 +279,11 @@ public class InstructionManager : MonoBehaviour
         // Show different navigation instructions based on whether it's the first instruction
         if (currentInstructionIndex == 0)
         {
-            instructionText.text += "\n\n<size=70%>Press 'Space' to continue</size>";
+            instructionText.text += "\n\n<size=90%>Press 'Space' to continue</size>";
         }
         else
         {
-            instructionText.text += "\n\n<size=70%>Press 'Space' to continue; ← to go back</size>";
+            instructionText.text += "\n\n<size=90%>Press 'Space' to continue; ← to go back</size>";
         }
 
         // Update page indicator if available
@@ -257,7 +307,7 @@ public class InstructionManager : MonoBehaviour
         instructionText.gameObject.SetActive(false);
         nextButton.gameObject.SetActive(false);
         previousButton.gameObject.SetActive(false);
-        skipButton.gameObject.SetActive(false);
+        // skipButton.gameObject.SetActive(false);
         pageIndicatorText.gameObject.SetActive(false);
 
         // Load GridWorld scene
@@ -285,7 +335,7 @@ public class InstructionManager : MonoBehaviour
         instructionText.gameObject.SetActive(true);
         nextButton.gameObject.SetActive(true);
         previousButton.gameObject.SetActive(true);
-        skipButton.gameObject.SetActive(true);
+        // skipButton.gameObject.SetActive(true);
         pageIndicatorText.gameObject.SetActive(true);
 
         // Move to next instruction
@@ -310,7 +360,7 @@ public class InstructionManager : MonoBehaviour
         instructionText.gameObject.SetActive(false);
         nextButton.gameObject.SetActive(false);
         previousButton.gameObject.SetActive(false);
-        skipButton.gameObject.SetActive(false);
+        // skipButton.gameObject.SetActive(false);
 
         // Load Decision Phase scene
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("TourDecisionPhase", LoadSceneMode.Additive);
@@ -337,7 +387,7 @@ public class InstructionManager : MonoBehaviour
         instructionText.gameObject.SetActive(true);
         nextButton.gameObject.SetActive(true);
         previousButton.gameObject.SetActive(true);
-        skipButton.gameObject.SetActive(true);
+        // skipButton.gameObject.SetActive(true);
 
         // Move to next instruction
         currentInstructionIndex++;

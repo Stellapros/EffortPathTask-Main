@@ -46,25 +46,48 @@ public class WelcomePage : MonoBehaviour
         // If consentPages is empty, initialize it with the default text split by consent items
         if (consentPages == null || consentPages.Length == 0)
         {
+            // string defaultConsentText =
+            // "First, please MAXIMIZE the game screen by clicking the [ ] icon in the bottom right corner if you haven't already. \n\n" +
+            // "We are interested in understanding how people learn and make decisions. These experiments are being conducted by Prof. Matthew Apps of the University of Birmingham, England. He and his team can be contacted by e-mail at m.li.14@bham.ac.uk.\n\n" +
+            // "During this study, you will be required to make decisions by clicking on buttons and answering a series of questions about your mood, personality, and demographic information after the task. You have the right to withdraw at any time by closing the browser. Your data will be stored pseudo-anonymously and separately from any personal data.\n\n" +
+            // "Please read the following, as it indicates that you are giving informed consent to participate in a psychological experiment:\n\n" +
+            // "□ I confirm that I have read and understand the information sheet for this study.\n" +
+            // "□ I have had the opportunity to consider the information, ask questions, and receive satisfactory answers (if you still have questions about the research, please contact the experimenter directly).\n" +
+            // "□ I understand that my participation is voluntary and that I am free to withdraw at any time without providing a reason.\n" +
+            // "□ I understand that once my data have been included in the analysis (approximately one month after collection), I will no longer be able to withdraw my data.\n" +
+            // "□ I understand that my data will be treated confidentially, and any publication resulting from this work will only report data that does not identify me.\n" +
+            // "□ My anonymized responses may be shared with other researchers or made available in online data repositories.\n" +
+            // "□ I am over 18 years old and freely agree to participate in this study.\n\n" +
+
+            // "This information is being collected as part of a research project on decision-making conducted by the School of Psychology at the University of Birmingham.\n" +
+            // "The information you provide, along with any data collected as part of the research project, will be stored in a secure database and accessed only by authorized personnel involved in the project.\n" +
+            // "The University of Birmingham will retain this information for research, statistical, and audit purposes. By providing this information, you consent to the University storing your data for the purposes stated above.\n" +
+            // "The information will be processed by the University of Birmingham in accordance with the provisions of the Data Protection Act 2018. No identifiable personal data will be published.\n\n" +
+
+            // "Click the 'I AGREE' button below to proceed with the experiment. By clicking the button, you indicate that you have read and understood the above information and that you consent to participate in this experiment. Alternatively, click 'Quit' to exit the game.";
+
+
             string defaultConsentText =
-                "We are interested in understanding how people learn and make decisions. These experiments are being conducted by Prof. Matthew Apps of the University of Birmingham, England. He and his team can be contacted by e-mail at m.li.14@bham.ac.uk.\n\n" +
-                "During this study, you will be required to make decisions by clicking on buttons and answering a series of questions about your mood, personality, and demographic information after the task. You have the right to withdraw at any time by closing the browser. Your data will be stored pseudo-anonymously and separately from any personal data.\n\n" +
-                "Please read the following, as it indicates that you are giving informed consent to participate in a psychological experiment:\n\n" +
-                "□ I confirm that I have read and understand the information sheet for this study.\n" +
-                "□ I have had the opportunity to consider the information, ask questions, and receive satisfactory answers (If you still have questions about the research, please contact the experimenter directly).\n" +
-                "□ I understand that my participation is voluntary and that I am free to withdraw at any time without providing a reason.\n" +
-                "□ I understand that once my data have been included in the analysis (approximately one month after collection), I will no longer be able to withdraw my data.\n" +
-                "□ I understand that my data will be treated confidentially, and any publication resulting from this work will only report data that does not identify me.\n" +
-                "□ My anonymized responses may be shared with other researchers or made available in online data repositories.\n" +
-                "□ I am over 18 years old and freely agree to participate in this study.\n\n" +
-
-                "This information is being collected as part of a research project on social decision-making conducted by the School of Psychology at the University of Birmingham.\n" +
-                "The information you provide, along with any data collected as part of the research project, will be stored in a secure database and accessed only by authorized personnel involved in the project.\n" +
-                "The University of Birmingham will retain this information for research, statistical, and audit purposes. By providing this information, you consent to the University storing your data for the purposes stated above.\n" +
-                "The information will be processed by the University of Birmingham in accordance with the provisions of the Data Protection Act 2018. No identifiable personal data will be published.\n\n" +
-
-                "Click the 'I AGREE' button below to proceed with the experiment. By clicking the button, you indicate that you have read and understood the above information and that you consent to participate in this experiment. Alternatively, click 'Quit' to exit the game.";
-
+            "First, please MAXIMIZE the game screen if you haven't already. Adjust the volume to a comfortable level.\n\n" +
+            "This study explores how people track and respond to effort.\n\n" +
+            "You will play an online game navigating a grid world to collect rewards by making effort-based decisions. Your performance will determine whether a financial bonus will be added. \n\n" +
+            "The game takes approximately 30-40 minutes, followed by some questionnaires (30-40 minutes). The total participation time is about 1-1.5 hours.\n\n" +
+            "You will receive £14 for completing the study, plus an additional £1-5 bonus based on your final score.\n\n" +
+            "As this study involves repetitive button presses over periods of time, if you experience discomfort from repetitive wrist movements (e.g., carpal tunnel, arthritis), please refrain from participation. \n\n" +
+            "Otherwise, the study carries no significant risks. You may withdraw at any time.\n\n" +
+            "Participation is voluntary. You may withdraw at any point during the task without explanation (Press 'ESC'). \n\n" +
+            "Data removal requests are possible within two weeks after collection; once included in the analysis, data cannot be withdrawn.\n\n" +
+            "Your responses will be anonymized and used for research purposes. Results may be published in academic reports and shared with other researchers, but no identifiable data will be disclosed. Responsible University personnel may access the data for auditing or legal compliance.\n\n" +
+            "Approved by the University of Birmingham STEM Ethical Review Committee (Approval: ERN_20-1897AP14). For inquiries or concerns: - Dr. Meijia Li: M.LI.14@bham.ac.uk, - Dr. Matthew Apps: M.A.J.Apps@bham.ac.uk, Complaints: - Dr. Birgit Whitman, B.Whitman@bham.ac.uk\n\n" +
+            "Please confirm the following:\n" +
+            "* I have read and understood the above information sheet.\n" +
+            "* I can ask questions if needed.\n" +
+            "* I understand participation is voluntary, and I can withdraw at any time.\n" +
+            "* I understand data withdrawal is only possible within two weeks of collection.\n" +
+            "* My data will remain confidential and anonymized.\n" +
+            "* My anonymized data may be shared with other researchers or stored in online repositories.\n" +
+            "* I agree to participate. \n\n" +
+            "Click the 'I AGREE' button below to proceed with the experiment. By clicking the button, you indicate that you have read and understood the above information and that you consent to participate in this experiment. Alternatively, click 'ESC' to exit the study.";
 
             // Split the default text so each consent item ("o") is on its own page
             consentPages = SplitConsentTextByLines(defaultConsentText);
@@ -191,7 +214,7 @@ public class WelcomePage : MonoBehaviour
             }
             else
             {
-                instructionText.text = "Press 'Space' to continue; ← to go back";
+                instructionText.text = "Press 'Space' to continue; \n Press '←' (left) to go back";
             }
         }
 

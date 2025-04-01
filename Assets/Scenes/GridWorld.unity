@@ -1560,7 +1560,6 @@ MonoBehaviour:
     type: 3}
   practiceManager: {fileID: 0}
   maxTrialDuration: 10
-  startTrialDelay: 0.5
   endTrialDelay: 0.5
   pressesPerEffortLevel: 010000000200000003000000
 --- !u!1001 &1065090123916010027
@@ -1835,29 +1834,6 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
         type: 3}
-      propertyPath: formalRewardPrefabs.Array.size
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: 'formalRewardPrefabs.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2455364387646690396, guid: 2c982f15987f5496db1024da6541a7d5,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: 'formalRewardPrefabs.Array.data[1]'
-      value: 
-      objectReference: {fileID: 9181912887003914726, guid: e9afca11aab434ac3bd360b44f3ec997,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
-      propertyPath: 'formalRewardPrefabs.Array.data[2]'
-      value: 
-      objectReference: {fileID: 6861172893992282259, guid: ab4849fe315e544faabccbbeb391c3e6,
-        type: 3}
-    - target: {fileID: 5648904893826992702, guid: a53d84e7b0317482dbd4547d7b7592b3,
-        type: 3}
       propertyPath: 'formalRewardPrefabs.Array.data[3]'
       value: 
       objectReference: {fileID: 2455364387646690396, guid: 2c982f15987f5496db1024da6541a7d5,
@@ -1981,21 +1957,6 @@ PrefabInstance:
       propertyPath: timerText
       value: 
       objectReference: {fileID: 1002826858}
-    - target: {fileID: 6147619588066064679, guid: 9f4b9aa786842499cb36a077ac3dcc47,
-        type: 3}
-      propertyPath: warningColor.b
-      value: 0.17880027
-      objectReference: {fileID: 0}
-    - target: {fileID: 6147619588066064679, guid: 9f4b9aa786842499cb36a077ac3dcc47,
-        type: 3}
-      propertyPath: warningColor.g
-      value: 0.9245283
-      objectReference: {fileID: 0}
-    - target: {fileID: 6147619588066064679, guid: 9f4b9aa786842499cb36a077ac3dcc47,
-        type: 3}
-      propertyPath: warningColor.r
-      value: 0.69448894
-      objectReference: {fileID: 0}
     - target: {fileID: 9035995663180086946, guid: 9f4b9aa786842499cb36a077ac3dcc47,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -2123,11 +2084,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3873532563441086277, guid: 1b0d0181d4b3545ab8d481ffd920c346,
         type: 3}
-      propertyPath: m_Enabled
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3873532563441086277, guid: 1b0d0181d4b3545ab8d481ffd920c346,
-        type: 3}
       propertyPath: scoreText
       value: 
       objectReference: {fileID: 2087113256}
@@ -2148,7 +2104,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 4872053700752718781}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d52b28d4848024004831ed879c5bdad0, type: 3}
   m_Name: 

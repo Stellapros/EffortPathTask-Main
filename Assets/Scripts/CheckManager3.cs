@@ -31,7 +31,7 @@ public class CheckManager3 : MonoBehaviour
             questionText = "Your objective in the game is to:",
             optionA = "Choose to work for every fruit",
             optionB = "Press as many buttons as you can",
-            optionC = "Choose to work for fruit when you want in the time available",
+            optionC = "Choose to work for fruit when you want within the available time",
             correctAnswer = 'C'
         },
         new Question
@@ -170,44 +170,20 @@ public class CheckManager3 : MonoBehaviour
 
         float responseTime = Time.time - questionStartTime;
         Question currentQuestion = questions[currentQuestionIndex];
-        bool isCorrect = answer == currentQuestion.correctAnswer;
 
-        // Enhanced logging
+        bool isCorrect = answer == questions[currentQuestionIndex].correctAnswer;
         LogManager.Instance.LogCheckQuestionResponse(
             trialNumber: currentQuestionIndex,
             checkPhase: 3,
-            questionNumber: currentQuestionIndex + 1,
+            questionNumber: currentQuestionIndex,
             questionType: "ComprehensionQuiz",
             questionText: currentQuestion.questionText,
-            selectedAnswer: answer.ToString(),
-            correctAnswer: currentQuestion.correctAnswer.ToString(),
+            selectedAnswer: isCorrect ? "T" : "F", // Simplified to T/F
+            correctAnswer: "T", // Always expect T for correct
             isCorrect: isCorrect,
-            responseTime: responseTime,
-            new Dictionary<string, string>
-            {
-            {"QuestionCategory", "Comprehension"},
-            {"TotalQuestions", questions.Length.ToString()},
-            {"CurrentScore", comprehensionScore.ToString()}
-            }
+            responseTime: responseTime
         );
 
-        if (currentQuestionIndex == questions.Length - 1)
-        {
-            // Log phase completion
-            LogManager.Instance.LogCheckPhaseComplete(
-                checkPhase: 3,
-                totalQuestions: questions.Length,
-                correctAnswers: comprehensionScore,
-                completionTime: Time.time - phaseStartTime,
-                phaseType: "ComprehensionCheck",
-                new Dictionary<string, string>
-                {
-                {"AverageResponseTime", ((Time.time - phaseStartTime) / questions.Length).ToString("F2")},
-                {"CompletionStatus", failedAttempts >= 1 ? "Failed" : "Passed"},
-                {"FailedAttempts", failedAttempts.ToString()}
-                }
-            );
-        }
 
         // Disable all buttons during processing
         buttonA.interactable = false;
@@ -243,10 +219,37 @@ public class CheckManager3 : MonoBehaviour
             }
         }
 
+        if (currentQuestionIndex == questions.Length - 1)
+        {
+            // Ensure final score is correct before logging phase completion
+            int check1Score = PlayerPrefs.GetInt("Check1Score", 0);
+            int check2Score = PlayerPrefs.GetInt("Check2Score", 0);
+            int totalScore = check1Score + check2Score + comprehensionScore;
+
+            Debug.Log($"Final Detailed Scores:\n" +
+                     $"Check 1 (Max 6): {check1Score}\n" +
+                     $"Check 2 (Max 3): {check2Score}\n" +
+                     $"Comprehension (Max 4): {comprehensionScore}\n" +
+                     $"Total Score: {totalScore}");
+        }
+
         // Use Invoke to manage progression and reset
         Invoke("ProcessQuestionProgression", 0.5f);
     }
 
+
+    private string GetQuestionDifficulty(int questionIndex)
+    {
+        // You can adjust these based on your assessment of question difficulty
+        switch (questionIndex)
+        {
+            case 0: return "Medium";
+            case 1: return "Easy";
+            case 2: return "Hard";
+            case 3: return "Medium";
+            default: return "Unknown";
+        }
+    }
 
     void ProcessQuestionProgression()
     {
@@ -304,6 +307,23 @@ public class CheckManager3 : MonoBehaviour
                                   $"Comprehension (Max 4): {comprehensionScore}\n" +
                                   $"Total Score: {totalScore}");
             }
+
+            // Log phase completion
+            LogManager.Instance.LogCheckPhaseComplete(
+                checkPhase: 3,
+                totalQuestions: questions.Length,
+                correctAnswers: comprehensionScore,
+                completionTime: Time.time - phaseStartTime,
+                phaseType: "ComprehensionCheck",
+                new Dictionary<string, string>
+                {
+                {"FailedAttempts", failedAttempts.ToString()},
+                {"Check1Score", check1Score.ToString()},
+                {"Check2Score", check2Score.ToString()},
+                {"Check3Score", comprehensionScore.ToString()},
+                {"TotalCheckScore", totalScore.ToString()}
+                }
+            );
 
             // Proceed to score calculation
             CalculateScoreAndProceed(totalScore);

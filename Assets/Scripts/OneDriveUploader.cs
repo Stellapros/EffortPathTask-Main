@@ -14,43 +14,43 @@ public class OneDriveUploader : MonoBehaviour
     private string accessToken;
     private bool isAuthenticated = false;
 
-public IEnumerator UploadFileToOneDrive(string csvContent, string fileName)
-{
-    if (string.IsNullOrEmpty(csvContent))
+    public IEnumerator UploadFileToOneDrive(string csvContent, string fileName)
     {
-        Debug.LogError("CSV content is empty or null!");
-        yield break;
+        if (string.IsNullOrEmpty(csvContent))
+        {
+            Debug.LogError("CSV content is empty or null!");
+            yield break;
+        }
+
+        // Ensure authentication is complete
+        if (!isAuthenticated)
+        {
+            Debug.Log("Starting OAuth flow...");
+            yield return StartOAuthFlow();
+        }
+
+        // Upload the file
+        string uploadUrl = "https://graph.microsoft.com/v1.0/me/drive/root:/GameLogs/" + fileName + ":/content";
+        // string uploadUrl = "https://effortpatch-0b3abd136749.herokuapp.com/upload";
+
+        UnityWebRequest request = new UnityWebRequest(uploadUrl, "PUT");
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(csvContent);
+        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        request.downloadHandler = new DownloadHandlerBuffer();
+        request.SetRequestHeader("Authorization", "Bearer " + accessToken);
+        request.SetRequestHeader("Content-Type", "text/csv");
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            Debug.Log("File uploaded successfully to OneDrive");
+        }
+        else
+        {
+            Debug.LogError($"Error uploading to OneDrive: {request.error}");
+        }
     }
-
-    // Ensure authentication is complete
-    if (!isAuthenticated)
-    {
-        Debug.Log("Starting OAuth flow...");
-        yield return StartOAuthFlow();
-    }
-
-    // Upload the file
-    string uploadUrl = "https://graph.microsoft.com/v1.0/me/drive/root:/GameLogs/" + fileName + ":/content";
-// string uploadUrl = "https://effortpatch-0b3abd136749.herokuapp.com/upload";
-
-    UnityWebRequest request = new UnityWebRequest(uploadUrl, "PUT");
-    byte[] bodyRaw = Encoding.UTF8.GetBytes(csvContent);
-    request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-    request.downloadHandler = new DownloadHandlerBuffer();
-    request.SetRequestHeader("Authorization", "Bearer " + accessToken);
-    request.SetRequestHeader("Content-Type", "text/csv");
-
-    yield return request.SendWebRequest();
-
-    if (request.result == UnityWebRequest.Result.Success)
-    {
-        Debug.Log("File uploaded successfully to OneDrive");
-    }
-    else
-    {
-        Debug.LogError($"Error uploading to OneDrive: {request.error}");
-    }
-}
 
     private IEnumerator StartOAuthFlow()
     {

@@ -43,32 +43,32 @@ public class RestBreakManager : MonoBehaviour
         navigationController.AddElement(continueButton);
     }
 
-private void UpdateBlockInfo()
-{
-    if (blockInfoText != null && ExperimentManager.Instance != null)
+    private void UpdateBlockInfo()
     {
-        int currentBlock = ExperimentManager.Instance.GetCurrentBlockNumber();
-        ExperimentManager.BlockType nextBlockType = ExperimentManager.Instance.GetNextBlockType();
-
-        Debug.Log($"RestBreakManager: Current block: {currentBlock}, Next block type: {nextBlockType}");
-
-        // Check if we're at the end of the experiment
-        if (currentBlock > ExperimentManager.Instance.GetTotalBlocks())
+        if (blockInfoText != null && ExperimentManager.Instance != null)
         {
-            SceneManager.LoadScene("TirednessRating");
-            return;
+            int currentBlock = ExperimentManager.Instance.GetCurrentBlockNumber();
+            ExperimentManager.BlockType nextBlockType = ExperimentManager.Instance.GetNextBlockType();
+
+            Debug.Log($"RestBreakManager: Current block: {currentBlock}, Next block type: {nextBlockType}");
+
+            // Check if we're at the end of the experiment
+            if (currentBlock >= ExperimentManager.Instance.GetTotalBlocks())
+            {
+                SceneManager.LoadScene("TirednessRating");
+                return;
+            }
+
+            blockInfoText.text = $"Nice shot!\n\n" +
+                "Take a short break, then hit 'Space' or the 'Continue' button when you're ready to embark on the next island's adventure";
+
+            Debug.Log($"RestBreakManager: Block info updated. Completed block: {currentBlock}, Next block type: {nextBlockType}");
         }
-
-        blockInfoText.text = $"Nice shot!\n\n" +
-            "Take a short break, then hit 'Space' or the 'Continue' button when you're ready to embark on the next island's adventure";
-
-        Debug.Log($"RestBreakManager: Block info updated. Completed block: {currentBlock}, Next block type: {nextBlockType}");
+        else
+        {
+            Debug.LogError("RestBreakManager: Required components not assigned!");
+        }
     }
-    else
-    {
-        Debug.LogError("RestBreakManager: Required components not assigned!");
-    }
-}
 
 
     private void UpdateScoreDisplay()

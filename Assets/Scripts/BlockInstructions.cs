@@ -137,13 +137,13 @@ public class BlockInstructions : MonoBehaviour
             case ExperimentManager.BlockType.HighLowRatio:
                 heading = "Green Island";
                 instructions = "Welcome to Green Island! Get ready for a new challenge!\n\n" +
-                               "Use your RIGHT hand (↑ ↓ ← →) to move the character and your LEFT hand (A / D) to make decisions.";
+                               "Use your RIGHT hand (← → ↑ ↓) to move the character and your LEFT hand (A / D) to make decisions.";
                 break;
 
             case ExperimentManager.BlockType.LowHighRatio:
                 heading = "Blue Island";
                 instructions = "Welcome to Blue Island! A different adventure awaits!\n\n" +
-                               "Use your RIGHT hand (↑ ↓ ← →) to move the character and your LEFT hand (A / D) to make decisions.";
+                               "Use your RIGHT hand (← → ↑ ↓) to move the character and your LEFT hand (A / D) to make decisions.";
                 break;
 
             // case ExperimentManager.BlockType.HighLowRatio: // 3:2:1 ratio
@@ -189,7 +189,12 @@ public class BlockInstructions : MonoBehaviour
     {
         if (canContinue && ExperimentManager.Instance != null)
         {
+            Debug.Log("Continuing after instructions...");
             ExperimentManager.Instance.ContinueAfterInstructions();
+        }
+        else
+        {
+            Debug.LogError("Cannot continue: ExperimentManager.Instance is null or not ready!");
         }
     }
 }

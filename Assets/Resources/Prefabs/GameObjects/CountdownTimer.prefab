@@ -46,3 +46,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   timerText: {fileID: 0}
   totalTime: 5
+  warningColor: {r: 0.69411767, g: 0.9254902, b: 0.18039216, a: 1}
+  normalColor: {r: 0.584, g: 0.761, b: 0.749, a: 1}

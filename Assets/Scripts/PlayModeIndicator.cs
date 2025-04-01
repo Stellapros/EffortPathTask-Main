@@ -27,7 +27,7 @@ public class PlayModeIndicator : MonoBehaviour
             return;
         }
         Instance = this;
-        
+
         // Hide initially
         HidePlayMode();
     }

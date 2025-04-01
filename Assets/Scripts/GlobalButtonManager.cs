@@ -19,6 +19,8 @@ public class ButtonNavigationController : MonoBehaviour
 
     [Header("Audio")]
     [SerializeField] private AudioClip buttonClickSound;
+    [SerializeField][Range(0f, 1f)] private float buttonClickVolume = 2.0f; // New volume slider
+    // [SerializeField][Range(0f, 1f)] private float buttonClickVolume = 0.8f; // Changed from 2.0f
 
     private AudioSource audioSource;
     private int currentElementIndex = -1;
@@ -45,6 +47,10 @@ public class ButtonNavigationController : MonoBehaviour
         }
 
         audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+
+
         CleanupNullElements();
         InitializeElementImages();
         ResetSelection();
@@ -226,17 +232,19 @@ public class ButtonNavigationController : MonoBehaviour
 
     private void HandleTwoButtonNavigation()
     {
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)) // Add A key
         {
             UpdateSelectedElement(0);
+            PlayButtonSound();
             if (navigationElements[0] is Button button)
             {
                 HandleButtonPress(button);
             }
         }
-        else if (Input.GetKeyDown(KeyCode.RightArrow))
+        else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) // Add D key
         {
             UpdateSelectedElement(1);
+            PlayButtonSound();
             if (navigationElements[1] is Button button)
             {
                 HandleButtonPress(button);
@@ -290,13 +298,14 @@ public class ButtonNavigationController : MonoBehaviour
     private void HandleButtonPress(Button button)
     {
         if (!button.interactable) return;
+        PlayButtonSound();
 
         if (elementImages.TryGetValue(button, out Image image))
         {
             image.color = selectedColor;
         }
 
-        PlayButtonSound();
+
         isProcessing = true;
         button.onClick.Invoke();
     }
@@ -480,7 +489,15 @@ public class ButtonNavigationController : MonoBehaviour
     {
         if (buttonClickSound != null && audioSource != null)
         {
-            audioSource.PlayOneShot(buttonClickSound);
+            // Use the serialized volume setting when playing the sound
+            audioSource.PlayOneShot(buttonClickSound, buttonClickVolume);
         }
+    }
+
+    // dd a public method to change volume dynamically if needed
+    public void SetButtonClickVolume(float volume)
+    {
+        // Clamp the volume between 0 and 1
+        buttonClickVolume = Mathf.Clamp01(volume);
     }
 }

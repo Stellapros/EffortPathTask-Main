@@ -146,36 +146,8 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 197052547065130213, guid: ab9f9bb94afc64c7e89ec2641835a2f1,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 4933914418194641467}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ab9f9bb94afc64c7e89ec2641835a2f1, type: 3}
---- !u!1 &5566513968756671615 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 197052547065130213, guid: ab9f9bb94afc64c7e89ec2641835a2f1,
-    type: 3}
-  m_PrefabInstance: {fileID: 5763526467369232538}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &4933914418194641467
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5566513968756671615}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a5df6673d4014458491c3531279b1f27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  moveStepSize: 1
-  pressesPerStep: 1
-  errorSound: {fileID: 0}
-  rewardSound: {fileID: 0}
-  stepSound: {fileID: 0}
-  gridManager: {fileID: 0}
 --- !u!4 &8537636995768627898 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4145545126596270624, guid: ab9f9bb94afc64c7e89ec2641835a2f1,

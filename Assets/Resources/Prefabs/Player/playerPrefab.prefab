@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 6382901151627789725}
   - component: {fileID: 100146633506672638}
   - component: {fileID: 4090338640933660404}
-  - component: {fileID: -2962316640211789633}
   m_Layer: 8
   m_Name: playerPrefab
   m_TagString: Player
@@ -151,24 +150,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5df6673d4014458491c3531279b1f27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxTrialDuration: 5
   moveStepSize: 1
   pressesPerStep: 1
   errorSound: {fileID: 8300000, guid: 1617e0d71b004419da18e026c82adefe, type: 3}
   rewardSound: {fileID: 8300000, guid: 5151f6de3fc24bc43a3c6daf0eb5ae1a, type: 3}
   stepSound: {fileID: 8300000, guid: 701f4fd2ed05a6e47a664dbe700d74b8, type: 3}
+  experimentManager: {fileID: 3127791733430911248, guid: 082b8600c17df4d43939728b5144dd10,
+    type: 3}
   gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
     type: 3}
   practiceManager: {fileID: 5028154936095916163, guid: cf96765f7320747d3a1db6abff587e85,
     type: 3}
---- !u!114 &-2962316640211789633
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 197052547065130213}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0a3947979421c427db793c838ff9b9c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 

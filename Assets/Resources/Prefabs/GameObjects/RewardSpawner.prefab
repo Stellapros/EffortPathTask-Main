@@ -45,11 +45,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   formalRewardPrefabs:
-  - {fileID: 5496166358235005989, guid: c6d232e5fd3e0495cbbbe7570d7614eb, type: 3}
-  - {fileID: 8022593480357226567, guid: fa3db00718bc74c898e62edd28433419, type: 3}
-  - {fileID: 1766563905567626122, guid: f8e91945949c349a5ad7d8796fd15fcc, type: 3}
-  - {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7, type: 3}
-  - {fileID: 9181912887003914726, guid: 989337141fe604338aed78ac97f42db1, type: 3}
+  - {fileID: 2455364387646690396, guid: 2c982f15987f5496db1024da6541a7d5, type: 3}
+  - {fileID: 9181912887003914726, guid: e9afca11aab434ac3bd360b44f3ec997, type: 3}
   - {fileID: 6861172893992282259, guid: ab4849fe315e544faabccbbeb391c3e6, type: 3}
   practiceRewardPrefabs:
   - {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7, type: 3}
@@ -61,5 +58,4 @@ MonoBehaviour:
     type: 3}
   practiceManager: {fileID: 5028154936095916163, guid: cf96765f7320747d3a1db6abff587e85,
     type: 3}
-  playerSpawner: {fileID: 9081304544560268536, guid: d85bd69af54564d66b9c7eca3ac10784,
-    type: 3}
+  playerSpawner: {fileID: 0}

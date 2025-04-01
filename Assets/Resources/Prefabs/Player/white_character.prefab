@@ -11,8 +11,9 @@ GameObject:
   - component: {fileID: 6924345294433410383}
   - component: {fileID: 6924345294433410377}
   - component: {fileID: 6924345294433410382}
-  - component: {fileID: 4729056459008004933}
-  - component: {fileID: 5200508945754502757}
+  - component: {fileID: -5990065668981552364}
+  - component: {fileID: -6676514014615051759}
+  - component: {fileID: 4534465745357466652}
   m_Layer: 8
   m_Name: white_character
   m_TagString: Player
@@ -112,16 +113,40 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!61 &4729056459008004933
-BoxCollider2D:
+--- !u!54 &-5990065668981552364
+Rigidbody:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6924345294433410380}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!65 &-6676514014615051759
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6924345294433410380}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -130,58 +155,31 @@ BoxCollider2D:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
   m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 0.83, y: 0.83}
-    newSize: {x: 0.83, y: 0.83}
-    adaptiveTilingThreshold: 0.5
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  m_Size: {x: 0.9, y: 0.9}
-  m_EdgeRadius: 0
---- !u!50 &5200508945754502757
-Rigidbody2D:
-  serializedVersion: 5
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.83, y: 0.83, z: 0.2}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &4534465745357466652
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6924345294433410380}
-  m_BodyType: 1
-  m_Simulated: 1
-  m_UseFullKinematicContacts: 0
-  m_UseAutoMass: 0
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_GravityScale: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_Interpolate: 0
-  m_SleepingMode: 0
-  m_CollisionDetection: 0
-  m_Constraints: 0
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5df6673d4014458491c3531279b1f27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveStepSize: 1
+  pressesPerStep: 1
+  errorSound: {fileID: 8300000, guid: 1617e0d71b004419da18e026c82adefe, type: 3}
+  rewardSound: {fileID: 8300000, guid: 5151f6de3fc24bc43a3c6daf0eb5ae1a, type: 3}
+  stepSound: {fileID: 8300000, guid: 701f4fd2ed05a6e47a664dbe700d74b8, type: 3}
+  gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
+    type: 3}
+  practiceManager: {fileID: 5028154936095916163, guid: cf96765f7320747d3a1db6abff587e85,
+    type: 3}
+  maxTrialDuration: 5

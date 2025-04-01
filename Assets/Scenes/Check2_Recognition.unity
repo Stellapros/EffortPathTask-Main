@@ -2021,9 +2021,9 @@ MonoBehaviour:
   watermelonPrefab: {fileID: 6861172893992282259, guid: c8ff6cf08c0a943e4a1c2c7da12fc22c,
     type: 3}
   fruitImage: {fileID: 278677199}
-  choice50Button: {fileID: 244580748}
-  choice70Button: {fileID: 1236967862}
-  choice90Button: {fileID: 188242553}
+  choice17Button: {fileID: 244580748}
+  choice33Button: {fileID: 1236967862}
+  choice50Button: {fileID: 188242553}
   questionText: {fileID: 597628993}
   debugText: {fileID: 949736822}
   trialIndexText: {fileID: 1843558512}

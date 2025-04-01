@@ -5,8 +5,6 @@ using UnityEngine.SceneManagement;
 using System.Linq;
 using TMPro;
 
-
-
 public class CheckManager1 : MonoBehaviour
 {
     [Header("Fruit Prefabs")]
@@ -34,7 +32,7 @@ public class CheckManager1 : MonoBehaviour
     private List<GameObject> fruitPool;
     private GameObject leftFruit;
     private GameObject rightFruit;
-    private int currentTrialNumber = 0;
+    private int currentTrialNumber = 1;
     private int checkQuestionsCompleted = 0;
     private bool isProcessing = false;
     private int currentSelection = -1;
@@ -60,12 +58,12 @@ public class CheckManager1 : MonoBehaviour
     {
         if (!isProcessing)
         {
-            if (Input.GetKeyDown(KeyCode.LeftArrow))
+            if (Input.GetKeyDown(KeyCode.A))
             {
                 currentSelection = 0;
                 UpdateButtonHighlight();
             }
-            else if (Input.GetKeyDown(KeyCode.RightArrow))
+            else if (Input.GetKeyDown(KeyCode.D))
             {
                 currentSelection = 1;
                 UpdateButtonHighlight();
@@ -182,7 +180,7 @@ public class CheckManager1 : MonoBehaviour
     {
         Debug.Log($"Processing Choice: Current Trial {currentTrialNumber + 1}, Total Pairs {fruitPairs.Count}");
 
-        if (currentTrialNumber >= fruitPairs.Count)
+        if (currentTrialNumber > fruitPairs.Count)
         {
             TransitionToNextScene();
             return;
@@ -192,81 +190,70 @@ public class CheckManager1 : MonoBehaviour
         var currentPair = fruitPairs[currentTrialNumber];
         Debug.Log($"Current Pair: {currentPair.Item1.name} vs {currentPair.Item2.name}");
 
-        bool correctChoice = false;
+        // bool correctChoice = false;
+        bool isCorrect = false;
 
         if (currentPair.Item1.name == "Apple" && currentPair.Item2.name == "Grapes")
         {
-            correctChoice = (leftFruit.name.Contains("Apple") && choice == "Left") ||
+            isCorrect = (leftFruit.name.Contains("Apple") && choice == "Left") ||
                             (rightFruit.name.Contains("Apple") && choice == "Right");
         }
         else if (currentPair.Item1.name == "Apple" && currentPair.Item2.name == "Watermelon")
         {
-            correctChoice = (leftFruit.name.Contains("Apple") && choice == "Left") ||
+            isCorrect = (leftFruit.name.Contains("Apple") && choice == "Left") ||
                             (rightFruit.name.Contains("Apple") && choice == "Right");
         }
         else if (currentPair.Item1.name == "Grapes" && currentPair.Item2.name == "Watermelon")
         {
-            correctChoice = (leftFruit.name.Contains("Grapes") && choice == "Left") ||
+            isCorrect = (leftFruit.name.Contains("Grapes") && choice == "Left") ||
                             (rightFruit.name.Contains("Grapes") && choice == "Right");
         }
         else if (currentPair.Item1.name == "Grapes" && currentPair.Item2.name == "Apple")
         {
-            correctChoice = (leftFruit.name.Contains("Apple") && choice == "Left") ||
+            isCorrect = (leftFruit.name.Contains("Apple") && choice == "Left") ||
                             (rightFruit.name.Contains("Apple") && choice == "Right");
         }
         else if (currentPair.Item1.name == "Watermelon" && currentPair.Item2.name == "Apple")
         {
-            correctChoice = (leftFruit.name.Contains("Apple") && choice == "Left") ||
+            isCorrect = (leftFruit.name.Contains("Apple") && choice == "Left") ||
                             (rightFruit.name.Contains("Apple") && choice == "Right");
         }
         else if (currentPair.Item1.name == "Watermelon" && currentPair.Item2.name == "Grapes")
         {
-            correctChoice = (leftFruit.name.Contains("Grapes") && choice == "Left") ||
+            isCorrect = (leftFruit.name.Contains("Grapes") && choice == "Left") ||
                             (rightFruit.name.Contains("Grapes") && choice == "Right");
         }
 
-        if (correctChoice)
+        if (isCorrect)
         {
             correctChoiceScore++;
         }
 
-        checkQuestionsCompleted++;
-        UpdateProgressText();
-        debugText.text += $"\nCorrect choice: {correctChoice} (Total: {correctChoiceScore})";
-
-        // LogManager.Instance.LogCheckQuestionResponse(
-        //     currentTrialNumber - 1,
-        //     checkQuestionsCompleted,
-        //     leftFruit ? leftFruit.name : "Unknown",
-        //     rightFruit ? rightFruit.name : "Unknown",
-        //     choice,
-        //     correctChoice
-        // );
-
         // Enhanced logging
+        Debug.Log($"Preparing to log trial {currentTrialNumber} (will be {currentTrialNumber + 1} in log)");
         LogManager.Instance.LogCheckQuestionResponse(
             trialNumber: currentTrialNumber,
             checkPhase: 1,
-            questionNumber: currentTrialNumber + 1,
+            questionNumber: currentTrialNumber,
             questionType: "FruitPreference",
-            questionText: instructionText.text,
-            selectedAnswer: choice,
-            correctAnswer: DetermineCorrectAnswer(currentPair),
-            isCorrect: correctChoice,
+            questionText: $"\"Choose preferred fruit between {leftFruit.name} and {rightFruit.name}\"",
+            selectedAnswer: isCorrect ? "T" : "F",
+            correctAnswer: "T",
+            isCorrect: isCorrect,
             responseTime: responseTime,
             new Dictionary<string, string>
             {
             {"LeftFruit", leftFruit.name},
-            {"RightFruit", rightFruit.name},
-            {"TotalTrials", numberOfCheckQuestions.ToString()},
-            {"CurrentScore", correctChoiceScore.ToString()}
+            {"RightFruit", rightFruit.name}
             }
         );
 
+        checkQuestionsCompleted++;
+        UpdateProgressText();
+        debugText.text += $"\nCorrect choice: {isCorrect} (Total: {correctChoiceScore})";
 
-        if (checkQuestionsCompleted >= numberOfCheckQuestions)
+        if (checkQuestionsCompleted > numberOfCheckQuestions)
         {
-            // Log phase completion
             LogManager.Instance.LogCheckPhaseComplete(
                 checkPhase: 1,
                 totalQuestions: numberOfCheckQuestions,
@@ -275,8 +262,7 @@ public class CheckManager1 : MonoBehaviour
                 phaseType: "PreferenceCheck",
                 new Dictionary<string, string>
                 {
-                {"AverageResponseTime", ((Time.time - phaseStartTime) / numberOfCheckQuestions).ToString("F2")},
-                {"CompletionStatus", "Finished"}
+                {"PercentageCorrect", ((float)correctChoiceScore / numberOfCheckQuestions * 100).ToString("F1") + "%"}
                 }
             );
         }
@@ -351,14 +337,13 @@ public class CheckManager1 : MonoBehaviour
         leftFruitImage.sprite = leftFruit.GetComponent<SpriteRenderer>().sprite;
         rightFruitImage.sprite = rightFruit.GetComponent<SpriteRenderer>().sprite;
 
-        instructionText.text = "In order to save energy, which fruit would you perfer to choose?";
+        instructionText.text = "In order to save energy, which fruit would you prefer to choose?";
         // buttonInstructionText.text = "Use ← → to choose; Press Space or Enter to confirm";
-        buttonInstructionText.text = "Use ←/→ to choose";
-
+        // buttonInstructionText.text = "Use A/D to choose";
+        buttonInstructionText.text = "Use A/D or ← → to choose";
         debugText.text = $"Trial {currentTrialNumber + 1} of {fruitPairs.Count}: {leftFruit.name} vs {rightFruit.name}";
         UpdateProgressText();
     }
-
 
     void GenerateFruitPairs()
     {
@@ -374,42 +359,6 @@ public class CheckManager1 : MonoBehaviour
         fruitPairs.Add((watermelonPrefab, applePrefab));  // Showing Apple preference
         fruitPairs.Add((watermelonPrefab, grapesPrefab)); // Showing Grapes preference
     }
-
-    // void ShufflePairs()
-    // {
-    //     var shuffledPairs = new List<(GameObject, GameObject)>();
-    //     var tempPairs = new List<(GameObject, GameObject)>(fruitPairs);
-
-    //     // Start with a random pair
-    //     int randomIndex = Random.Range(0, tempPairs.Count);
-    //     shuffledPairs.Add(tempPairs[randomIndex]);
-    //     tempPairs.RemoveAt(randomIndex);
-
-    //     // For each subsequent position
-    //     while (tempPairs.Count > 0)
-    //     {
-    //         // Get the last added pair for comparison
-    //         var lastPair = shuffledPairs[shuffledPairs.Count - 1];
-
-    //         // Find valid pairs that don't share fruits with the last pair
-    //         var validPairs = tempPairs.Where(p =>
-    //             !SharesFruits(p, lastPair)).ToList();
-
-    //         // If no valid pairs exist, just take any remaining pair
-    //         if (validPairs.Count == 0)
-    //         {
-    //             validPairs = tempPairs;
-    //         }
-
-    //         // Select a random pair from valid options
-    //         randomIndex = Random.Range(0, validPairs.Count);
-    //         shuffledPairs.Add(validPairs[randomIndex]);
-    //         tempPairs.Remove(validPairs[randomIndex]);
-    //     }
-
-    //     fruitPairs = shuffledPairs;
-    // }
-
 
     void ShufflePairs()
     {
@@ -493,6 +442,7 @@ public class CheckManager1 : MonoBehaviour
                pair1.Item2.name == pair2.Item1.name ||
                pair1.Item2.name == pair2.Item2.name;
     }
+
     void StartCheckQuestions()
     {
         checkQuestionsCompleted = 0;
