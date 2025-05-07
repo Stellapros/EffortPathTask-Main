@@ -9,6 +9,10 @@ using UnityEngine.EventSystems;
 
 public class ParticipantInfo : MonoBehaviour
 {
+    /// <summary>
+    /// This class handles the participant information form, including ID,
+    /// </summary>
+    
     [SerializeField] private TMP_InputField idInput;
     [SerializeField] private TMP_InputField ageInput;
     [SerializeField] private TMP_Dropdown genderDropdown;

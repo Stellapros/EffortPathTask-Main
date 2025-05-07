@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Collections;
 
 /// <summary>
 /// Manages the overall state and flow of the GridWorld game.
@@ -15,8 +16,6 @@ public class PracticeGridWorldManager : MonoBehaviour
 
     // Events
     public event System.Action<bool> OnTrialEnded;
-    // public event System.Action<int> OnRewardCollected;
-
     [Header("Core Components")]
     [SerializeField] private GameController gameController;
     [SerializeField] private PlayerSpawner playerSpawner;
@@ -133,15 +132,6 @@ public class PracticeGridWorldManager : MonoBehaviour
         }
     }
 
-    // private void EndTrialOnTimeUp()
-    // {
-    //     if (isTrialActive)
-    //     {
-    //         // EndPracticeGridWorldTrial(false);
-    //         EndTrial(false);
-    //     }
-    // }
-
     private void HandleTimerExpired()
     {
         // Automatically end the trial when timer expires
@@ -149,51 +139,60 @@ public class PracticeGridWorldManager : MonoBehaviour
         EndTrial(false);
     }
 
+
     public void EndTrial(bool rewardCollected)
     {
-        Debug.Log($"Practice GridWorld EndTrial called. Reward Collected: {rewardCollected}");
+        // Get the transaction ID that was stored in OnDecisionMade when work was chosen
+        string transactionId = PlayerPrefs.GetString("WorkDecisionTransactionId", "");
+
+        // Check if we've already processed this work decision
+        int isProcessed = PlayerPrefs.GetInt("WorkDecisionProcessed", 0);
+
+        // Add explicit logging for debugging
+        Debug.Log($"[GRIDWORLD-{transactionId}] End Trial called. Reward Collected: {rewardCollected}, IsProcessed: {isProcessed}");
+
+        // First check if this is even a Work decision
+        bool isWorkDecision = PlayerPrefs.GetInt("IsWorkDecision", 1) == 1;
+        if (!isWorkDecision)
+        {
+            Debug.LogWarning($"[GRIDWORLD-{transactionId}] EndTrial called for a Skip decision - this should never happen! Skipping advancement.");
+            return;
+        }
+
+        // If already processed, prevent double processing
+        if (isProcessed == 1)
+        {
+            Debug.Log($"[GRIDWORLD-{transactionId}] This work decision has already been processed. Preventing duplicate advancement.");
+            return;
+        }
+
+        // If trial is already not active, prevent double processing
+        if (!isTrialActive)
+        {
+            Debug.Log($"[GRIDWORLD-{transactionId}] Trial already ended, preventing double processing");
+            return;
+        }
+
+        // Mark trial as inactive IMMEDIATELY to prevent double processing
+        isTrialActive = false;
+
+        // CRITICAL: Mark this work decision as processed
+        PlayerPrefs.SetInt("WorkDecisionProcessed", 1);
+        PlayerPrefs.Save();
 
         // Log trial end
         int currentTrial = practiceManager?.GetCurrentPracticeTrialIndex() ?? 0;
         LogTrialEnd(currentTrial, rewardCollected);
 
-        // // Log outcome type
-        // LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
-        // {
-        //     {"TrialNumber", (currentTrial + 1).ToString()},
-        //     {"OutcomeType", rewardCollected ? "Success" : "Failure"}
-        // });
-
-        // if (rewardCollected)
-        // {
-        //     LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
-        //     {
-        //         {"TrialNumber", currentTrial.ToString()},
-        //         {"OutcomeType", "Success"}
-        //     });
-        // }
-        // else
-        // {
-        //     LogManager.Instance.LogEvent("OutcomeType", new Dictionary<string, string>
-        //     {
-        //         {"TrialNumber", currentTrial.ToString()},
-        //         {"OutcomeType", "Failure"}
-        //     });
-        // }
-
         // If reward is collected but timer hasn't expired, just mark it
         if (rewardCollected && countdownTimer != null && countdownTimer.TimeLeft > 0)
         {
-            // Disable further reward collection but don't end trial
+            // Disable further reward collection but don't end trial yet
             if (rewardSpawner != null)
             {
                 rewardSpawner.DisableRewardCollection();
             }
-            return;
         }
-
-        // If trial is already not active, return
-        if (!isTrialActive) return;
 
         // Stop the countdown timer
         if (countdownTimer != null)
@@ -201,8 +200,6 @@ public class PracticeGridWorldManager : MonoBehaviour
             countdownTimer.StopTimer();
             countdownTimer.OnTimerExpired -= HandleTimerExpired;
         }
-
-        isTrialActive = false;
 
         // Notify any listeners that the trial has ended
         OnTrialEnded?.Invoke(rewardCollected);
@@ -219,20 +216,49 @@ public class PracticeGridWorldManager : MonoBehaviour
             playerController.DisableMovement();
         }
 
-        // Handle practice trial completion through PracticeManager
+        // Store the transaction ID for verification
+        PlayerPrefs.SetString("GridWorldOutcomeTransactionId", transactionId);
+        PlayerPrefs.Save();
+
+        // IMPORTANT: Work trial, so isSkip should be false - use a delay to prevent race conditions
         if (practiceManager != null)
         {
-            practiceManager.HandleGridWorldOutcome(false);
+            // CRITICAL FIX: Increased delay from 1.0f to 1.5f for WebGL compatibility
+            StartCoroutine(CallHandleGridWorldOutcomeWithDelay(false, transactionId, 1.5f));
         }
         else
         {
-            Debug.LogError("PracticeManager is null when ending Practice GridWorld Trial!");
+            Debug.LogError($"[GRIDWORLD-{transactionId}] PracticeManager is null when ending Practice GridWorld Trial!");
         }
 
         // Ensure score persists
         if (PracticeScoreManager.Instance != null)
         {
-            Debug.Log($"Current Practice Score at EndTrial: {PracticeScoreManager.Instance.GetCurrentScore()}");
+            Debug.Log($"[GRIDWORLD-{transactionId}] Current Practice Score at EndTrial: {PracticeScoreManager.Instance.GetCurrentScore()}");
+        }
+    }
+
+    private IEnumerator CallHandleGridWorldOutcomeWithDelay(bool isSkip, string transactionId, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        // Log to confirm we're calling with the right parameters
+        Debug.Log($"Calling HandleGridWorldOutcome after delay. isSkip: {isSkip}, transactionId: {transactionId}");
+
+        // Check again if this transaction has been processed
+        int isProcessed = PlayerPrefs.GetInt("WorkDecisionProcessed", 0);
+        if (isProcessed != 1)
+        {
+            Debug.LogWarning($"WorkDecisionProcessed flag is not set when trying to call HandleGridWorldOutcome. This could cause double processing.");
+        }
+
+        if (practiceManager != null)
+        {
+            practiceManager.HandleGridWorldOutcome(isSkip, transactionId);
+        }
+        else
+        {
+            Debug.LogError("PracticeManager is null in delayed call!");
         }
     }
 

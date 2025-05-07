@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
+using BlockType; // Ensure this matches the namespace of your BlockType enum
+using System.Collections;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -11,11 +14,11 @@ using UnityEditor;
 
 public enum CellType { Empty, Floor, Wall }
 
-/// <summary>
-/// Manages the grid layout for the game, handling floor and wall positions.
-/// </summary>
 public class GridManager : MonoBehaviour
 {
+    /// <summary>
+    /// Manages the grid layout for the game, handling floor and wall positions.
+    /// </summary>
 
     [SerializeField] private int gridWidth = 18;
     [SerializeField] private int gridHeight = 10;
@@ -27,7 +30,6 @@ public class GridManager : MonoBehaviour
 
     [SerializeField] private GameObject wallTilePrefab;
 
-
     private CellType[,] grid;
     private List<Vector2Int> availableFloorPositions;
     private GameObject[,] gridObjects;
@@ -36,13 +38,258 @@ public class GridManager : MonoBehaviour
     private bool[,] occupiedPositions;
     // Add new field to track if we're persistent
     private bool isPersistent = false;
+    private bool isPracticeMode = false;
+    private bool isInitialized = false;
     private Transform poolContainer;
-
     public int GridWidth => gridWidth;
     public int GridHeight => gridHeight;
     private Vector2Int gridSize;
 
-    private bool isInitialized = false;
+    [SerializeField] private Color highLowRatioFloorColor = new Color(0.588f, 0.765f, 0.667f); // #96C3AA
+    [SerializeField] private Color lowHighRatioFloorColor = new Color(0.635f, 0.839f, 0.976f, 1f); // #a2d6f9 
+    [SerializeField] private Color equalRatioFloorColor = new Color(0.988f, 0.878f, 0.749f); // #FCDFCC
+
+    // new Color(0.561f, 0.788f, 0.227f); // #8fc93a 
+    // new Color(0.4f, 0.76f, 0.647f); // #66C2A5
+    // new Color(0.667f, 0.871f, 0.863f); // #AADEDC 
+    // new Color(0.529f, 0.808f, 0.922f); // #87CEEB
+    // new Color(0.686f, 0.902f, 0.788f); // #AFFACA
+    // new Color(0.690f, 0.894f, 0.733f); // #B0E4BB
+    // new Color(0.902f, 0.961f, 0.788f); // #E6F5C9  
+    // new Color(0.976f, 0.808f, 0.584f); // #F9CE95
+    // new Color(0.988f, 0.878f, 0.749f); // #FCDFCC
+    // new Color(0.976f, 0.694f, 0.447f); // #F9B16F
+    // new Color(0.843f, 0.749f, 0.984f); // #D7BFFB
+    // new Color(0.784f, 0.729f, 0.902f) // #C8BADC
+    // new Color(0.843f, 0.804f, 0.918f) // #D7CDEA
+
+    private ExperimentManager.BlockType currentBlockType = ExperimentManager.BlockType.HighLowRatio;
+    // private Dictionary<GameObject, Material> tileMaterials = new Dictionary<GameObject, Material>();
+    // [SerializeField] private Material highLowRatioMaterial; // Assign in inspector
+    // [SerializeField] private Material lowHighRatioMaterial; // Assign in inspector
+    private Material currentFloorMaterial;
+    private MaterialPropertyBlock propertyBlock;
+    private Coroutine colorTransitionCoroutine;
+    private List<Renderer> cachedFloorRenderers = new List<Renderer>();
+    private bool blockTypeExplicitlySet = false;
+
+    private void Start()
+    {
+        // Remove the line that sets currentBlockType from ExperimentManager.Instance
+        // Instead, only set it if it wasn't explicitly set through SetBlockType
+        if (!blockTypeExplicitlySet)
+        {
+            currentBlockType = ExperimentManager.Instance.GetCurrentBlockType();
+            Debug.Log($"Start: Initial block type is {currentBlockType} (from ExperimentManager)");
+        }
+        else
+        {
+            Debug.Log($"Start: Using explicitly set block type: {currentBlockType}");
+        }
+
+        // Cache renderers early
+        CacheFloorRenderers();
+
+        // Apply initial colors
+        ForceDirectColorUpdate();
+    }
+    public void SetBlockType(ExperimentManager.BlockType newBlockType)
+    {
+        Debug.Log($"<color=red>SetBlockType called with: {newBlockType}, current is: {currentBlockType}</color>");
+
+        // Flag that block type was explicitly set
+        blockTypeExplicitlySet = true;
+
+        if (currentBlockType != newBlockType)
+        {
+            Debug.Log($"<color=green>BLOCK TYPE CHANGED: {currentBlockType} -> {newBlockType}</color>");
+            currentBlockType = newBlockType;
+
+            // Debug the current block type after setting
+            Debug.Log($"<color=yellow>currentBlockType is now: {newBlockType}</color>");
+
+            // Get the color that will be used
+            Color newColor = GetCurrentFloorColor();
+            Debug.Log($"<color=yellow>New color will be: {newColor}</color>");
+
+            // Cache floor renderers if not done already
+            if (cachedFloorRenderers.Count == 0)
+            {
+                CacheFloorRenderers();
+            }
+
+            // Stop any running transition
+            if (colorTransitionCoroutine != null)
+                StopCoroutine(colorTransitionCoroutine);
+
+            // Start new transition immediately
+            colorTransitionCoroutine = StartCoroutine(TransitionFloorColors(0.1f));
+        }
+    }
+
+    private IEnumerator TransitionFloorColors(float duration)
+    {
+        // Get the correct target color
+        Color targetColor = GetCurrentFloorColor();
+
+        // Make sure we have floor renderers
+        if (cachedFloorRenderers.Count == 0)
+        {
+            CacheFloorRenderers();
+        }
+
+        // If still empty, try direct update instead
+        if (cachedFloorRenderers.Count == 0)
+        {
+            ForceDirectColorUpdate();
+            yield break;
+        }
+
+        // Get current color from first renderer if available
+        Color startColor = Color.white;
+        if (cachedFloorRenderers.Count > 0 && cachedFloorRenderers[0] != null)
+        {
+            startColor = cachedFloorRenderers[0].material.color;
+        }
+
+        float elapsed = 0;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0, 1, elapsed / duration); // Use SmoothStep for nicer easing
+            Color lerpedColor = Color.Lerp(startColor, targetColor, t);
+
+            // Apply the lerped color
+            foreach (Renderer renderer in cachedFloorRenderers)
+            {
+                if (renderer != null)
+                    renderer.material.color = lerpedColor;
+            }
+
+            yield return null;
+        }
+
+        // Ensure final color is applied
+        foreach (Renderer renderer in cachedFloorRenderers)
+        {
+            if (renderer != null)
+                renderer.material.color = targetColor;
+        }
+
+        Debug.Log($"Floor color transition complete: {targetColor}");
+    }
+
+    private void CacheFloorRenderers()
+    {
+        cachedFloorRenderers.Clear();
+
+        // First check if we can get floor tiles from gridObjects
+        if (gridObjects != null)
+        {
+            for (int x = 0; x < gridWidth; x++)
+            {
+                for (int y = 0; y < gridHeight; y++)
+                {
+                    if (gridObjects[x, y] != null &&
+                        (gridObjects[x, y].name.Contains("Floor") || gridObjects[x, y].CompareTag("FloorTile")))
+                    {
+                        Renderer renderer = gridObjects[x, y].GetComponent<Renderer>();
+                        if (renderer != null)
+                        {
+                            cachedFloorRenderers.Add(renderer);
+                        }
+                    }
+                }
+            }
+        }
+
+        // If nothing found, search the scene
+        if (cachedFloorRenderers.Count == 0)
+        {
+            Renderer[] allRenderers = FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+
+            foreach (Renderer renderer in allRenderers)
+            {
+                if (renderer.gameObject.name.Contains("Floor") ||
+                    (renderer.gameObject.CompareTag("FloorTile")))
+                {
+                    cachedFloorRenderers.Add(renderer);
+                }
+            }
+        }
+
+        Debug.Log($"Cached {cachedFloorRenderers.Count} floor renderers for quick access");
+    }
+
+
+    private void ForceDirectColorUpdate()
+    {
+        Color targetColor = GetCurrentFloorColor();
+        Debug.Log($"Setting floor tiles to color: {targetColor} for BlockType: {currentBlockType}");
+
+        // Find all renderers in the scene
+        Renderer[] allRenderers = FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+        int updated = 0;
+
+        foreach (Renderer renderer in allRenderers)
+        {
+            if (renderer.gameObject.name.Contains("Floor") ||
+                (renderer.gameObject.tag == "FloorTile"))
+            {
+                // Apply the color immediately
+                renderer.material.color = targetColor;
+                updated++;
+            }
+        }
+
+        Debug.Log($"Updated {updated} renderers with color {targetColor}");
+    }
+
+    public void SetPracticeMode(bool isPractice)
+    {
+        if (isPracticeMode != isPractice)
+        {
+            isPracticeMode = isPractice;
+            Debug.Log($"<color=blue>Practice mode set to: {isPracticeMode}</color>");
+
+            // Update colors immediately
+            if (colorTransitionCoroutine != null)
+                StopCoroutine(colorTransitionCoroutine);
+
+            colorTransitionCoroutine = StartCoroutine(TransitionFloorColors(0f));
+        }
+    }
+
+    private Color GetCurrentFloorColor()
+    {
+        // // First check if we're in practice mode, if yes, return the equalRatioFloorColor color
+        // // Since now, we have all Blocktypes in practice, so comment this out
+        // if (isPracticeMode)
+        // {
+        //     Debug.Log($"In practice mode, returning equalRatioFloorColor: {equalRatioFloorColor}");
+        //     return equalRatioFloorColor;
+        // }
+
+        Debug.Log($"Getting floor color for BlockType: {currentBlockType}");
+
+        switch (currentBlockType)
+        {
+            case ExperimentManager.BlockType.HighLowRatio:
+                Debug.Log($"Returning highLowRatioFloorColor: {highLowRatioFloorColor}");
+                return highLowRatioFloorColor;
+            case ExperimentManager.BlockType.LowHighRatio:
+                Debug.Log($"Returning lowHighRatioFloorColor: {lowHighRatioFloorColor}");
+                return lowHighRatioFloorColor;
+            case ExperimentManager.BlockType.EqualRatio:
+                Debug.Log($"Returning equalRatioFloorColor: {equalRatioFloorColor}");
+                return equalRatioFloorColor;
+            default:
+                Debug.Log($"Returning default color (equalRatioFloorColor): {equalRatioFloorColor}");
+                return equalRatioFloorColor;
+        }
+    }
+
 
     public void Initialize()
     {
@@ -82,6 +329,33 @@ public class GridManager : MonoBehaviour
         CreatePoolContainer();
         InitializeGrid();
         InitializeObjectPools();
+
+        // Initialize property block
+        propertyBlock = new MaterialPropertyBlock();
+
+        // Debug load the prefab
+        floorTilePrefab = Resources.Load<GameObject>("Prefabs/Floors/Floor");
+        if (floorTilePrefab == null)
+        {
+            Debug.LogError("FLOOR PREFAB NOT FOUND AT: Prefabs/Floors/Floor");
+            return;
+        }
+
+        // Verify the prefab has a renderer
+        var prefabRenderer = floorTilePrefab.GetComponent<Renderer>();
+        if (prefabRenderer == null)
+        {
+            Debug.LogError("FLOOR PREFAB HAS NO RENDERER COMPONENT");
+        }
+        else
+        {
+            Debug.Log($"Prefab material: {prefabRenderer.sharedMaterial.name}");
+        }
+
+        if (PracticeManager.Instance != null)
+        {
+            PracticeManager.Instance.RegisterGridManager(this);
+        }
     }
 
     private void CreatePoolContainer()
@@ -163,7 +437,8 @@ public class GridManager : MonoBehaviour
         // Try to load prefabs from Resources if they're not assigned
         if (floorTilePrefab == null)
         {
-            floorTilePrefab = Resources.Load<GameObject>("Prefabs/FloorTile");
+            // floorTilePrefab = Resources.Load<GameObject>("Prefabs/FloorTile");
+            floorTilePrefab = Resources.Load<GameObject>(" Assets/Resources/Prefabs/Floors/Floor.prefab");
             if (floorTilePrefab == null)
             {
                 Debug.LogError("GridManager: Floor tile prefab is not assigned and couldn't be loaded from Resources/Prefabs/FloorTile!");
@@ -272,42 +547,91 @@ public class GridManager : MonoBehaviour
         }
     }
 
+    //     private GameObject InstantiatePrefab(GameObject prefab)
+    //     {
+    //         if (prefab == null) return null;
+
+    //         GameObject instance;
+    // #if UNITY_EDITOR
+    //         instance = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+    // #else
+    //         instance = Instantiate(prefab);
+    // #endif
+
+    //         if (instance == null)
+    //         {
+    //             Debug.LogError($"GridManager: Failed to instantiate prefab {prefab.name}");
+    //             return null;
+    //         }
+
+    //         if (isPersistent)
+    //         {
+    //             SceneManager.MoveGameObjectToScene(instance, SceneManager.GetActiveScene());
+    //         }
+
+    //         instance.SetActive(false);
+
+    // #if UNITY_EDITOR
+    //         if (!PrefabUtility.IsPartOfPrefabAsset(instance))
+    //         {
+    //             instance.transform.SetParent(poolContainer, false);
+    //         }
+    // #else
+    //         instance.transform.SetParent(poolContainer, false);
+    // #endif
+
+    //         return instance;
+    //     }
+
+
     private GameObject InstantiatePrefab(GameObject prefab)
     {
         if (prefab == null) return null;
-
         GameObject instance;
 #if UNITY_EDITOR
         instance = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
 #else
-        instance = Instantiate(prefab);
+    instance = Instantiate(prefab);
 #endif
-
         if (instance == null)
         {
             Debug.LogError($"GridManager: Failed to instantiate prefab {prefab.name}");
             return null;
         }
 
+        // Set color for floor tiles
+        if (prefab == floorTilePrefab)
+        {
+            Renderer tileRenderer = instance.GetComponent<Renderer>();
+            if (tileRenderer != null)
+            {
+                // Use the current material if available, otherwise just set the color
+                if (currentFloorMaterial != null)
+                {
+                    tileRenderer.sharedMaterial = currentFloorMaterial;
+                }
+                else
+                {
+                    tileRenderer.material.color = GetCurrentFloorColor();
+                }
+            }
+        }
+
         if (isPersistent)
         {
             SceneManager.MoveGameObjectToScene(instance, SceneManager.GetActiveScene());
         }
-
         instance.SetActive(false);
-
 #if UNITY_EDITOR
         if (!PrefabUtility.IsPartOfPrefabAsset(instance))
         {
             instance.transform.SetParent(poolContainer, false);
         }
 #else
-        instance.transform.SetParent(poolContainer, false);
+    instance.transform.SetParent(poolContainer, false);
 #endif
-
         return instance;
     }
-
 
     public void ShowGrid()
     {
@@ -592,19 +916,32 @@ public class GridManager : MonoBehaviour
     //     );
     // }
 
+    // public Vector2 GridToWorldPosition(Vector2Int gridPos)
+    // {
+    //     // Calculate the exact center of the grid
+    //     float gridCenterX = (gridWidth - 1) * cellSize * 0.5f;
+    //     float gridCenterY = (gridHeight - 1) * cellSize * 0.5f;
+
+    //     // Calculate world position, accounting for grid center
+    //     Vector2 worldPos = new Vector2(
+    //         gridPos.x * cellSize - gridCenterX,
+    //         gridPos.y * cellSize - gridCenterY
+    //     );
+
+    //     return worldPos;
+    // }
+
     public Vector2 GridToWorldPosition(Vector2Int gridPos)
     {
-        // Calculate the exact center of the grid
-        float gridCenterX = (gridWidth - 1) * cellSize * 0.5f;
-        float gridCenterY = (gridHeight - 1) * cellSize * 0.5f;
+        // Calculate the exact center of the grid (using cell centers)
+        float gridCenterX = gridWidth * cellSize * 0.5f;
+        float gridCenterY = gridHeight * cellSize * 0.5f;
 
-        // Calculate world position, accounting for grid center
-        Vector2 worldPos = new Vector2(
-            gridPos.x * cellSize - gridCenterX,
-            gridPos.y * cellSize - gridCenterY
-        );
+        // Calculate world position, with cell center offset
+        float worldX = (gridPos.x + 0.5f) * cellSize - gridCenterX;
+        float worldY = (gridPos.y + 0.5f) * cellSize - gridCenterY;
 
-        return worldPos;
+        return new Vector2(worldX, worldY);
     }
 
     // public Vector2Int WorldToGridPosition(Vector2 worldPosition)
@@ -622,30 +959,43 @@ public class GridManager : MonoBehaviour
     //     );
     // }
 
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.green;
-        Vector2 walkableMin = GridToWorldPosition(new Vector2Int(1, 1));
-        Vector2 walkableMax = GridToWorldPosition(new Vector2Int(gridWidth - 2, gridHeight - 2));
-        Gizmos.DrawWireCube((walkableMin + walkableMax) * 0.5f, walkableMax - walkableMin);
-    }
 
+    // public Vector2Int WorldToGridPosition(Vector2 worldPosition)
+    // {
+    //     // Calculate grid center (accounting for cellSize)
+    //     float gridCenterX = (gridWidth * cellSize) / 2f;
+    //     float gridCenterY = (gridHeight * cellSize) / 2f;
+
+    //     // Convert world position to grid space (with proper offset)
+    //     float gridX = (worldPosition.x + gridCenterX) / cellSize;
+    //     float gridY = (worldPosition.y + gridCenterY) / cellSize;
+
+    //     // Clamp to ensure it stays within grid bounds
+    //     int x = Mathf.Clamp(Mathf.FloorToInt(gridX), 0, gridWidth - 1);
+    //     int y = Mathf.Clamp(Mathf.FloorToInt(gridY), 0, gridHeight - 1);
+
+    //     return new Vector2Int(x, y);
+    // }
 
     public Vector2Int WorldToGridPosition(Vector2 worldPosition)
     {
-        // Calculate grid center (accounting for cellSize)
-        float gridCenterX = (gridWidth * cellSize) / 2f;
-        float gridCenterY = (gridHeight * cellSize) / 2f;
+        // Calculate the exact center of the grid
+        float gridCenterX = gridWidth * cellSize * 0.5f;
+        float gridCenterY = gridHeight * cellSize * 0.5f;
 
-        // Convert world position to grid space (with proper offset)
-        float gridX = (worldPosition.x + gridCenterX) / cellSize;
-        float gridY = (worldPosition.y + gridCenterY) / cellSize;
+        // Offset the world position by the grid center
+        float offsetX = worldPosition.x + gridCenterX;
+        float offsetY = worldPosition.y + gridCenterY;
+
+        // Convert to grid coordinates, accounting for cell centers
+        int gridX = Mathf.FloorToInt(offsetX / cellSize);
+        int gridY = Mathf.FloorToInt(offsetY / cellSize);
 
         // Clamp to ensure it stays within grid bounds
-        int x = Mathf.Clamp(Mathf.FloorToInt(gridX), 0, gridWidth - 1);
-        int y = Mathf.Clamp(Mathf.FloorToInt(gridY), 0, gridHeight - 1);
+        gridX = Mathf.Clamp(gridX, 0, gridWidth - 1);
+        gridY = Mathf.Clamp(gridY, 0, gridHeight - 1);
 
-        return new Vector2Int(x, y);
+        return new Vector2Int(gridX, gridY);
     }
 
     public class ObjectPool
@@ -789,6 +1139,20 @@ public class GridManager : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        // Schedule a delayed color update to catch any floor tiles that might be created later
+        StartCoroutine(DelayedColorUpdate());
+    }
+
+    private IEnumerator DelayedColorUpdate()
+    {
+        // Wait for end of frame to ensure all objects are created
+        yield return new WaitForEndOfFrame();
+
+        // Wait an additional short time to be sure
+        yield return new WaitForSeconds(0.01f);
+
+        // Force update colors
+        ForceDirectColorUpdate();
     }
 
     private void OnDisable()
@@ -824,5 +1188,10 @@ public class GridManager : MonoBehaviour
         {
             Destroy(poolContainer.gameObject);
         }
+    }
+
+    internal Vector2 GridToWorldPosition(Vector2 vector2)
+    {
+        throw new NotImplementedException();
     }
 }

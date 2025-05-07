@@ -41,9 +41,9 @@ public class ExperimentManager : MonoBehaviour
     // Add block type enum
     public enum BlockType
     {
-        HighLowRatio,  // 3:2:1 ratio (more oranges)
-        LowHighRatio   // 1:2:3 ratio (more cherries)
-        // EqualRatio     // 1:1:1
+        HighLowRatio,  // 3:2:1 ratio (more apples)
+        LowHighRatio,   // 1:2:3 ratio (more watermelons)
+        EqualRatio     // 1:1:1
     }
     public BlockType currentBlockType;
     public BlockType[] randomizedBlockOrder;
@@ -626,6 +626,58 @@ public class ExperimentManager : MonoBehaviour
         Debug.Log($"Reset block ratios for Block {currentBlockNumber + 1} ({blockType}): " +
                   $"Low={blockRatios[1]}, Medium={blockRatios[2]}, High={blockRatios[3]}, Total parts={totalRatioParts}");
     }
+
+
+    // Reset block ratios for a specific block type (for practice mode)
+    public void ResetBlockRatiosForType(BlockType blockType)
+    {
+        // Make sure dictionary is created
+        if (blockRatios == null)
+            blockRatios = new Dictionary<int, int>();
+        else
+            blockRatios.Clear();
+
+        // Reset trial counts array
+        trialCountsByEffortLevel = new int[4]; // Reset counts
+
+        // Set ratios based on block type
+        switch (blockType)
+        {
+            case BlockType.HighLowRatio:
+                blockRatios[1] = 3; // Low effort
+                blockRatios[2] = 2; // Medium effort
+                blockRatios[3] = 1; // High effort
+                break;
+            case BlockType.LowHighRatio:
+                blockRatios[1] = 1; // Low effort
+                blockRatios[2] = 2; // Medium effort
+                blockRatios[3] = 3; // High effort
+                break;
+            case BlockType.EqualRatio:
+                blockRatios[1] = 1; // Low effort
+                blockRatios[2] = 1; // Medium effort
+                blockRatios[3] = 1; // High effort
+                break;
+        }
+
+        totalRatioParts = 0;
+        foreach (var kvp in blockRatios)
+        {
+            totalRatioParts += kvp.Value;
+        }
+
+        Debug.Log($"Reset block ratios for practice block ({blockType}): " +
+                  $"Low={blockRatios[1]}, Medium={blockRatios[2]}, High={blockRatios[3]}, Total parts={totalRatioParts}");
+    }
+
+    // Getter for block ratios (for practice mode)
+    public Dictionary<int, int> GetCurrentBlockRatios()
+    {
+        return blockRatios;
+    }
+
+
+
 
     private int GetNextEffortLevelByRatio()
     {
@@ -1415,6 +1467,12 @@ public class ExperimentManager : MonoBehaviour
             return;
         }
 
+        // Ensure GridManager knows the current block type
+        if (gridManager != null)
+        {
+            gridManager.SetBlockType(randomizedBlockOrder[currentBlockNumber]);
+        }
+
         // Ensure block ratios are initialized
         ResetBlockRatios();
 
@@ -1438,6 +1496,61 @@ public class ExperimentManager : MonoBehaviour
     /// <summary>
     /// Starts a new block of trials.
     /// </summary>
+    //     private void StartNewBlock()
+    //     {
+    //         // Reset all decision-related states
+    //         decisionMade = false;
+    //         trialStarted = false;
+
+    //         if (decisionTimeoutCoroutine != null)
+    //         {
+    //             StopCoroutine(decisionTimeoutCoroutine);
+    //             decisionTimeoutCoroutine = null;
+    //         }
+
+    //         // blockStartTime = Time.time; // MUST reset timer
+    //         blockStartTime = Time.unscaledTime;
+    //         blockTimer = 0f;
+
+    // #if UNITY_WEBGL
+    //         Debug.Log("WebGL build - applying timing adjustments");
+    // #endif
+
+    //         // currentBlockRemainingTime = BLOCK_DURATION;
+
+    //         // Debug verification
+    //         Debug.Log($"Block {currentBlockNumber} started at: {blockStartTime} | " +
+    //                   $"Current Time: {Time.time}");
+
+    //         // Fresh initialization for each block
+    //         gridManager.EnsureInitialization();
+    //         gridManager.ResetAvailablePositions();
+
+    //         // Reset the trial counts and ratios for the new block
+    //         ResetBlockRatios();
+
+    //         // Reset additional tracking arrays/dictionaries
+    //         trials.Clear(); // Clear existing trials
+    //         currentTrialIndex = 0;
+
+    //         // Log the ratio for the current block
+    //         BlockType blockType = randomizedBlockOrder[currentBlockNumber];
+    //         Debug.Log($"Starting Block {currentBlockNumber + 1} ({blockType}) with ratio: " +
+    //                   $"Low={blockRatios[1]}, Medium={blockRatios[2]}, High={blockRatios[3]}");
+
+    //         // State flags
+    //         isBlockActive = false; // Block timer is not active yet
+    //         isBlockTimeUp = false;
+    //         trialStarted = false;
+    //         decisionMade = false;
+
+    //         Debug.Log($"Block {currentBlockNumber + 1} ready. Timer will start after clicking 'Continue'.");
+    //     }
+
+
+    /// <summary>
+    /// Starts a new block of trials.
+    /// </summary>
     private void StartNewBlock()
     {
         // Reset all decision-related states
@@ -1450,7 +1563,7 @@ public class ExperimentManager : MonoBehaviour
             decisionTimeoutCoroutine = null;
         }
 
-        // blockStartTime = Time.time; // MUST reset timer
+        // Reset timer
         blockStartTime = Time.unscaledTime;
         blockTimer = 0f;
 
@@ -1458,11 +1571,26 @@ public class ExperimentManager : MonoBehaviour
         Debug.Log("WebGL build - applying timing adjustments");
 #endif
 
-        // currentBlockRemainingTime = BLOCK_DURATION;
-
         // Debug verification
         Debug.Log($"Block {currentBlockNumber} started at: {blockStartTime} | " +
                   $"Current Time: {Time.time}");
+
+        // Notify GridManager of block type change - ADD THIS:
+        if (gridManager != null)
+        {
+            BlockType newBlockType = randomizedBlockOrder[currentBlockNumber];
+            Debug.Log($"<color=cyan>Starting Block {currentBlockNumber} with type: {newBlockType}</color>");
+
+            // Force show grid first if hidden
+            gridManager.ShowGrid();
+
+            // Update block type and colors
+            gridManager.SetBlockType(newBlockType);
+        }
+        else
+        {
+            Debug.LogError("GridManager reference is null!");
+        }
 
         // Fresh initialization for each block
         gridManager.EnsureInitialization();
@@ -1488,6 +1616,8 @@ public class ExperimentManager : MonoBehaviour
 
         Debug.Log($"Block {currentBlockNumber + 1} ready. Timer will start after clicking 'Continue'.");
     }
+
+
 
     /// <summary>
     /// Ends the current block of trials.
@@ -1842,6 +1972,18 @@ public class ExperimentManager : MonoBehaviour
     // public List<Vector2> GetRewardPositions() => rewardPositions;
     // public List<(float collisionTime, float movementDuration)> GetRewardCollectionTimings() => rewardCollectionTimings;
     #endregion
+
+
+    private void OnApplicationQuit()
+    {
+        // Clear all saved PlayerPrefs data
+        PlayerPrefs.DeleteAll();
+        // Optional: Ensure the data is written immediately
+        PlayerPrefs.Save();
+
+        Debug.Log("PlayerPrefs cleared on application quit");
+    }
+
 
     /// <summary>
     /// Represents a single trial in the experiment.

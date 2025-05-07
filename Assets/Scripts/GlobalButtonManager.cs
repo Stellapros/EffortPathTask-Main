@@ -13,9 +13,9 @@ public class ButtonNavigationController : MonoBehaviour
     [SerializeField] public bool useHorizontalNavigation = true;
 
     [Header("Button Colors")]
-    [SerializeField] private Color normalColor = new Color(0.67f, 0.87f, 0.86f);
-    [SerializeField] private Color selectedColor = new Color(0.87f, 0.86f, 0.67f);
-    [SerializeField] private Color disabledColor = new Color(0.7f, 0.7f, 0.7f);
+    [SerializeField] private Color normalColor = new Color(0.67f, 0.87f, 0.86f); // #A9E0DB
+    [SerializeField] private Color selectedColor = new Color(0.87f, 0.86f, 0.67f); // #E0E0A1
+    [SerializeField] private Color disabledColor = new Color(0.7f, 0.7f, 0.7f); //  #B3B3B3
 
     [Header("Audio")]
     [SerializeField] private AudioClip buttonClickSound;
@@ -499,5 +499,10 @@ public class ButtonNavigationController : MonoBehaviour
     {
         // Clamp the volume between 0 and 1
         buttonClickVolume = Mathf.Clamp01(volume);
+    }
+
+    internal void AddElement(GameObject restartButton)
+    {
+        throw new System.NotImplementedException();
     }
 }

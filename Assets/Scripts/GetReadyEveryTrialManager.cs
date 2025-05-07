@@ -51,9 +51,10 @@ public class GetReadyEveryTrialManager : MonoBehaviour
         if (trialCounterText != null && practiceManager != null)
         {
             int currentTrialIndex = practiceManager.GetCurrentPracticeTrialIndex() + 1;
-            int totalPracticeTrials = practiceManager.GetTotalPracticeTrials(); // This matches the totalPracticeTrials in PracticeManager
+            // int totalPracticeTrials = practiceManager.GetTotalPracticeTrials(); // This matches the totalPracticeTrials in PracticeManager
 
-            trialCounterText.text = $"Practice Trial {currentTrialIndex} of {totalPracticeTrials}";
+            // trialCounterText.text = $"Practice Trial {currentTrialIndex} of {totalPracticeTrials}";
+            trialCounterText.text = $"Trial {currentTrialIndex}";
         }
     }
 
@@ -63,7 +64,7 @@ public class GetReadyEveryTrialManager : MonoBehaviour
         if (blockCounterText != null)
         {
             // For practice, we'll just show "Practice Block"
-            blockCounterText.text = "Practice Block";
+            blockCounterText.text = "Practice:";
         }
     }
 

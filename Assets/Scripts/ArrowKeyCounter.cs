@@ -1,6 +1,6 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 using UnityEngine.SceneManagement;
 using System.Collections;
 using System.Linq;
@@ -8,6 +8,10 @@ using System.Collections.Generic;
 
 public class ArrowKeyCounter : MonoBehaviour
 {
+    /// <summary>
+    /// This script manages the calibration process for the arrow key counter.
+    /// </summary>
+    
     [Header("UI References")]
     public TextMeshProUGUI counterText;
     public TextMeshProUGUI timerText;
@@ -17,7 +21,6 @@ public class ArrowKeyCounter : MonoBehaviour
 
     [Header("Loggings")]
     private LogManager logManager;
-    // private int calibrationPhaseNumber = 0;
     private float lastKeyPressTime;
     private System.Collections.Generic.List<float> interKeyIntervals = new System.Collections.Generic.List<float>();
 
@@ -179,8 +182,6 @@ public class ArrowKeyCounter : MonoBehaviour
         SceneManager.LoadScene(previousSceneName);
     }
 
-
-
     private void UpdateProgressBar()
     {
         if (progressBarFill != null)
@@ -195,7 +196,6 @@ public class ArrowKeyCounter : MonoBehaviour
             }
         }
     }
-
 
     private void ResetProgressBar()
     {
@@ -329,7 +329,7 @@ public class ArrowKeyCounter : MonoBehaviour
     // }
 
 
-    // Add this new method to handle potential WebGL focus issues
+    // Nw method to handle potential WebGL focus issues
     private void OnApplicationFocus(bool hasFocus)
     {
         if (Application.platform == RuntimePlatform.WebGLPlayer)
@@ -387,7 +387,6 @@ public class ArrowKeyCounter : MonoBehaviour
         pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressesPerMovement * 0.20f));
         pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressesPerMovement * 0.40f));
         pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressesPerMovement * 0.60f));
-
 
         // // Ensure minimum difference of 2 between levels
         // for (int i = 1; i < pressesPerEffortLevel.Length; i++)

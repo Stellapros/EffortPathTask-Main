@@ -320,6 +320,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
     type: 3}
+  bufferPercentage: 15
+  minBuffer: 1.2
+  zPosition: -10
 --- !u!1 &188394631
 GameObject:
   m_ObjectHideFlags: 0
@@ -1063,6 +1066,58 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c50b06d2d146945deaaedd43f152efe0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &680750462
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 680750464}
+  - component: {fileID: 680750463}
+  m_Layer: 0
+  m_Name: PracticeManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &680750463
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 680750462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7ac9a1e41f9c4b4abc9b5dfd4fbacdb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  decisionPhaseScene: PracticeDecisionPhase
+  getReadyCheckScene: GetReadyCheck
+  blockInstructionScene: PracticeBlockInstruction
+  instructionText: {fileID: 0}
+  appleSprite: {fileID: 21300000, guid: c2ce07b4cfe39e340b8238f75e7a21d2, type: 3}
+  grapesSprite: {fileID: 21300018, guid: c2ce07b4cfe39e340b8238f75e7a21d2, type: 3}
+  watermelonSprite: {fileID: 21300012, guid: c2ce07b4cfe39e340b8238f75e7a21d2, type: 3}
+  keepCursorHidden: 1
+--- !u!4 &680750464
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 680750462}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &727259730
 GameObject:
   m_ObjectHideFlags: 0
@@ -1365,8 +1420,8 @@ MonoBehaviour:
   navigationElements: []
   useHorizontalNavigation: 1
   normalColor: {r: 0.6666667, g: 0.87058824, b: 0.8627451, a: 1}
-  selectedColor: {r: 0.6666667, g: 0.87058824, b: 0.8627451, a: 1}
-  disabledColor: {r: 0.7, g: 0.7, b: 0.7, a: 1}
+  selectedColor: {r: 0.8784314, g: 0.8784314, b: 0.6313726, a: 1}
+  disabledColor: {r: 0.7019608, g: 0.7019608, b: 0.7019608, a: 1}
   buttonClickSound: {fileID: 8300000, guid: eea496a1404bd450181a09bc7b6f7b1c, type: 3}
   buttonClickVolume: 0.5
   isProcessing: 0
@@ -1432,7 +1487,7 @@ MonoBehaviour:
   experimentManager: {fileID: 516154616}
   gridWorldManager: {fileID: -8690266444773239620, guid: 96d776e8ee130440d8b6e04107cc91e0,
     type: 3}
-  practiceManager: {fileID: 5028154936095916163, guid: cf96765f7320747d3a1db6abff587e85,
+  practiceManager: {fileID: 8679709665440928426, guid: 305e06c225a7c467f949bf52d9f66256,
     type: 3}
   maxTrialDuration: 5
   endTrialDelay: 0.1
@@ -1602,18 +1657,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5df6673d4014458491c3531279b1f27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridWidth: 18
-  gridHeight: 10
   maxTrialDuration: 5
-  moveStepSize: 1
   pressesPerStep: 1
   errorSound: {fileID: 8300000, guid: 1617e0d71b004419da18e026c82adefe, type: 3}
   rewardSound: {fileID: 8300000, guid: 5151f6de3fc24bc43a3c6daf0eb5ae1a, type: 3}
   stepSound: {fileID: 8300000, guid: 701f4fd2ed05a6e47a664dbe700d74b8, type: 3}
-  experimentManager: {fileID: 0}
+  experimentManager: {fileID: 516154616}
   gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
     type: 3}
-  practiceManager: {fileID: 0}
+  practiceManager: {fileID: 680750463}
 --- !u!54 &1220905515
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2443,235 +2495,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1b0d0181d4b3545ab8d481ffd920c346, type: 3}
---- !u!1001 &1846582174
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 2947154079151239543, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: m_Name
-      value: PracticeManager
-      objectReference: {fileID: 0}
-    - target: {fileID: 2947154079151239543, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: skipButton
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: decisionPhaseScene
-      value: PracticeDecisionPhase
-      objectReference: {fileID: 0}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: startPracticeButton
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: rewardSprites.Array.size
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: 'rewardSprites.Array.data[0]'
-      value: 
-      objectReference: {fileID: 21300000, guid: 2945052746d394c94ae9e68752db3dcc,
-        type: 2}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: 'rewardSprites.Array.data[1]'
-      value: 
-      objectReference: {fileID: 21300000, guid: 9536f1e2213a947b1b4491f7992da821,
-        type: 2}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: 'rewardSprites.Array.data[2]'
-      value: 
-      objectReference: {fileID: 21300000, guid: 4a06e3efba4ee4d0e8e597cf1657bc07,
-        type: 2}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[0].rewardSprite
-      value: 
-      objectReference: {fileID: 21300000, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
-        type: 3}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[1].rewardSprite
-      value: 
-      objectReference: {fileID: 21300018, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
-        type: 3}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[2].rewardSprite
-      value: 
-      objectReference: {fileID: 21300012, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
-        type: 3}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[3].rewardSprite
-      value: 
-      objectReference: {fileID: 21300000, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
-        type: 3}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[4].rewardSprite
-      value: 
-      objectReference: {fileID: 21300018, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
-        type: 3}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[5].rewardSprite
-      value: 
-      objectReference: {fileID: 21300012, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
-        type: 3}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[0].customRewardPrefab
-      value: 
-      objectReference: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
-        type: 3}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[1].customRewardPrefab
-      value: 
-      objectReference: {fileID: 9181912887003914726, guid: 989337141fe604338aed78ac97f42db1,
-        type: 3}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[2].customRewardPrefab
-      value: 
-      objectReference: {fileID: 6861172893992282259, guid: ab4849fe315e544faabccbbeb391c3e6,
-        type: 3}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[3].customRewardPrefab
-      value: 
-      objectReference: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
-        type: 3}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[4].customRewardPrefab
-      value: 
-      objectReference: {fileID: 9181912887003914726, guid: 989337141fe604338aed78ac97f42db1,
-        type: 3}
-    - target: {fileID: 8165224307821008778, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[5].customRewardPrefab
-      value: 
-      objectReference: {fileID: 6861172893992282259, guid: ab4849fe315e544faabccbbeb391c3e6,
-        type: 3}
-    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8453209092313896474, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: skipButton
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: startPracticeButton
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[0].rewardSprite
-      value: 
-      objectReference: {fileID: 21300000, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
-        type: 3}
-    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[1].rewardSprite
-      value: 
-      objectReference: {fileID: 21300018, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
-        type: 3}
-    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[2].rewardSprite
-      value: 
-      objectReference: {fileID: 21300012, guid: c2ce07b4cfe39e340b8238f75e7a21d2,
-        type: 3}
-    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[0].customRewardPrefab
-      value: 
-      objectReference: {fileID: 2455364387646690396, guid: 9ec511762b1af423081d769162cf22e7,
-        type: 3}
-    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[1].customRewardPrefab
-      value: 
-      objectReference: {fileID: 9181912887003914726, guid: 989337141fe604338aed78ac97f42db1,
-        type: 3}
-    - target: {fileID: 8947889112758248390, guid: cf96765f7320747d3a1db6abff587e85,
-        type: 3}
-      propertyPath: practiceTrials.Array.data[2].customRewardPrefab
-      value: 
-      objectReference: {fileID: 6861172893992282259, guid: ab4849fe315e544faabccbbeb391c3e6,
-        type: 3}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: cf96765f7320747d3a1db6abff587e85, type: 3}
 --- !u!1 &1911769002
 GameObject:
   m_ObjectHideFlags: 0
@@ -2913,6 +2736,6 @@ SceneRoots:
   - {fileID: 499181480}
   - {fileID: 1061459429}
   - {fileID: 315494381}
-  - {fileID: 1846582174}
   - {fileID: 1424053957}
   - {fileID: 1944345769}
+  - {fileID: 680750464}

@@ -5,6 +5,10 @@ using UnityEngine.SceneManagement;
 
 public class BlockPreInstructions : MonoBehaviour
 {
+    /// <summary>
+    /// This script displays pre-block instructions for the formal trials in the experiment.
+    /// </summary>
+    
     [Header("UI References")]
     [SerializeField] private TextMeshProUGUI instructionText;
     [SerializeField] private TextMeshProUGUI continueText;

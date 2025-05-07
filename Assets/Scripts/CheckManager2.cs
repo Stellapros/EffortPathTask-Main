@@ -22,18 +22,31 @@ public class CheckManager2 : MonoBehaviour
     [SerializeField] private TextMeshProUGUI trialIndexText;
     [SerializeField] private TextMeshProUGUI buttonInstructionText;
 
+    [Header("Audio")]
+    private AudioSource audioSource;
+    public AudioClip successSound;
+    public AudioClip failSound;
+
     // Time tracking variables
     private float questionStartTime;
     private float phaseStartTime;
 
     private GameObject currentFruit;
     private readonly Dictionary<string, Dictionary<int, int>> choiceRecords = new Dictionary<string, Dictionary<int, int>>();
-    private readonly List<GameObject> fruitPrefabs = new List<GameObject>();
+    private readonly List<string> fruitTypes = new List<string> { "Apple", "Grapes", "Watermelon" };
     private int trialCount = 0;
-    private int totalTrials = 3;
+    private int totalTrials = 6; // 3 fruits x 2 islands = 6 trials
     private int currentTrialIndex = 0;
     private bool isProcessing = false;
     private int correctChoiceScore = 0;
+
+    // Island tracking
+    private bool isGreenIsland = true; // Start with Green Island
+    private int islandTrialCount = 0;  // Track trials per island
+
+    // Track which fruits have been shown on each island
+    private List<string> greenIslandFruits;
+    private List<string> blueIslandFruits;
 
     private int currentSelection = -1; // Start with no selection
     private readonly int[] thresholdOptions = { 17, 33, 50 };
@@ -42,17 +55,39 @@ public class CheckManager2 : MonoBehaviour
     [SerializeField] private Color normalColor = new Color(0.67f, 0.87f, 0.86f);
     [SerializeField] private Color disabledColor = new Color(0.7f, 0.7f, 0.7f);
 
+    // Island-specific correct answers
+    private readonly Dictionary<string, Dictionary<string, int>> correctAnswers = new Dictionary<string, Dictionary<string, int>>
+    {
+        { "Green", new Dictionary<string, int> { { "Apple", 50 }, { "Grapes", 33 }, { "Watermelon", 17 } } },
+        { "Blue", new Dictionary<string, int> { { "Apple", 17 }, { "Grapes", 33 }, { "Watermelon", 50 } } }
+    };
+
     private void Start()
     {
+        // Add this code to ensure we have an AudioSource
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+
         // Initialize phase start time when the check phase begins
         phaseStartTime = Time.time;
 
         InitializeChoiceRecords();
         SetupButtons();
-        fruitPrefabs.AddRange(new[] { applePrefab, grapesPrefab, watermelonPrefab });
         defaultButtonColor = choice17Button.GetComponent<Image>().color;
-        SpawnRandomFruit();
+
+        // Initialize lists to track which fruits have been shown on each island
+        greenIslandFruits = new List<string>(fruitTypes);
+        blueIslandFruits = new List<string>(fruitTypes);
+
+        PrepareNextTrial();
         UpdateButtonHighlight();
+    }
+
+    private void PrepareNextTrial()
+    {
+        SpawnNextFruit();
     }
 
     private void Update()
@@ -99,6 +134,7 @@ public class CheckManager2 : MonoBehaviour
             RecordChoice(50);
         });
     }
+
     private void DisableAllButtons()
     {
         choice17Button.interactable = false;
@@ -123,7 +159,7 @@ public class CheckManager2 : MonoBehaviour
         choice50Button.GetComponent<Image>().color = normalColor;
     }
 
-    private void SpawnRandomFruit()
+    private void SpawnNextFruit()
     {
         if (currentFruit != null)
         {
@@ -133,8 +169,41 @@ public class CheckManager2 : MonoBehaviour
         // Set question start time when spawning a new fruit
         questionStartTime = Time.time;
 
-        int randomIndex = Random.Range(0, fruitPrefabs.Count);
-        GameObject selectedFruit = fruitPrefabs[randomIndex];
+        // Clear debug text at the start of each new trial
+        debugText.text = "";
+
+        // Select the next fruit based on which island we're currently on
+        string fruitName;
+        if (isGreenIsland)
+        {
+            // Get next fruit from green island list
+            int randomIndex = Random.Range(0, greenIslandFruits.Count);
+            fruitName = greenIslandFruits[randomIndex];
+            greenIslandFruits.RemoveAt(randomIndex);
+        }
+        else
+        {
+            // Get next fruit from blue island list
+            int randomIndex = Random.Range(0, blueIslandFruits.Count);
+            fruitName = blueIslandFruits[randomIndex];
+            blueIslandFruits.RemoveAt(randomIndex);
+        }
+
+        // Get the appropriate fruit prefab
+        GameObject selectedFruit = null;
+        switch (fruitName)
+        {
+            case "Apple":
+                selectedFruit = applePrefab;
+                break;
+            case "Grapes":
+                selectedFruit = grapesPrefab;
+                break;
+            case "Watermelon":
+                selectedFruit = watermelonPrefab;
+                break;
+        }
+
         currentFruit = Instantiate(selectedFruit, Vector3.zero, Quaternion.identity);
 
         if (fruitImage != null)
@@ -143,20 +212,17 @@ public class CheckManager2 : MonoBehaviour
             fruitImage.rectTransform.sizeDelta = new Vector2(100, 100);
         }
 
-        string fruitName = selectedFruit.name.Replace("(Clone)", "").Replace("Reward_", "");
-        questionText.text = $"How often did you see this {fruitName}?";
+        string islandName = isGreenIsland ? "Green" : "Blue";
+        questionText.text = $"How often did you see this {fruitName} on {islandName} island?";
         buttonInstructionText.text = "Use ←/→ to choose; Press Space or Enter to confirm";
 
-        fruitPrefabs.RemoveAt(randomIndex);
         trialCount++;
-
+        islandTrialCount++;
 
         if (trialIndexText != null)
         {
             trialIndexText.text = $"Question: {currentTrialIndex + 1} of {totalTrials}";
         }
-
-        debugText.text = $"Trial {currentTrialIndex + 1} of {totalTrials}: {fruitName}";
 
         // Reset selection and enable buttons
         currentSelection = -1;
@@ -173,21 +239,11 @@ public class CheckManager2 : MonoBehaviour
 
         string currentFruitName = currentFruit.name.Replace("(Clone)", "").Replace("Reward_", "");
         float responseTime = Time.time - questionStartTime;
+        string islandName = isGreenIsland ? "Green" : "Blue";
 
-        bool isCorrect = false;
-
-        switch (currentFruitName)
-        {
-            case "Apple":
-                isCorrect = threshold == 33;
-                break;
-            case "Grapes":
-                isCorrect = threshold == 33;
-                break;
-            case "Watermelon":
-                isCorrect = threshold == 33;
-                break;
-        }
+        // Get correct threshold for this fruit on this island
+        int correctThreshold = correctAnswers[islandName][currentFruitName];
+        bool isCorrect = threshold == correctThreshold;
 
         // Simplified logging with T/F for correct/incorrect
         LogManager.Instance.LogCheckQuestionResponse(
@@ -202,9 +258,28 @@ public class CheckManager2 : MonoBehaviour
             responseTime: responseTime,
             new Dictionary<string, string>
             {
-            {"FruitType", currentFruitName}
+                {"FruitType", currentFruitName},
+                {"Island", islandName}
             }
         );
+
+        // Add feedback to the debug text
+        if (isCorrect)
+        {
+            debugText.text += $"\nCorrect! The {currentFruitName} appeared {threshold}% of the time on {islandName} island.";
+            if (successSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(successSound);
+            }
+        }
+        else
+        {
+            debugText.text += $"\nIncorrect. The {currentFruitName} appeared {correctThreshold}% of the time on {islandName} island.";
+            if (failSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(failSound);
+            }
+        }
 
         if (isCorrect)
         {
@@ -227,26 +302,10 @@ public class CheckManager2 : MonoBehaviour
         //     );
         // }
 
-        PlayerPrefs.SetInt("Check2Score", Mathf.Min(correctChoiceScore, 3));
+        PlayerPrefs.SetInt("Check2Score", Mathf.Min(correctChoiceScore, 6));
         PlayerPrefs.Save();
 
-        Invoke("ProcessNextTrial", 0.5f);
-    }
-
-    private string GetExpectedFrequencyText(string fruitName)
-    {
-        switch (fruitName)
-        {
-            case "Apple": return "High (90%)";
-            case "Grapes": return "Medium (70%)";
-            case "Watermelon": return "Low (50%)";
-            default: return "Unknown";
-        }
-    }
-
-    private string GetFrequencyText(int threshold)
-    {
-        return $"{threshold}%";
+        Invoke("ProcessNextTrial", 2.0f);
     }
 
     private void ProcessNextTrial()
@@ -263,16 +322,36 @@ public class CheckManager2 : MonoBehaviour
             navigationController.ResetSelection();
         }
 
+        // Check if we need to switch islands
+        if (islandTrialCount >= 3)
+        {
+            islandTrialCount = 0;
+            isGreenIsland = !isGreenIsland; // Switch islands
+        }
+
         if (currentTrialIndex < totalTrials)
         {
             Debug.Log("Starting next trial");
-            SpawnRandomFruit();
+            PrepareNextTrial();
         }
         else
         {
-            Debug.Log("All trials completed, loading next scene");
-            // Ensure clean transition
-            // StopAllCoroutines();
+            Debug.Log("All trials completed, logging phase completion");
+
+            // // Log the phase completion
+            // LogManager.Instance.LogCheckPhaseComplete(
+            //     checkPhase: 2,
+            //     totalQuestions: totalTrials,
+            //     correctAnswers: correctChoiceScore,
+            //     completionTime: Time.time - phaseStartTime,
+            //     phaseType: "FrequencyCheck",
+            //     new Dictionary<string, string>
+            //     {
+            //         {"PercentageCorrect", ((float)correctChoiceScore / totalTrials * 100).ToString("F1") + "%"}
+            //     }
+            // );
+
+            Debug.Log("Loading next scene");
             LogManager.Instance.LogExperimentEnd();
             LoadNextScene();
         }
@@ -311,9 +390,9 @@ public class CheckManager2 : MonoBehaviour
 
     private void InitializeChoiceRecords()
     {
-        choiceRecords["Reward_Apple"] = new Dictionary<int, int> { { 50, 0 }, { 70, 0 }, { 90, 0 } };
-        choiceRecords["Reward_Grapes"] = new Dictionary<int, int> { { 50, 0 }, { 70, 0 }, { 90, 0 } };
-        choiceRecords["Reward_Watermelon"] = new Dictionary<int, int> { { 50, 0 }, { 70, 0 }, { 90, 0 } };
+        choiceRecords["Reward_Apple"] = new Dictionary<int, int> { { 17, 0 }, { 33, 0 }, { 50, 0 } };
+        choiceRecords["Reward_Grapes"] = new Dictionary<int, int> { { 17, 0 }, { 33, 0 }, { 50, 0 } };
+        choiceRecords["Reward_Watermelon"] = new Dictionary<int, int> { { 17, 0 }, { 33, 0 }, { 50, 0 } };
     }
 
     public Dictionary<string, Dictionary<int, int>> GetChoiceRecords()

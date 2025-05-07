@@ -5,6 +5,10 @@ using UnityEngine;
 /// </summary>
 public class Reward : MonoBehaviour
 {
+    /// <summary>
+    /// The value of the reward, which is added to the player's score when collected.
+    /// </summary>
+
     [SerializeField] private int scoreValue;
     [SerializeField] private int pressesRequired;
     [SerializeField] private AudioClip rewardAppearSound;

@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 using System.Collections.Generic;
+using System.Collections;
 
 public class CheckManager3 : MonoBehaviour
 {
@@ -15,42 +16,6 @@ public class CheckManager3 : MonoBehaviour
         public string optionC;
         public char correctAnswer; // 'A', 'B', or 'C'
     }
-
-    public Question[] questions = new Question[4]
-    {
-        new Question
-        {
-        questionText = "Which of the two FRUITS needs more presses to get?",
-        optionA = "The Apple",
-        optionB = "The Watermelon",
-        optionC = "They have required the same amount of presses",
-        correctAnswer = 'B'
-        },
-        new Question
-        {
-            questionText = "Your objective in the game is to:",
-            optionA = "Choose to work for every fruit",
-            optionB = "Press as many buttons as you can",
-            optionC = "Choose to work for fruit when you want within the available time",
-            correctAnswer = 'C'
-        },
-        new Question
-        {
-            questionText = "You will visit two islands during your time in the game. What can differ between the two islands?",
-            optionA = "The types of fruits you will see",
-            optionB = "How often you will see each kind of fruits",
-            optionC = "The amount of points you will get",
-            correctAnswer = 'B'
-        },
-        new Question
-        {
-            questionText = "What does it mean when you successfully collect a fruit?",
-            optionA = "I pressed more buttons",
-            optionB = "My bonus payment stays the same",
-            optionC = "I get more points that increases my bonus",
-            correctAnswer = 'C'
-        }
-    };
 
     public TextMeshProUGUI questionText;
     public TextMeshProUGUI optionAText;
@@ -65,16 +30,69 @@ public class CheckManager3 : MonoBehaviour
     public TextMeshProUGUI buttonInstructionText; // New text for button instructions
     [SerializeField] private Color normalColor = new Color(0.67f, 0.87f, 0.86f);
     [SerializeField] private Color disabledColor = new Color(0.7f, 0.7f, 0.7f);
+    [Header("Audio")]
+    private AudioSource audioSource;
+    public AudioClip successSound;
+    public AudioClip failSound;
+
     private int currentQuestionIndex = 0;
     private int comprehensionScore = 0;
 
-    // Static variables to track total score and attempts across scene reloads
+    // Static variables to track total attempts across scene reloads
     private static int failedAttempts = 0;
     private bool isProcessing = false;
     private float questionStartTime;
     private float phaseStartTime;
+
+    public Question[] questions;
+
+    void Awake()
+    {
+        // Initialize questions here to ensure they're created fresh each time
+        questions = new Question[4]
+        {
+        new Question
+        {
+            questionText = "Which of the two FRUITS needs more presses to get?",
+            optionA = "The Apple",
+            optionB = "The Watermelon",
+            optionC = "They have required the same amount of presses",
+            correctAnswer = 'B'
+        },
+        new Question
+        {
+            questionText = "Your objective in the game is to:",
+            optionA = "Choose to work for every fruit",
+            optionB = "Press as many buttons as you can",
+            optionC = "Choose to work for fruit when you want within the available time",
+            correctAnswer = 'C'
+        },
+        new Question
+        {
+            questionText = "You will visit two islands during your time in the game. What can differ between the two islands?",
+            optionA = "You will see a completely different set of fruits",
+            optionB = "How often you will see each kind of fruits",
+            optionC = "The amount of points you will get",
+            correctAnswer = 'B'
+        },
+        new Question
+        {
+            questionText = "What does it mean when you successfully collect a fruit?",
+            optionA = "I pressed more buttons",
+            optionB = "My bonus payment stays the same",
+            optionC = "I get more points that increases my bonus",
+            correctAnswer = 'C'
+        }
+        };
+    }
+
     void Start()
     {
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+
         phaseStartTime = Time.time;
         questionStartTime = Time.time;
 
@@ -95,11 +113,11 @@ public class CheckManager3 : MonoBehaviour
 
         // Retrieve and validate scores from PlayerPrefs
         int check1Score = ValidateScore(PlayerPrefs.GetInt("Check1Score", 0), 6);
-        int check2Score = ValidateScore(PlayerPrefs.GetInt("Check2Score", 0), 3);
+        int check2Score = ValidateScore(PlayerPrefs.GetInt("Check2Score", 0), 6); // Updated to max 6
 
         // Calculate and display debug information
         UpdateDebugText(check1Score, check2Score);
-        Debug.Log($"Score Update: check1Score = {check1Score}, check1Score = {check1Score}");
+        Debug.Log($"Score Update: check1Score = {check1Score}, check2Score = {check2Score}");
     }
 
 
@@ -116,19 +134,12 @@ public class CheckManager3 : MonoBehaviour
             int currentComprehensionScore = comprehensionScore;
             int totalScore = check1Score + check2Score + currentComprehensionScore;
 
-            debugText.text = $"Debug Info:\n" +
-                             $"Check 1 Score (Max 6): {check1Score}\n" +
-                             $"Check 2 Score (Max 3): {check2Score}\n" +
-                             $"Comprehension Score (Max 4): {currentComprehensionScore}\n" +
-                             $"Current Total Score: {totalScore}\n" +
-                             $"Remaining Attempts: {1 - failedAttempts}";
-
             Debug.Log($"Debug Information:\n" +
-                             $"Check 1 Score (Max 6): {check1Score}\n" +
-                             $"Check 2 Score (Max 3): {check2Score}\n" +
-                             $"Comprehension Score (Max 4): {currentComprehensionScore}\n" +
-                             $"Current Total Score: {totalScore}\n" +
-                             $"Remaining Attempts: {1 - failedAttempts}");
+                     $"Check 1 Score (Max 6): {check1Score}\n" +
+                     $"Check 2 Score (Max 6): {check2Score}\n" +
+                     $"Comprehension Score (Max 4): {currentComprehensionScore}\n" +
+                     $"Current Total Score: {totalScore}\n" +
+                     $"Remaining Attempts: {1 - failedAttempts}");
         }
     }
 
@@ -144,8 +155,18 @@ public class CheckManager3 : MonoBehaviour
     {
         questionStartTime = Time.time;
 
+        // Clear debug text at the start of each new question
+        if (debugText != null)
+        {
+            // Keep the debug info for scores but clear any previous feedback
+            int check1Score = ValidateScore(PlayerPrefs.GetInt("Check1Score", 0), 6);
+            int check2Score = ValidateScore(PlayerPrefs.GetInt("Check2Score", 0), 6); // Updated to max 6
+
+            // Update the debug info without feedback from previous questions
+            UpdateDebugText(check1Score, check2Score);
+        }
+
         Question currentQuestion = questions[currentQuestionIndex];
-        // questionText.text = $"Question {currentQuestionIndex + 1}/4:\n{currentQuestion.questionText}";
         questionText.text = $"Question {currentQuestionIndex + 1}:\n{currentQuestion.questionText}";
         optionAText.text = $"A. {currentQuestion.optionA}";
         optionBText.text = $"B. {currentQuestion.optionB}";
@@ -184,7 +205,6 @@ public class CheckManager3 : MonoBehaviour
             responseTime: responseTime
         );
 
-
         // Disable all buttons during processing
         buttonA.interactable = false;
         buttonB.interactable = false;
@@ -202,20 +222,61 @@ public class CheckManager3 : MonoBehaviour
             navigationController.DisableAllButtons();
         }
 
-        // Check answer
+        // Get the existing debug text (up to the first newline) to preserve score info
+        if (debugText != null)
+        {
+            // Extract just the score information
+            int check1Score = ValidateScore(PlayerPrefs.GetInt("Check1Score", 0), 6);
+            int check2Score = ValidateScore(PlayerPrefs.GetInt("Check2Score", 0), 6); // Updated to max 6
+            int totalScore = check1Score + check2Score + comprehensionScore;
+
+            // Start with EMPTY debug text
+            debugText.text = "";
+        }
+
+        // Check answer, provide feedback, and play appropriate sound
         if (answer == questions[currentQuestionIndex].correctAnswer)
         {
             comprehensionScore++;
             if (debugText != null)
             {
-                debugText.text += $"\nQuestion {currentQuestionIndex + 1} Correct!";
+                debugText.text += $"\nCorrect!";
+            }
+
+            // Play success sound
+            if (successSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(successSound);
             }
         }
         else
         {
             if (debugText != null)
             {
-                debugText.text += $"\nQuestion {currentQuestionIndex + 1} Incorrect.";
+                // Get the text of the correct answer option
+                string correctOptionText = "";
+                char correctAnswer = questions[currentQuestionIndex].correctAnswer;
+
+                switch (correctAnswer)
+                {
+                    case 'A':
+                        correctOptionText = currentQuestion.optionA;
+                        break;
+                    case 'B':
+                        correctOptionText = currentQuestion.optionB;
+                        break;
+                    case 'C':
+                        correctOptionText = currentQuestion.optionC;
+                        break;
+                }
+
+                debugText.text += $"\nIncorrect. The correct answer is {correctAnswer}.";
+            }
+
+            // Play fail sound
+            if (failSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(failSound);
             }
         }
 
@@ -228,13 +289,13 @@ public class CheckManager3 : MonoBehaviour
 
             Debug.Log($"Final Detailed Scores:\n" +
                      $"Check 1 (Max 6): {check1Score}\n" +
-                     $"Check 2 (Max 3): {check2Score}\n" +
+                     $"Check 2 (Max 6): {check2Score}\n" +
                      $"Comprehension (Max 4): {comprehensionScore}\n" +
                      $"Total Score: {totalScore}");
         }
 
         // Use Invoke to manage progression and reset
-        Invoke("ProcessQuestionProgression", 0.5f);
+        Invoke("ProcessQuestionProgression", 4.0f);
     }
 
 
@@ -284,10 +345,13 @@ public class CheckManager3 : MonoBehaviour
         {
             // Retrieve and validate previous scores
             int check1Score = ValidateScore(PlayerPrefs.GetInt("Check1Score", 0), 6);
-            int check2Score = ValidateScore(PlayerPrefs.GetInt("Check2Score", 0), 3);
+            int check2Score = ValidateScore(PlayerPrefs.GetInt("Check2Score", 0), 6); // Updated to max 6
 
             // Calculate total score
             int totalScore = check1Score + check2Score + comprehensionScore;
+
+            // Save the comprehension score to PlayerPrefs
+            PlayerPrefs.SetInt("Check3Score", comprehensionScore);
 
             // Save the total score to PlayerPrefs
             PlayerPrefs.SetInt("TotalScore", totalScore);
@@ -296,16 +360,11 @@ public class CheckManager3 : MonoBehaviour
             // Update debug text with final score
             if (debugText != null)
             {
-                debugText.text += $"\n\nFinal Detailed Scores:\n" +
-                                  $"Check 1 (Max 6): {check1Score}\n" +
-                                  $"Check 2 (Max 3): {check2Score}\n" +
-                                  $"Comprehension (Max 4): {comprehensionScore}\n" +
-                                  $"Total Score: {totalScore}";
                 Debug.Log($"Final Detailed Scores:\n" +
-                                  $"Check 1 (Max 6): {check1Score}\n" +
-                                  $"Check 2 (Max 3): {check2Score}\n" +
-                                  $"Comprehension (Max 4): {comprehensionScore}\n" +
-                                  $"Total Score: {totalScore}");
+                          $"Check 1 (Max 6): {check1Score}\n" +
+                          $"Check 2 (Max 6): {check2Score}\n" +
+                          $"Comprehension (Max 4): {comprehensionScore}\n" +
+                          $"Total Score: {totalScore}");
             }
 
             // Log phase completion
@@ -326,27 +385,39 @@ public class CheckManager3 : MonoBehaviour
             );
 
             // Proceed to score calculation
-            CalculateScoreAndProceed(totalScore);
+            CalculateScoreAndProceed(totalScore, comprehensionScore);
         }
     }
 
-    public void CalculateScoreAndProceed(int totalScore)
-    {
-        Debug.Log($"Total Score: {totalScore}, Failed Attempts: {failedAttempts}");
 
-        if (totalScore >= 11)
+    // The player will only progress to "GetReadyFormal" if:
+    // Total score is at least 14 AND
+    // Comprehension score is exactly 4 (perfect score)
+    public void CalculateScoreAndProceed(int totalScore, int comprehensionScore)
+    {
+        Debug.Log($"Total Score: {totalScore}, Comprehension Score: {comprehensionScore}, Failed Attempts: {failedAttempts}");
+
+        // Modified condition: Must have BOTH total score >= 14 AND perfect comprehension score (4/4)
+        if (totalScore >= 14 && comprehensionScore == 4)
         {
+            Debug.Log("All checks passed: Total score >= 14 and Comprehension score = 4");
             failedAttempts = 0;
             PlayerPrefs.DeleteKey("PracticeAttempts"); // Clear practice attempts on success
             SceneManager.LoadScene("GetReadyFormal");
         }
         else
         {
+            // Log the specific failure reason
+            if (totalScore < 14)
+                Debug.Log("Check failed: Total score < 14");
+            if (comprehensionScore < 4)
+                Debug.Log("Check failed: Comprehension score < 4");
+
             failedAttempts++;
 
             if (failedAttempts >= 2)
             {
-                SceneManager.LoadScene("EndExperiment");
+                SceneManager.LoadScene("EndFailedPractice"); // End without going to the questionnaire
             }
             else
             {
@@ -362,7 +433,6 @@ public class CheckManager3 : MonoBehaviour
                 {
                     practiceManager.ResetPracticeForNewAttempt();
                 }
-                // SceneManager.LoadScene("GetReadyPractice");
                 SceneManager.LoadScene("PracticePhase");
             }
         }
@@ -374,6 +444,7 @@ public class CheckManager3 : MonoBehaviour
         failedAttempts = 0;
         PlayerPrefs.DeleteKey("Check1Score");
         PlayerPrefs.DeleteKey("Check2Score");
+        PlayerPrefs.DeleteKey("Check3Score");
         PlayerPrefs.DeleteKey("TotalScore");
         PlayerPrefs.Save();
     }

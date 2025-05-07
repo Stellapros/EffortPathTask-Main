@@ -8,6 +8,10 @@ using System.Collections;
 
 public class LogManager : MonoBehaviour
 {
+    /// <summary>
+    /// Singleton class for managing experiment logging.
+    /// </summary>
+
     #region Singleton
     public static LogManager Instance { get; private set; }
     #endregion
@@ -152,14 +156,15 @@ public class LogManager : MonoBehaviour
                // Trial Parameters
                "EffortLevel,RequiredPresses,DecisionType,ReactionTime,OutcomeType," +
                // Performance Metrics
-               "RewardCollected,Points,MovementDuration," +
+               "RewardCollected,Points," +
                // Scores
                "TotalScore,PracticeScore," +
-               // Navigation Info
-               "TotalPresses,PressData,TimePerPress,StepDuration," +
-               "IsRushing,RushingThreshold," +
-               // Position Data
+               // Movement Step Details 
+               "MovementDuration,StepStartTime,StepEndTime,StepDuration,StepSuccessful,StepPressesRequired," +
                "StartX,StartY,EndX,EndY," +
+               // Effort Info
+               "TotalPresses,PressData,TimePerPress," +
+               "IsRushing,RushingThreshold," +
                // Penalty Info
                "PenaltyType,PenaltyDuration," +
                // Block Status
@@ -480,19 +485,22 @@ public class LogManager : MonoBehaviour
     }
 
     public void LogDecisionOutcome(
-        int trialNumber,
-        int blockNumber,
-        string decisionType,
-        bool rewardCollected,
-        float reactionTime,
-        float movementTime,
-        int buttonPresses,
-        int effortLevel,
-        int requiredPresses,
-        bool skipAdjustment = false,
-        string pressData = "-",
-        float timePerPress = -1f,
-        int points = 10)
+            int trialNumber,
+            int blockNumber,
+            string decisionType,
+            bool rewardCollected,
+            float reactionTime,
+            float movementTime, // This is TOTAL movement time
+            int buttonPresses,
+            int effortLevel,
+            int requiredPresses,
+            bool skipAdjustment = false,
+            string pressData = "-",
+            float timePerPress = -1f,
+            int points = 10,
+            int loggedTotalScore = 0,
+            int loggedPracticeScore = 0,
+            string practiceType = "") // New parameter for specific practice type
     {
         // Get synchronized time values from ExperimentManager
         var (remainingTime, elapsedTime) = ExperimentManager.Instance.GetBlockTime();
@@ -506,67 +514,92 @@ public class LogManager : MonoBehaviour
         {
             timePerPress = movementTime / buttonPresses;
         }
+        if (buttonPresses <= 0)
+        {
+            timePerPress = -1f;
+        }
 
         var (calculatedTimePerPress, isRushing) = CalculateRushingMetrics(movementTime, requiredPresses);
 
         // Get scores
-        int totalScore = ScoreManager.Instance?.GetTotalScore() ?? 0;
-        int practiceScore = isPracticeTrial ?
-            (PracticeScoreManager.Instance?.GetCurrentScore() ?? 0) :
-            (ScoreManager.Instance?.GetPracticeScore() ?? 0);
+        int totalScore = loggedTotalScore;
+        int practiceScore = isPracticeTrial ? loggedPracticeScore : (ScoreManager.Instance?.GetPracticeScore() ?? 0);
+
+        // Determine the specific BlockType for practice trials
+        string blockTypeString;
+        if (isPracticeTrial)
+        {
+            // If practiceType is provided, use it for more specific practice BlockType
+            if (!string.IsNullOrEmpty(practiceType))
+            {
+                blockTypeString = $"Practice_{practiceType}";
+            }
+            else
+            {
+                // Default to generic "Practice" if no specific type is provided
+                blockTypeString = "Practice";
+            }
+        }
+        else
+        {
+            // For non-practice trials, use the existing GetBlockTypeString method
+            blockTypeString = GetBlockTypeString(blockNumber);
+        }
 
         LogEvent("DecisionOutcome", new Dictionary<string, string>
-    {
-        // Core trial info
-        {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
-        {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
-        {"BlockType", isPracticeTrial ? "Practice" : GetBlockTypeString(blockNumber)},
-        {"IsPractice", isPracticeTrial.ToString()},
-        
-        // Decision data
-        {"DecisionType", decisionType},
-        {"ReactionTime", reactionTime.ToString("F3")},
-        {"OutcomeType", outcomeType},
-        {"RewardCollected", rewardCollected.ToString()},
-        
-        // Performance metrics
-        {"MovementDuration", movementTime.ToString("F3")},
-        {"ButtonPresses", buttonPresses.ToString()},
-        {"EffortLevel", effortLevel.ToString()},
-        {"RequiredPresses", requiredPresses.ToString()},
-        {"RequiredTotalPresses", requiredTotalPresses.ToString()},
-        {"TimePerPress", timePerPress.ToString("F3")},
-        {"IsRushing", isRushing.ToString()},
-        {"RushingThreshold", "0.1"},
-        {"Notes", "Rushing=True indicates implausibly fast inputs (>10 presses/sec)"},
-        {"PressData", pressData},
-        {"Points", points.ToString()},
+        {
+            // Core trial info
+            {"TrialNumber", AdjustToOneBasedIndex(trialNumber).ToString()},
+            {"BlockNumber", AdjustToOneBasedIndex(blockNumber).ToString()},
+            {"BlockType", blockTypeString},
+            {"IsPractice", isPracticeTrial.ToString()},
+            
+            // Decision data
+            {"DecisionType", decisionType},
+            {"ReactionTime", reactionTime.ToString("F3")},
+            {"OutcomeType", outcomeType},
+            {"RewardCollected", rewardCollected.ToString()},
+            
+            // Performance metrics
+            {"MovementDuration", movementTime.ToString("F3")},
+            {"ButtonPresses", buttonPresses.ToString()},
+            {"EffortLevel", effortLevel.ToString()},
+            {"RequiredPresses", requiredPresses.ToString()},
+            {"RequiredTotalPresses", requiredTotalPresses.ToString()},
+            {"TimePerPress", timePerPress.ToString("F3")},
+            {"IsRushing", isRushing.ToString()},
+            {"RushingThreshold", "0.1"},
+            {"Notes", "Rushing=True indicates implausibly fast inputs (>10 presses/sec)"},
+            {"PressData", pressData},
+            {"Points", points.ToString()},
 
-        {"TotalPresses", buttonPresses.ToString()},
-        {"StepDuration", movementTime.ToString("F3")},
-        {"StartX", "-"}, // These position fields would need to be passed in or retrieved
-        {"StartY", "-"}, // from PlayerController if you want actual values
-        {"EndX", "-"},
-        {"EndY", "-"},
-        {"PenaltyType", decisionType == "Skip" ? "Skip" : "-"},
-{"PenaltyDuration", decisionType == "Skip" ? DecisionManager.GetSkipDelay().ToString() : "-"},
+            {"TotalPresses", buttonPresses.ToString()},
+            // {"StepDuration", movementTime.ToString("F3")}, 
+            {"StartX", "-"}, // These position fields would need to be passed in or retrieved
+            {"StartY", "-"}, // from PlayerController if you want actual values
+            {"EndX", "-"},
+            {"EndY", "-"},
+            {"PenaltyType", decisionType == "Skip" ? "Skip" : "-"},
+            {"PenaltyDuration", decisionType == "Skip" ? DecisionManager.GetSkipDelay().ToString() : "-"},
 
-        // Synchronized time values
-        {"RemainingTime", remainingTime.ToString("F2")},
-        {"ElapsedTime", elapsedTime.ToString("F2")},
-        
-        // Scores
-        {"TotalScore", totalScore.ToString()},
-        {"PracticeScore", practiceScore.ToString()},
-        
-        // Block progress
-        {"CompletedTrials", ExperimentManager.Instance.trialsCompletedInCurrentBlock.ToString()},
-        {"TrialRate", (elapsedTime > 0 ?
-            (ExperimentManager.Instance.trialsCompletedInCurrentBlock / elapsedTime * 60f).ToString("F2") : "0")},
-        
-        // Debug info
-        {"TimeSyncHash", $"{remainingTime.GetHashCode()}:{elapsedTime.GetHashCode()}"}
-    });
+            // Synchronized time values
+            {"RemainingTime", remainingTime.ToString("F2")},
+            {"ElapsedTime", elapsedTime.ToString("F2")},
+            
+            // Scores
+            {"TotalScore", totalScore.ToString()},
+            {"PracticeScore", practiceScore.ToString()},
+            
+            
+            // Block progress
+            {"CompletedTrials", ExperimentManager.Instance.trialsCompletedInCurrentBlock.ToString()},
+            {"TrialRate", (elapsedTime > 0 ?
+                (ExperimentManager.Instance.trialsCompletedInCurrentBlock / elapsedTime * 60f).ToString("F2") : "0")},
+            
+            // Debug info
+            {"TimeSyncHash", $"{remainingTime.GetHashCode()}:{elapsedTime.GetHashCode()}"}
+        });
+
 
         Debug.Log($"DecisionOutcome | Trial: {trialNumber} | " +
                  $"Remaining: {remainingTime:F2} | Elapsed: {elapsedTime:F2} | " +
@@ -707,6 +740,127 @@ public class LogManager : MonoBehaviour
     }
 
 
+
+    // public void LogMovementStep(
+    //     int trialNumber,
+    //     Vector2 startPos,
+    //     Vector2 endPos,
+    //     float stepDuration,
+    //     bool successful,
+    //     float stepStartTime,
+    //     float stepEndTime,
+    //     int pressesRequired,
+    //     int blockNumber)
+    // {
+    //     // Determine if this is a practice trial
+    //     bool isPracticeTrial = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1;
+    //     // string blockType = isPracticeTrial ? "Practice" : "Formal";
+
+    //     // Get effort level based on trial type
+    //     int effortLevel = isPracticeTrial
+    //         ? PracticeManager.Instance.GetCurrentTrialEffortLevel()
+    //         : ExperimentManager.Instance.GetCurrentTrialEffortLevel();
+
+    //     // Calculate rushing metrics
+    //     var (timePerPress, isRushing) = CalculateRushingMetrics(stepDuration, pressesRequired);
+
+    //     // Get the overall trial outcome (whether reward was collected)
+    //     // This should align with DecisionOutcome
+    //     string outcomeType = PlayerPrefs.GetString("CurrentTrialOutcome", "Pending");
+
+    //     LogEvent("MovementStep", new Dictionary<string, string>
+    //     {
+    //         {"TrialNumber", trialNumber.ToString()},
+    //         {"BlockNumber", blockNumber.ToString()},
+    //        {"BlockType", isPracticeTrial ? "Practice" : GetBlockTypeString(blockNumber)},
+    //         {"EffortLevel", effortLevel.ToString()},
+    //         {"RequiredPresses", pressesRequired.ToString()},
+    //         {"StartX", startPos.x.ToString("F2")},
+    //         {"StartY", startPos.y.ToString("F2")},
+    //         {"EndX", endPos.x.ToString("F2")},
+    //         {"EndY", endPos.y.ToString("F2")},
+    //         {"StepDuration", stepDuration.ToString("F3")},
+    //         {"StepSuccessful", successful.ToString()},
+    //         {"OutcomeType", outcomeType},
+    //         {"StepStartTime", stepStartTime.ToString("F3")},
+    //         {"StepEndTime", stepEndTime.ToString("F3")},
+    //         {"StepPressesRequired", pressesRequired.ToString()},
+    //         {"TimePerPress", timePerPress.ToString("F3")},
+    //         {"IsRushing", isRushing.ToString()},
+    //         {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+    //     });
+    // }
+
+
+
+    public void LogMovementStep(
+        int trialNumber,
+        Vector2 startPos,
+        Vector2 endPos,
+        float stepDuration,
+        bool successful,
+        float stepStartTime,
+        float stepEndTime,
+        int pressesRequired,
+        int blockNumber,
+        string blockType) // Now accepts specific blockType parameter
+    {
+        // Determine if this is a practice trial
+        bool isPracticeTrial = PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1;
+
+        // Get effort level based on trial type
+        int effortLevel = isPracticeTrial
+            ? PracticeManager.Instance.GetCurrentTrialEffortLevel()
+            : ExperimentManager.Instance.GetCurrentTrialEffortLevel();
+
+        // Calculate rushing metrics
+        var (timePerPress, isRushing) = CalculateRushingMetrics(stepDuration, pressesRequired);
+
+        // Get the overall trial outcome (whether reward was collected)
+        string outcomeType = PlayerPrefs.GetString("CurrentTrialOutcome", "Pending");
+
+        // Important: Make sure you're using the 0-based blockNumber for GetBlockTypeString
+        // If blockNumber was already made 1-based for the log, we need to convert it back
+        int zeroBasedBlockNumber = blockNumber - 1; // Only do this if blockNumber was 1-based
+
+        // Use the provided blockType for practice trials instead of generic "Practice"
+        string blockTypeString;
+        if (isPracticeTrial)
+        {
+            // Use the specific block type passed in (which should be "Practice_X")
+            blockTypeString = blockType;
+            Debug.Log($"Using specific practice block type in log: {blockTypeString}");
+        }
+        else
+        {
+            // For non-practice trials, get the standard block type
+            blockTypeString = GetBlockTypeString(zeroBasedBlockNumber);
+        }
+
+        LogEvent("MovementStep", new Dictionary<string, string>
+        {
+            {"TrialNumber", trialNumber.ToString()},
+            {"BlockNumber", blockNumber.ToString()}, // Keep this as is (likely 1-based for UI)
+            {"BlockType", blockTypeString},
+            {"EffortLevel", effortLevel.ToString()},
+            {"RequiredPresses", pressesRequired.ToString()},
+            {"StartX", startPos.x.ToString("F2")},
+            {"StartY", startPos.y.ToString("F2")},
+            {"EndX", endPos.x.ToString("F2")},
+            {"EndY", endPos.y.ToString("F2")},
+            {"StepDuration", stepDuration.ToString("F3")},
+            {"StepSuccessful", successful.ToString()},
+            {"OutcomeType", outcomeType},
+            {"StepStartTime", stepStartTime.ToString("F3")},
+            {"StepEndTime", stepEndTime.ToString("F3")},
+            {"StepPressesRequired", pressesRequired.ToString()},
+            {"TimePerPress", timePerPress.ToString("F3")},
+            {"IsRushing", isRushing.ToString()},
+            {"Timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}
+        });
+    }
+
+
     private (float timePerPress, bool isRushing) CalculateRushingMetrics(float movementTime, int requiredPresses)
     {
         // Standard threshold: Minimum 0.1 seconds per press to be considered valid 
@@ -788,25 +942,32 @@ public class LogManager : MonoBehaviour
     // Performance Metrics
     {"RewardCollected", "-"},
     {"Points", "-"},
-    {"MovementDuration", "-"},
 
     // Scores
     {"TotalScore", "-"},
     {"PracticeScore", "-"},
 
-    // Navigation Info
-    {"TotalPresses", "-"},
-    {"PressData", "-"},
-    {"TimePerPress", "-"},
-    {"StepDuration", "-"},
-    {"IsRushing", "-"},
-    {"RushingThreshold", "-"},
-
+           // Movement Step Details 
+               {"MovementDuration", "-"},
+        {"StepStartTime", "-"},
+        {"StepEndTime", "-"},
+        {"StepDuration", "-"},
+        {"StepSuccessful", "-"},
+        {"StepPressesRequired", "-"},
+        
     // Position Data
     {"StartX", "-"},
     {"StartY", "-"},
     {"EndX", "-"},
     {"EndY", "-"},
+
+
+    // Effort Info
+    {"TotalPresses", "-"},
+    {"PressData", "-"},
+    {"TimePerPress", "-"},
+    {"IsRushing", "-"},
+    {"RushingThreshold", "-"},
 
     // Penalty Info
     {"PenaltyType", "-"},

@@ -71,8 +71,8 @@ public class WelcomePage : MonoBehaviour
             "First, please MAXIMIZE the game screen if you haven't already. Adjust the volume to a comfortable level.\n\n" +
             "This study explores how people track and respond to effort.\n\n" +
             "You will play an online game navigating a grid world to collect rewards by making effort-based decisions. Your performance will determine whether a financial bonus will be added. \n\n" +
-            "The game takes approximately 30-40 minutes, followed by some questionnaires (30-40 minutes). The total participation time is about 1-1.5 hours.\n\n" +
-            "You will receive £14 for completing the study, plus an additional £1-5 bonus based on your final score.\n\n" +
+            "The game takes approximately 25-30 minutes, followed by some questionnaires (25-30 minutes). The total participation time is about 1 hour.\n\n" +
+            "You will receive £8 for completing the study, plus an additional £1-5 bonus based on your final score.\n\n" +
             "As this study involves repetitive button presses over periods of time, if you experience discomfort from repetitive wrist movements (e.g., carpal tunnel, arthritis), please refrain from participation. \n\n" +
             "Otherwise, the study carries no significant risks. You may withdraw at any time.\n\n" +
             "Participation is voluntary. You may withdraw at any point during the task without explanation (Press 'ESC'). \n\n" +
@@ -214,7 +214,7 @@ public class WelcomePage : MonoBehaviour
             }
             else
             {
-                instructionText.text = "Press 'Space' to continue; \n Press '←' (left) to go back";
+                instructionText.text = "Press 'Space' to continue; \n\n Press '←' (left) to go back";
             }
         }
 

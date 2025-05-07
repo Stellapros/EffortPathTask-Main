@@ -593,7 +593,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -100, y: -390}
+  m_AnchoredPosition: {x: -250, y: -390}
   m_SizeDelta: {x: 400, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &421190784
@@ -734,7 +734,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &504320720
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -755,7 +755,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: --
+  m_text: 
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8887514be60924b0ba1319bd10d63d0f, type: 2}
   m_sharedMaterial: {fileID: 21010144202549244, guid: 8887514be60924b0ba1319bd10d63d0f,
@@ -765,8 +765,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4284409087
+  m_fontColor: {r: 1, g: 0.89411765, b: 0.36862746, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -789,7 +789,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 2
+  m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
@@ -851,7 +851,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -250, y: -100}
+  m_AnchoredPosition: {x: 0, y: -390}
   m_SizeDelta: {x: 400, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &597628991
@@ -1516,6 +1516,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3905f6de53e584b04894635782a351e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  questionText: {fileID: 597628993}
+  optionAText: {fileID: 870395276}
+  optionBText: {fileID: 1957694992}
+  optionCText: {fileID: 68583454}
+  buttonA: {fileID: 1960094768}
+  buttonB: {fileID: 421190786}
+  buttonC: {fileID: 617111230}
+  attemptText: {fileID: 1223257670}
+  debugText: {fileID: 504320720}
+  trialIndexText: {fileID: 383217442}
+  buttonInstructionText: {fileID: 1218333188}
+  normalColor: {r: 0.67, g: 0.87, b: 0.86, a: 1}
+  disabledColor: {r: 0.7, g: 0.7, b: 0.7, a: 1}
+  successSound: {fileID: 8300000, guid: fe89122a1467e4c5c907c2f6e8513e9c, type: 3}
+  failSound: {fileID: 8300000, guid: c82e7829d4c8846df91b96c4e85b2947, type: 3}
   questions:
   - questionText: Which of the two FRUITS needs more presses to get?
     optionA: The Apple
@@ -1538,17 +1553,6 @@ MonoBehaviour:
     optionB: My bonus payment stays the same
     optionC: I get more points that increases my bonus
     correctAnswer: 67
-  questionText: {fileID: 597628993}
-  optionAText: {fileID: 870395276}
-  optionBText: {fileID: 1957694992}
-  optionCText: {fileID: 68583454}
-  buttonA: {fileID: 1960094768}
-  buttonB: {fileID: 421190786}
-  buttonC: {fileID: 617111230}
-  attemptText: {fileID: 1223257670}
-  debugText: {fileID: 504320720}
-  trialIndexText: {fileID: 383217442}
-  buttonInstructionText: {fileID: 1218333188}
 --- !u!1 &967287406
 GameObject:
   m_ObjectHideFlags: 0
@@ -1765,7 +1769,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 100, y: -390}
+  m_AnchoredPosition: {x: 250, y: -390}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1223257670
@@ -2614,7 +2618,6 @@ MonoBehaviour:
     type: 3}
   practiceManager: {fileID: 0}
   maxTrialDuration: 10
-  startTrialDelay: 0.5
   endTrialDelay: 0.5
   pressesPerEffortLevel: 010000000200000003000000
 --- !u!82 &2048254433

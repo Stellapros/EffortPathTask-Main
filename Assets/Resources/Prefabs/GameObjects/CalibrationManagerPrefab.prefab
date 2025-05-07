@@ -47,3 +47,7 @@ MonoBehaviour:
   counterText: {fileID: 0}
   timerText: {fileID: 0}
   instructionText: {fileID: 0}
+  previousButton: {fileID: 0}
+  progressBarFill: {fileID: 0}
+  keyPressSound: {fileID: 8300000, guid: 08ab7053d586c458db3774d33c141a4b, type: 3}
+  keyPressVolume: 0.5

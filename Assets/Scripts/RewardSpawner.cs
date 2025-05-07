@@ -8,6 +8,9 @@ using System;
 /// </summary>
 public class RewardSpawner : MonoBehaviour
 {
+    /// <summary>
+    /// The prefab for the reward object.
+    /// </summary>
     // [SerializeField] private GameObject rewardPrefab;
     // [SerializeField] private List<GameObject> rewardPrefabs; // List of 6 different reward prefabs
     [SerializeField] private List<GameObject> formalRewardPrefabs; // Formal experiment reward prefabs
@@ -393,7 +396,7 @@ public class RewardSpawner : MonoBehaviour
         // Check if sprite name is empty or null
         if (string.IsNullOrEmpty(spriteName))
         {
-            Debug.LogWarning("Sprite name is empty or null. Using default prefab.");
+            // Debug.LogWarning("Sprite name is empty or null. Using default prefab.");
             // Return the first prefab as a fallback if available
             return prefabs.Count > 0 ? prefabs[0] : null;
         }

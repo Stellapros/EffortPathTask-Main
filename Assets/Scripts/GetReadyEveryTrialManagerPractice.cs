@@ -46,9 +46,10 @@ public class GetReadyEveryTrialManagerPractice : MonoBehaviour
         if (trialCounterText != null && practiceManager != null)
         {
             int currentTrialIndex = practiceManager.GetCurrentPracticeTrialIndex();
-            int totalTrials = 12; // Hardcoded total practice trials
+            // int totalTrials = 12; // Hardcoded total practice trials
 
-            trialCounterText.text = $"Trial {currentTrialIndex + 1} of {totalTrials}";
+            // trialCounterText.text = $"Trial {currentTrialIndex + 1} of {totalTrials}";
+            trialCounterText.text = $"Trial {currentTrialIndex + 1}";
         }
     }
 

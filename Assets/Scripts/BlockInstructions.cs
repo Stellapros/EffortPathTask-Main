@@ -4,6 +4,10 @@ using TMPro;
 
 public class BlockInstructions : MonoBehaviour
 {
+    /// <summary>
+    /// This script displays instructions for different blocks in the experiment.
+    /// </summary>
+
     [Header("UI References")]
     [SerializeField] private TextMeshProUGUI headingText;
     [SerializeField] private TextMeshProUGUI instructionText;
@@ -136,13 +140,13 @@ public class BlockInstructions : MonoBehaviour
         {
             case ExperimentManager.BlockType.HighLowRatio:
                 heading = "Green Island";
-                instructions = "Welcome to Green Island! Get ready for a new challenge!\n\n" +
+                instructions = "Back to Green Island! Time to put your skills to the test in the real expedition.\n\n" +
                                "Use your RIGHT hand (← → ↑ ↓) to move the character and your LEFT hand (A / D) to make decisions.";
                 break;
 
             case ExperimentManager.BlockType.LowHighRatio:
                 heading = "Blue Island";
-                instructions = "Welcome to Blue Island! A different adventure awaits!\n\n" +
+                instructions = "Back to Blue Island! Let's see how you handle the real challenge this time.\n\n" +
                                "Use your RIGHT hand (← → ↑ ↓) to move the character and your LEFT hand (A / D) to make decisions.";
                 break;
 

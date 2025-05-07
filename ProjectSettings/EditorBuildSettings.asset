@@ -39,6 +39,9 @@ EditorBuildSettings:
     path: Assets/Scenes/PracticePhase.unity
     guid: 23aa71a20e8134580a19f02cbcc1bddd
   - enabled: 1
+    path: Assets/Scenes/PracticeBlockInstruction.unity
+    guid: a35e803675a3b4bad84f6285ff91aea1
+  - enabled: 1
     path: Assets/Scenes/PracticeDecisionPhase.unity
     guid: 7a9d6174ac9ff4b98935910e86c3a93a
   - enabled: 1
@@ -92,5 +95,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/EndExperiment.unity
     guid: 063beda456492436ebf54a3355db67f2
+  - enabled: 1
+    path: Assets/Scenes/EndFailedPractice.unity
+    guid: 5b144368ecd8c49e1a41f2da25bc0e29
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

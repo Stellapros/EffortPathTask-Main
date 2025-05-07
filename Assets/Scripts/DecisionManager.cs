@@ -208,20 +208,35 @@ public class DecisionManager : MonoBehaviour
         //     requiredPresses
         // );
 
+        // Get current scores before any updates
+        int currentTotalScore = ScoreManager.Instance?.GetTotalScore() ?? 0;
+        int currentPracticeScore = ScoreManager.Instance?.GetPracticeScore() ?? 0;
+
+        // Update score for NoDecision
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.AddScore(NO_DECISION_REWARD_VALUE, !experimentManager.IsCurrentTrialPractice());
+            // Refresh scores after update
+            currentTotalScore = ScoreManager.Instance.GetTotalScore();
+            currentPracticeScore = ScoreManager.Instance.GetPracticeScore();
+        }
+
         LogManager.Instance.LogDecisionOutcome(
             currentTrial,
             currentBlock,
             "NoDecision",
-            false, // rewardCollected
+            false,
             decisionTime,
-            0f, // movementTime
-            0, // buttonPresses
+            0f,
+            0,
             effortLevel,
             requiredPresses,
-            false, // skipAdjustment
-            "-", // pressData
-            -1f, // timePerPress
-            NO_DECISION_REWARD_VALUE // points
+            false,
+            "-",
+            -1f,
+            NO_DECISION_REWARD_VALUE,
+            currentTotalScore,
+            currentPracticeScore
         );
 
         // Store current trial data before moving to penalty scene
@@ -233,12 +248,12 @@ public class DecisionManager : MonoBehaviour
         // Process trial completion
         // experimentManager.ProcessTrialCompletion(false, decisionTimeLimit);
 
-        // Add 0 points for no decision
-        if (ScoreManager.Instance != null)
-        {
-            ScoreManager.Instance.AddScore(NO_DECISION_REWARD_VALUE, !experimentManager.IsCurrentTrialPractice());
-            Debug.Log("Time expired: No points awarded");
-        }
+        // // Add 0 points for no decision
+        // if (ScoreManager.Instance != null)
+        // {
+        //     ScoreManager.Instance.AddScore(NO_DECISION_REWARD_VALUE, !experimentManager.IsCurrentTrialPractice());
+        //     Debug.Log("Time expired: No points awarded");
+        // }
 
         // Move to penalty scene
         // SceneManager.LoadScene("TimePenalty");
@@ -495,6 +510,10 @@ public class DecisionManager : MonoBehaviour
         isTimerRunning = false;
         DisableButtons();
 
+        // Get current scores BEFORE any updates
+        int currentTotalScore = ScoreManager.Instance?.GetTotalScore() ?? 0;
+        int currentPracticeScore = ScoreManager.Instance?.GetPracticeScore() ?? 0;
+
         // Stop the decision timeout coroutine if it's running
         if (experimentManager != null)
         {
@@ -580,16 +599,18 @@ public class DecisionManager : MonoBehaviour
                 trialIndex,
                 finalBlockNumber,
                 "Skip",
-                false, // rewardCollected
+                false,
                 decisionTime,
-                0f, // movementDuration
-                0, // buttonPresses
+                0f,
+                0,
                 effortLevel,
                 requiredPresses,
-                true, // skipAdjustment
-                "-", // pressData
-                -1f, // timePerPress
-                SKIP_REWARD_VALUE // points
+                true,
+                "-",
+                -1f,
+                SKIP_REWARD_VALUE,
+                currentTotalScore,
+                currentPracticeScore
             );
 
             // Add skip score immediately
@@ -649,42 +670,4 @@ public class DecisionManager : MonoBehaviour
         // Reset for the next decision
         SetupDecisionPhase();
     }
-
-    // Modify LogDecision to include more detailed practice trial logging
-    // private void LogDecision(bool workDecision, bool isTimeExpired, int blockNumber)
-    // {
-    //     if (experimentManager == null) return;
-
-    //     string decisionType = isTimeExpired ? "NoDecision" : (workDecision ? "Work" : "Skip");
-    //     float decisionTime = decisionTimeLimit - currentTimer;
-    //     int currentTrial = experimentManager.GetCurrentTrialIndex();
-
-    //     // Log to LogManager
-    //     // LogManager.Instance?.LogDecisionPhaseStart(currentTrial);
-
-    //     var parameters = new Dictionary<string, string>
-    // {
-    //     {"TrialNumber", currentTrial.ToString()},
-    //     {"BlockNumber", blockNumber.ToString()},  // Now included in all decision logs
-    //     {"DecisionType", decisionType},
-    //     {"DecisionTime", decisionTime.ToString("F3")},
-    //     {"EffortLevel", experimentManager.GetCurrentTrialEffortLevel().ToString()},
-    //     {"RequiredPresses", experimentManager.GetCurrentTrialEV().ToString()}
-    // };
-
-    //     if (isTimeExpired)
-    //     {
-    //         LogManager.Instance?.LogEvent("Decision", parameters);
-    //         LogManager.Instance?.LogPenaltyApplied(currentTrial, "NoDecision", NO_DECISION_PENALTY);
-    //     }
-    //     else if (!workDecision)
-    //     {
-    //         LogManager.Instance?.LogSkipDecision(currentTrial, decisionTime);
-    //         LogManager.Instance?.LogPenaltyApplied(currentTrial, "Skip", SKIP_DELAY);
-    //     }
-    //     else
-    //     {
-    //         LogManager.Instance?.LogWorkDecision(currentTrial, decisionTime);
-    //     }
-    // }
 }

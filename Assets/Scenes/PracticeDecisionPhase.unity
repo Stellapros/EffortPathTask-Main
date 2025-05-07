@@ -3040,7 +3040,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   practiceScoreText: {fileID: 709073897}
-  practiceManager: {fileID: 5028154936095916163, guid: cf96765f7320747d3a1db6abff587e85,
+  practiceManager: {fileID: 8679709665440928426, guid: 305e06c225a7c467f949bf52d9f66256,
     type: 3}
 --- !u!4 &2013269239
 Transform:

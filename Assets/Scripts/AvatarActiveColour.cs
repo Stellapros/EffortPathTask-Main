@@ -1,9 +1,12 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class AvatarActiveColour : MonoBehaviour
 {
+    /// <summary>
+    /// This script manages the color of the avatar's sprite renderer.
+    /// </summary>
+    
     private SpriteRenderer avatarRenderer;
     private PlayerController playerController;
 

@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
+using System.Collections;
 
 public class PracticeDecisionManager : MonoBehaviour
 {
@@ -27,16 +28,17 @@ public class PracticeDecisionManager : MonoBehaviour
     [SerializeField] private Color normalColor = new Color(0.67f, 0.87f, 0.86f);
     [SerializeField] private Color selectedColor = new Color(0.87f, 0.86f, 0.67f);
 
-
     // Skip delay constant
     private const int SKIP_SCORE = 0;
     private const float SKIP_DELAY = 3f;
     private bool isSkipDelayActive = false;
     private float skipDelayTimer;
 
-
     // New flag to prevent double processing
     private bool hasProcessedCurrentTrial = false;
+
+    // Add this to track skip state explicitly
+    private bool isSkipInProgress = false;
 
     private void Awake()
     {
@@ -44,7 +46,16 @@ public class PracticeDecisionManager : MonoBehaviour
         SetupAudioSource();
         FindPracticeManager();
         SetupKeyboardNavigation();
+        HideCursor();
     }
+
+
+    private void HideCursor()
+    {
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+    }
+
 
     private void SetupKeyboardNavigation()
     {
@@ -83,24 +94,6 @@ public class PracticeDecisionManager : MonoBehaviour
             HandleInput();
         }
     }
-
-    // private void HandleInput()
-    // {
-    //     // Handle left arrow key press for Work
-    //     if (Input.GetKeyDown(KeyCode.LeftArrow))
-    //     {
-    //         isWorkButtonSelected = true;
-    //         UpdateButtonSelection();
-    //         OnDecisionMade(true);
-    //     }
-    //     // Handle right arrow key press for Skip
-    //     else if (Input.GetKeyDown(KeyCode.RightArrow))
-    //     {
-    //         isWorkButtonSelected = false;
-    //         UpdateButtonSelection();
-    //         OnDecisionMade(false);
-    //     }
-    // }
 
     private void HandleInput()
     {
@@ -204,12 +197,16 @@ public class PracticeDecisionManager : MonoBehaviour
         SetupDecisionPhase();
         isWorkButtonSelected = null;
         UpdateButtonSelection();
+
+        // Reset skip flags on enable
+        isSkipInProgress = false;
+        hasProcessedCurrentTrial = false;
     }
 
     public void SetupDecisionPhase()
     {
         Debug.Log($"SetupDecisionPhase CALLED");
-        Debug.Log($"Current Practice Trial Index: {practiceManager.GetCurrentPracticeTrialIndex() + 1}"); // Add 1 for display
+        Debug.Log($"Current Practice Trial Index: {practiceManager.GetCurrentPracticeTrialIndex()}"); // Add 1 for display
 
         if (practiceManager == null)
         {
@@ -345,6 +342,22 @@ public class PracticeDecisionManager : MonoBehaviour
 
     private void OnDecisionMade(bool workDecision)
     {
+        // Generate a transaction ID for this decision
+        string transactionId = System.Guid.NewGuid().ToString();
+
+        // Store the transaction ID
+        PlayerPrefs.SetString("CurrentDecisionTransactionId", transactionId);
+
+        // IMPORTANT: Store the decision type to prevent confusion
+        PlayerPrefs.SetInt("IsWorkDecision", workDecision ? 1 : 0);
+
+        // IMPORTANT: Add a timestamp to help with debugging and race condition detection
+        PlayerPrefs.SetString("LastDecisionTimestamp", System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+
+        // IMPORTANT: Reset the WorkDecisionProcessed flag at the start of a new decision
+        PlayerPrefs.SetInt("WorkDecisionProcessed", 0);
+        PlayerPrefs.Save();
+
         float decisionRT = Time.time - decisionPhaseStartTime;
 
         // Store decision type and time for practice trials
@@ -353,16 +366,7 @@ public class PracticeDecisionManager : MonoBehaviour
         PlayerPrefs.Save();
 
         int trialIndex = PracticeManager.Instance.GetCurrentPracticeTrialIndex();
-        const int PRACTICE_BLOCK_NUMBER = -1; // or -1, depending on your preference
-
-        //     // Log only the decision reaction time
-        //     LogManager.Instance.LogEvent("DecisionRT", new Dictionary<string, string>
-        // {
-        //     {"TrialNumber", (trialIndex + 1).ToString()}, // Adjust to 1-based index
-        //     {"DecisionRT", decisionRT.ToString("F3")},
-        //     {"Decision", workDecision ? "Work" : "Skip"},
-        //     {"BlockNumber", PRACTICE_BLOCK_NUMBER.ToString()}
-        // });
+        const int PRACTICE_BLOCK_NUMBER = -1;
 
         // Reset the trial processing flag
         hasProcessedCurrentTrial = false;
@@ -380,53 +384,71 @@ public class PracticeDecisionManager : MonoBehaviour
             }
         }
 
+        // Get practice type from the PracticeManager
+        string practiceType = GetCurrentPracticeType();
+
         if (workDecision)
         {
-            // For Work decisions, outcome will be logged in PlayerController
-            // when the trial completes (success or failure)
-            StartCoroutine(DelayedSceneTransition("GetReadyEveryTrialPractice", 0.1f));
+            // Clear any skip flags to make sure skip flow doesn't get triggered
+            isSkipInProgress = false;
+            isSkipDelayActive = false;
+
+            Debug.Log($"[DECISION-{transactionId}] Work decision made in practice trial {trialIndex}, starting effort task");
+
+            // For Work decisions, store transaction ID so it can be used by GridWorldManager
+            PlayerPrefs.SetString("WorkDecisionTransactionId", transactionId);
+
+            // CRITICAL: Force PlayerPrefs save for WebGL
+            PlayerPrefs.Save();
+
+            // IMPORTANT: Add a short delay before transitioning to ensure PlayerPrefs are saved
+            // Increased from 0.5f to 0.8f for better WebGL compatibility
+            StartCoroutine(DelayedSceneTransition("GetReadyEveryTrialPractice", 0.8f));
         }
         else
         {
+            // Mark that skip is in progress - WebGL fix
+            isSkipInProgress = true;
+
             // For Skip decisions, log the outcome immediately
             int effortLevel = PracticeManager.Instance.GetCurrentTrialEffortLevel();
             int requiredPresses = PracticeManager.Instance.GetCurrentTrialPressesRequired();
 
-            // // Log skip outcome with consistent PRACTICE_BLOCK_NUMBER
-            // LogManager.Instance.LogDecisionOutcome(
-            //     trialIndex,
-            //     PRACTICE_BLOCK_NUMBER,  // Use -1 consistently for practice trials
-            //     "Skip",
-            //     false, // rewardCollected
-            //     decisionRT,
-            //     0f, // movementDuration (0 for skips)
-            //     0, // buttonPresses (0 for skips)
-            //     effortLevel,
-            //     requiredPresses
-            // );
-
             LogManager.Instance.LogDecisionOutcome(
-    trialIndex,
-    PRACTICE_BLOCK_NUMBER,
-    "Skip",
-    false, // rewardCollected
-    decisionRT,
-    0f, // movementDuration
-    0, // buttonPresses
-    effortLevel,
-    requiredPresses,
-    true, // skipAdjustment
-    "-", // pressData
-    -1f, // timePerPress
-    SKIP_SCORE // points
-);
+                trialIndex,
+                PRACTICE_BLOCK_NUMBER,
+                "Skip",
+                false, // rewardCollected
+                decisionRT,
+                0f, // movementDuration
+                0, // buttonPresses
+                effortLevel,
+                requiredPresses,
+                true, // skipAdjustment
+                "-", // pressData
+                -1f, // timePerPress
+                SKIP_SCORE, // points
+                0, // loggedTotalScore (default to 0)
+                0, // loggedPracticeScore (default to 0)
+                practiceType // Pass the practice type
+            );
 
-            Debug.Log("Skip decision - adding 0 point");
+            Debug.Log($"[DECISION-{transactionId}] Skip decision - adding 0 point");
             PracticeScoreManager.Instance?.AddScore(SKIP_SCORE);
             ActivateSkipDelay();
         }
     }
-    private System.Collections.IEnumerator DelayedSceneTransition(string sceneName, float delay)
+
+    private string GetCurrentPracticeType()
+    {
+        // Get the current practice block type from PlayerPrefs
+        string blockTypeString = PlayerPrefs.GetString("CurrentPracticeBlockType", "EqualRatio");
+
+        // Return the practice type
+        return blockTypeString;
+    }
+
+    private IEnumerator DelayedSceneTransition(string sceneName, float delay)
     {
         yield return new WaitForSeconds(delay);
         SceneManager.LoadScene(sceneName);
@@ -480,9 +502,37 @@ public class PracticeDecisionManager : MonoBehaviour
         }
 
         Debug.Log("CompleteSkipDelay - Moving to next practice trial");
-        // Debug.Log($"CompleteSkipDelay - Current Practice Trial Index BEFORE Completion: {practiceManager.GetCurrentPracticeTrialIndex()}");
-        practiceManager.HandleGridWorldOutcome(true);
-        // Debug.Log($"CompleteSkipDelay - Current Practice Trial Index AFTER Completion: {practiceManager.GetCurrentPracticeTrialIndex()}");
+
+        // Get the transaction ID stored earlier
+        string transactionId = PlayerPrefs.GetString("CurrentDecisionTransactionId", "");
+
+        // Pass the transaction ID to ensure idempotent operation
+        if (practiceManager != null && isSkipInProgress)
+        {
+            Debug.Log($"Calling HandleGridWorldOutcome for skip with transactionId: {transactionId}");
+
+            // CRITICAL FIX: Use a coroutine with short delay to ensure consistent state
+            StartCoroutine(DelayedHandleGridWorldOutcome(true, transactionId, 0.2f));
+            isSkipInProgress = false;
+        }
+        else
+        {
+            Debug.LogError("PracticeManager is null or skip is not in progress in CompleteSkipDelay");
+        }
+    }
+
+    private IEnumerator DelayedHandleGridWorldOutcome(bool isSkip, string transactionId, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        if (practiceManager != null)
+        {
+            practiceManager.HandleGridWorldOutcome(isSkip, transactionId);
+        }
+        else
+        {
+            Debug.LogError("PracticeManager is null in delayed GridWorldOutcome call");
+        }
     }
 
     private void EnableButtons()

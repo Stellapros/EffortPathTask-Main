@@ -91,9 +91,17 @@ public class GameController : MonoBehaviour
             // Call movement failure logging
             PlayerController.Instance?.LogMovementFailure();
 
-            // Handle trial end
-            EndTrial(false);
+            // Handle trial end - but ONLY if the trial isn't already ending
+            if (isTrialActive && !isTrialEnded)
+            {
+                EndTrial(false);
+            }
         }
+    }
+
+    private bool IsPracticeMode()
+    {
+        return PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1;
     }
 
     private void Start()
@@ -255,7 +263,6 @@ public class GameController : MonoBehaviour
 
     private IEnumerator EndTrialCoroutine(bool rewardCollected)
     {
-
         // Only log practice trial info if we're actually in practice mode
         if (isPracticingTrials)
         {
@@ -271,10 +278,11 @@ public class GameController : MonoBehaviour
         // Reset trial state
         ResetTrialState();
 
-        // Handle practice trial progression
+        // CRITICAL FIX: NEVER call HandleGridWorldOutcome from here
+        // Practice trials are already handled in EndTrial method
         if (isPracticingTrials)
         {
-            PracticeManager.Instance.HandleGridWorldOutcome(true);
+            Debug.Log("Practice trial ended in EndTrialCoroutine - no additional action needed");
             yield break;
         }
 
@@ -572,12 +580,12 @@ public class GameController : MonoBehaviour
             yield break;
         }
 
-        // Ensure the practice trials are initialized
-        if (practiceManager.GetTotalPracticeTrials() == 0)
-        {
-            Debug.LogError("No practice trials generated. Cannot proceed with practice scene setup.");
-            yield break;
-        }
+        // // Ensure the practice trials are initialized
+        // if (practiceManager.GetTotalPracticeTrials() == 0)
+        // {
+        //     Debug.LogError("No practice trials generated. Cannot proceed with practice scene setup.");
+        //     yield break;
+        // }
 
         // Ensure the trial index is valid
         // if (practiceManager.GetCurrentPracticeTrialIndex() < 0)
@@ -932,6 +940,64 @@ public class GameController : MonoBehaviour
     /// <summary>
     /// Ends the current trial and notifies the ExperimentManager.
     /// </summary>
+    // public void EndTrial(bool rewardCollected)
+    // {
+    //     if (!isTrialActive || isTrialEnded)
+    //     {
+    //         Debug.Log("EndTrial called but trial is not active or already ended");
+    //         return;
+    //     }
+
+    //     Debug.Log($"Ending trial. Reward collected: {rewardCollected}, Practice mode: {IsPracticeMode()}");
+
+    //     // If in practice mode, let PracticeManager handle it
+    //     if (IsPracticeMode() && PracticeManager.Instance != null)
+    //     {
+    //         Debug.Log("Practice mode detected, delegating to PracticeManager");
+    //         PracticeManager.Instance.HandleGridWorldOutcome(!rewardCollected);
+    //         return;
+    //     }
+
+
+    //     isTrialActive = false;
+    //     isTrialEnded = true;
+    //     trialEndTime = Time.time;
+    //     float trialDuration = trialEndTime - trialStartTime;
+
+    //     // Stop all coroutines and cleanup
+    //     StopAllCoroutines();
+    //     StopCountdownTimer();
+    //     FreezePlayer();
+    //     HideRewardIfCollected(rewardCollected);
+
+    //     // Log trial data
+    //     // LogTrialEnd(rewardCollected, trialDuration);
+
+    //     // Clean up the scene
+    //     CleanupTrial(rewardCollected);
+
+    //     // Reset trial state flags
+    //     isTrialActive = false;
+    //     isTrialEnded = false;
+    //     isInitializingTrial = false;
+
+    //     // Debug.Log($"GameController EndTrial method called: isTrialActive: {isTrialActive}, isTrialEnded: {isTrialEnded}, isInitializingTrial: {isInitializingTrial}");
+
+    //     // Notify ExperimentManager that the trial has ended
+    //     StartCoroutine(EndTrialCoroutine(rewardCollected));
+
+    //     // Notify GridWorldManager
+    //     if (gridWorldManager != null)
+    //     {
+    //         gridWorldManager.EndTrial(rewardCollected);
+    //     }
+    //     else
+    //     {
+    //         Debug.LogError("GridWorldManager is null when trying to end trial!");
+    //         StartCoroutine(ForceSceneTransition());
+    //     }
+    // }
+
     public void EndTrial(bool rewardCollected)
     {
         if (!isTrialActive || isTrialEnded)
@@ -940,8 +1006,9 @@ public class GameController : MonoBehaviour
             return;
         }
 
-        Debug.Log($"Ending trial. Reward collected: {rewardCollected}");
+        Debug.Log($"Ending trial. Reward collected: {rewardCollected}, Practice mode: {IsPracticeMode()}");
 
+        // Set trial ended flags immediately to prevent multiple calls
         isTrialActive = false;
         isTrialEnded = true;
         trialEndTime = Time.time;
@@ -953,23 +1020,27 @@ public class GameController : MonoBehaviour
         FreezePlayer();
         HideRewardIfCollected(rewardCollected);
 
-        // Log trial data
-        // LogTrialEnd(rewardCollected, trialDuration);
-
         // Clean up the scene
         CleanupTrial(rewardCollected);
 
-        // Reset trial state flags
-        isTrialActive = false;
-        isTrialEnded = false;
+        // CRITICAL FIX: Only handle practice trials in ONE place to prevent double advancement
+        if (IsPracticeMode() && PracticeManager.Instance != null)
+        {
+            Debug.Log("Practice mode detected, delegating to PracticeManager");
+            // Generate unique transaction ID to prevent duplicate processing
+            string transactionId = System.Guid.NewGuid().ToString();
+            Debug.Log($"Generated transaction ID: {transactionId}");
+            PracticeManager.Instance.HandleGridWorldOutcome(!rewardCollected, transactionId);
+            return; // Exit early - don't call EndTrialCoroutine for practice trials
+        }
+
+        // Reset trial state flags - redundant but keeping for safety
         isInitializingTrial = false;
 
-        // Debug.Log($"GameController EndTrial method called: isTrialActive: {isTrialActive}, isTrialEnded: {isTrialEnded}, isInitializingTrial: {isInitializingTrial}");
-
-        // Notify ExperimentManager that the trial has ended
+        // ONLY handle experiment trials here - practice trials are already handled above
         StartCoroutine(EndTrialCoroutine(rewardCollected));
 
-        // Notify GridWorldManager
+        // Notify GridWorldManager only for non-practice trials
         if (gridWorldManager != null)
         {
             gridWorldManager.EndTrial(rewardCollected);
@@ -980,7 +1051,6 @@ public class GameController : MonoBehaviour
             StartCoroutine(ForceSceneTransition());
         }
     }
-
     /// <summary>
     /// Forces a scene transition to the DecisionPhase scene if the automatic transition fails.
     /// </summary>
@@ -1203,9 +1273,18 @@ public class GameController : MonoBehaviour
 
 
     /// Only end the trial when timer expires
+    // private void OnTimerExpired()
+    // {
+    //     if (isTrialActive && !isTrialEnded)
+    //     {
+    //         Debug.Log("Time's up! Ending trial.");
+    //         EndTrial(rewardCollected);
+    //     }
+    // }
+
     private void OnTimerExpired()
     {
-        if (isTrialActive && !isTrialEnded)
+        if (isTrialActive && !isTrialEnded && !hasLoggedTrialOutcome)
         {
             Debug.Log("Time's up! Ending trial.");
             EndTrial(rewardCollected);
@@ -1279,39 +1358,41 @@ public class GameController : MonoBehaviour
 
             try
             {
-                // Get the current scene name to help determine trial type
                 string currentScene = SceneManager.GetActiveScene().name;
                 bool isPracticeTrial = currentScene.Contains("Practice") || PlayerPrefs.GetInt("IsPracticeTrial", 0) == 1;
+
+                // Get scores BEFORE adding points
+                int preTotalScore = ScoreManager.Instance?.GetTotalScore() ?? 0;
+                int prePracticeScore = isPracticeTrial
+                    ? (PracticeScoreManager.Instance?.GetCurrentScore() ?? 0)
+                    : (ScoreManager.Instance?.GetPracticeScore() ?? 0);
 
                 if (isPracticeTrial)
                 {
                     if (PracticeScoreManager.Instance != null)
                     {
                         PracticeScoreManager.Instance.AddScore(Mathf.RoundToInt(rewardValue));
-                        Debug.Log($"Practice Score added: {Mathf.RoundToInt(rewardValue)}");
                     }
-                    else
+                    else if (ScoreManager.Instance != null)
                     {
-                        Debug.LogWarning("PracticeScoreManager not found during practice trial - falling back to regular ScoreManager");
-                        if (ScoreManager.Instance != null)
-                        {
-                            ScoreManager.Instance.AddScore(Mathf.RoundToInt(rewardValue), isFormalTrial: false);
-                        }
+                        ScoreManager.Instance.AddScore(Mathf.RoundToInt(rewardValue), isFormalTrial: false);
                     }
                 }
                 else
                 {
-                    // Formal trial - use regular ScoreManager
                     if (ScoreManager.Instance != null)
                     {
                         ScoreManager.Instance.AddScore(Mathf.RoundToInt(rewardValue), isFormalTrial: true);
-                        Debug.Log($"Formal Score added: {Mathf.RoundToInt(rewardValue)}");
-                    }
-                    else
-                    {
-                        Debug.LogError("ScoreManager is null during formal trial!");
                     }
                 }
+
+                // Get scores AFTER adding points
+                int postTotalScore = ScoreManager.Instance?.GetTotalScore() ?? preTotalScore;
+                int postPracticeScore = isPracticeTrial
+                    ? (PracticeScoreManager.Instance?.GetCurrentScore() ?? prePracticeScore)
+                    : (ScoreManager.Instance?.GetPracticeScore() ?? prePracticeScore);
+
+                Debug.Log($"Score updated - Before: {preTotalScore}/{prePracticeScore}, After: {postTotalScore}/{postPracticeScore}");
             }
             catch (System.Exception e)
             {
@@ -1416,12 +1497,4 @@ public class GameController : MonoBehaviour
             countdownTimer.OnTimerExpired -= OnTimerExpired;
         }
     }
-
-    // private void DebugSceneState()
-    // {
-    //     Debug.Log($"Current Scene: {SceneManager.GetActiveScene().name}");
-    //     Debug.Log($"isPracticingTrials: {isPracticingTrials}");
-    //     Debug.Log($"Practice Manager exists: {PracticeManager.Instance != null}");
-    //     Debug.Log($"Current Practice Trial Count: {currentPracticeTrialCount}");
-    // }
 }

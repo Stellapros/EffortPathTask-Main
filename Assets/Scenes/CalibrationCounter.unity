@@ -2180,11 +2180,6 @@ PrefabInstance:
       objectReference: {fileID: 1848303038}
     - target: {fileID: 5081537630037806514, guid: 8744cd5fb2b3642e795eaf1ac5a25d92,
         type: 3}
-      propertyPath: keyPressSound
-      value: 
-      objectReference: {fileID: 8300000, guid: 08ab7053d586c458db3774d33c141a4b, type: 3}
-    - target: {fileID: 5081537630037806514, guid: 8744cd5fb2b3642e795eaf1ac5a25d92,
-        type: 3}
       propertyPath: previousButton
       value: 
       objectReference: {fileID: 756345026}

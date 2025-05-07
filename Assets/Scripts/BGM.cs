@@ -1,7 +1,12 @@
 using UnityEngine;
 
+
 public class BackgroundMusicManager : MonoBehaviour
 {
+    /// <summary>
+    /// Manages background music playback using two audio sources for seamless looping.
+    /// </summary>
+
     public static BackgroundMusicManager Instance { get; private set; }
 
     [SerializeField] private AudioClip backgroundMusic;

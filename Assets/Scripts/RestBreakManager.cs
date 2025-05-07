@@ -5,42 +5,53 @@ using UnityEngine.SceneManagement;
 
 public class RestBreakManager : MonoBehaviour
 {
+    /// <summary>
+    /// This class manages the rest break between blocks in the experiment.
+    /// </summary>
+    
     [SerializeField] private Button continueButton;
     [SerializeField] private TextMeshProUGUI blockInfoText;
     [SerializeField] private TextMeshProUGUI scoreText;
-    [SerializeField] private string nextSceneName = "Block_Instructions"; // Generic name since blocks are randomized
+    [SerializeField] private string nextSceneName = "Block_Instructions";
     [SerializeField] public AudioClip buttonClickSound;
     private AudioSource audioSource;
-    // [SerializeField] private TextMeshProUGUI instructionText; // Added instruction text reference
-    private bool hasInitialized = false;
+    private bool canContinue = false;
+    [SerializeField] private float minimumDisplayTime = 5f; // Minimum time before allowing continue
+    private float startTime;
 
     private void Start()
     {
         Debug.Log("RestBreakManager: Start method called");
-        Debug.Log($"RestBreakManager: Starting break after block {ExperimentManager.Instance.GetCurrentBlockNumber()}");
-        if (!hasInitialized)
+        startTime = Time.time;
+
+        if (continueButton != null)
         {
-            Debug.Log($"[RestBreakManager] Initializing rest break after Block {ExperimentManager.Instance.GetCurrentBlockNumber() - 1}");
-            Debug.Log($"[RestBreakManager] Next block will be Block {ExperimentManager.Instance.GetCurrentBlockNumber()} of type {ExperimentManager.Instance.GetCurrentBlockType()}");
-
-            if (continueButton != null)
-            {
-                continueButton.onClick.AddListener(ContinueExperiment);
-            }
-
-            UpdateBlockInfo();
-            UpdateScoreDisplay();
-            hasInitialized = true;
+            continueButton.onClick.AddListener(ContinueExperiment);
+            continueButton.interactable = false; // Disable at start
         }
 
-        // Add space bar instruction to the instruction text
-        // if (instructionText != null)
-        // {
-        //     instructionText.text = "Press 'Space' to continue";
-        // }
+        UpdateBlockInfo();
+        UpdateScoreDisplay();
 
+        // Add navigation controller
         ButtonNavigationController navigationController = gameObject.AddComponent<ButtonNavigationController>();
         navigationController.AddElement(continueButton);
+    }
+
+    private void Update()
+    {
+        // Enable continue after minimum display time
+        if (!canContinue && Time.time - startTime >= minimumDisplayTime)
+        {
+            canContinue = true;
+            if (continueButton != null) continueButton.interactable = true;
+        }
+
+        // Check for space key press to continue (only if allowed)
+        if (canContinue && Input.GetKeyDown(KeyCode.Space))
+        {
+            ContinueExperiment();
+        }
     }
 
     private void UpdateBlockInfo()
@@ -50,26 +61,10 @@ public class RestBreakManager : MonoBehaviour
             int currentBlock = ExperimentManager.Instance.GetCurrentBlockNumber();
             ExperimentManager.BlockType nextBlockType = ExperimentManager.Instance.GetNextBlockType();
 
-            Debug.Log($"RestBreakManager: Current block: {currentBlock}, Next block type: {nextBlockType}");
-
-            // Check if we're at the end of the experiment
-            if (currentBlock >= ExperimentManager.Instance.GetTotalBlocks())
-            {
-                SceneManager.LoadScene("TirednessRating");
-                return;
-            }
-
             blockInfoText.text = $"Nice shot!\n\n" +
                 "Take a short break, then hit 'Space' or the 'Continue' button when you're ready to embark on the next island's adventure";
-
-            Debug.Log($"RestBreakManager: Block info updated. Completed block: {currentBlock}, Next block type: {nextBlockType}");
-        }
-        else
-        {
-            Debug.LogError("RestBreakManager: Required components not assigned!");
         }
     }
-
 
     private void UpdateScoreDisplay()
     {
@@ -77,39 +72,22 @@ public class RestBreakManager : MonoBehaviour
         {
             int totalScore = ScoreManager.Instance.GetTotalScore();
             scoreText.text = $"Current Total Score: {totalScore}";
-            Debug.Log($"RestBreakManager: Score updated. Total score: {totalScore}");
-        }
-        else
-        {
-            Debug.LogError("RestBreakManager: Score text or ScoreManager not assigned!");
-        }
-    }
-
-    private void Update()
-    {
-        // Check for space key press to continue
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            ContinueExperiment();
         }
     }
 
     private void ContinueExperiment()
     {
+        if (!canContinue) return;
+
         Debug.Log("RestBreakManager: ContinueExperiment method called");
 
         if (ExperimentManager.Instance != null)
         {
             ExperimentManager.Instance.ContinueAfterBreak();
-
-            // Load the instructions scene for the next block
             SceneManager.LoadScene(nextSceneName);
-            Debug.Log($"RestBreakManager: Loading next scene: {nextSceneName}");
         }
         else
         {
-            Debug.LogError("RestBreakManager: ExperimentManager.Instance is null!");
-            // Fallback direct scene loading
             SceneManager.LoadScene(nextSceneName);
         }
     }

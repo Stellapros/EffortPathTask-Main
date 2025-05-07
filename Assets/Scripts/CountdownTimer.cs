@@ -12,9 +12,9 @@ public class CountdownTimer : MonoBehaviour
     // [SerializeField] private Color warningColor = new Color(0.6f, 0.2f, 0.2f); // dard red
 
     // ToRGB: 0.4 × 255 = 102; 1.0 × 255 = 255; 0.4 × 255 = 102
-    [SerializeField] private Color warningColor = new Color(0.694f, 0.925f, 0.180f); // #B1EC2E
+    [SerializeField] private Color warningColor = new Color(0.549f, 0.878f, 0.376f); // #8CE060
     [SerializeField] private Color normalColor = new Color(0.584f, 0.761f, 0.749f); // #95C2BF
-
+    // new Color(0.694f, 0.925f, 0.180f); // #B1EC2E
     private float timeLeft;
     private bool isRunning = false;
     private bool isInWarningPhase = false;

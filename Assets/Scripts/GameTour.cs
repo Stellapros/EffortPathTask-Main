@@ -6,6 +6,10 @@ using TMPro;
 
 public class InstructionManager : MonoBehaviour
 {
+    /// <summary>
+    /// This class manages the instructions for the game tour, including displaying instructions,
+    /// </summary>
+    
     [SerializeField] private TextMeshProUGUI welcomeText;
     [SerializeField] private TextMeshProUGUI instructionText;
     [SerializeField] private TextMeshProUGUI pageIndicatorText;
@@ -79,8 +83,8 @@ public class InstructionManager : MonoBehaviour
     "Welcome to the Motivation Expedition, a strategic fruit-collecting adventure across two unique islands!",
     "Each island presents different challenges and rewards. Your mission: navigate, collect fruits, and maximize your score.",
     "Now, let's explore how to play.",
-    "You will be collecting fruit on islands. Each fruit gives you points and increases your bonus payment! But collecting fruit requires effort. Try to maximize your score while minimizing effort.",
-    "Each fruit is worth 10 points, but some may require more effort (button presses) to reach than others. Each time you see a fruit, you must decide whether to work for it or skip it to find another.",
+    "You will be collecting fruit on islands. Each fruit gives you points and increases your bonus payment! But collecting fruit requires effort. Try to maximize your score while minimizing your effort.",
+    "Each fruit is worth 10 points, but some may require more effort (button presses) to reach than others. Each time you see a fruit, you must decide whether you want to work for it or skip it to find another.",
     "These decisions work as follows: Press 'A' to 'Work' (collect fruit) or 'D' to 'Skip' (rest). You will see an example on the next screen—no need to choose now.",
     "You have 2.5 seconds to decide—fail to choose in time, and you'll get 0 points plus a time penalty of 3 seconds!",
     "If you choose WORK: A fruit will appear on the grid—your target! Time is limited. You have 5 seconds to move your character and collect it. Press the direction buttons repetitively to navigate and reach the fruit before time runs out.",
@@ -95,7 +99,7 @@ public class InstructionManager : MonoBehaviour
     "That's it! You're all set to begin with some practice. Once you start, please don't quit the game midway. Make sure you have approximately 60 minutes available to finish the task in one go. Good luck, and may the juiciest fruits always be within your reach!"
     };
 
- 
+
     private int currentInstructionIndex = 0;
     private bool isTransitioning = false;
 

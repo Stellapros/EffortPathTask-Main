@@ -48,7 +48,7 @@ public class TitlePage : MonoBehaviour
         // Set up text
         titleText.text = "Neuronauts";
         subtitleText.text = "The Motivation Expedition";
-        instructionText.text = "Maximize the screen for an immersive experience.\n\n Press any key or click to begin your journey.";
+        instructionText.text = "Maximize the screen for an immersive experience\n\n Press any key or click to begin your journey";
 
         // // Set up buttons
         // startButton.onClick.AddListener(StartJourney);

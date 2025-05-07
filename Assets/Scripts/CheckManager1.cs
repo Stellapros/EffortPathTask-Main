@@ -26,6 +26,10 @@ public class CheckManager1 : MonoBehaviour
     [SerializeField] private Color normalColor = new Color(0.67f, 0.87f, 0.86f);
     [SerializeField] private Color selectedColor = new Color(0.87f, 0.86f, 0.67f);
     [SerializeField] private Color disabledColor = new Color(0.7f, 0.7f, 0.7f);
+    [Header("Audio")]
+    private AudioSource audioSource;
+    public AudioClip successSound;
+    public AudioClip failSound;
 
     [Header("Check Questions Settings")]
     private int numberOfCheckQuestions = 6;
@@ -43,8 +47,28 @@ public class CheckManager1 : MonoBehaviour
     private float phaseStartTime;
 
 
+    private void Awake()
+    {
+        Debug.Log("Check1_Preference Awake() called");
+        Debug.Log($"Check1_Preference - ResumeFromCheck: {PlayerPrefs.GetInt("ResumeFromCheck", 0)}");
+        Debug.Log($"Check1_Preference - PracticeBlocksCompleted: {PlayerPrefs.GetInt("PracticeBlocksCompleted", 0)}");
+
+        // Ensure we're properly set up for this check
+        PracticeManager practiceManager = FindAnyObjectByType<PracticeManager>();
+        if (practiceManager != null)
+        {
+            practiceManager.PauseUpdates(true); // Pause updates while we're in the check
+        }
+    }
+
     void Start()
     {
+        // Add this code to ensure we have an AudioSource
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+
         phaseStartTime = Time.time;
 
         fruitPool = new List<GameObject> { applePrefab, grapesPrefab, watermelonPrefab };
@@ -190,47 +214,68 @@ public class CheckManager1 : MonoBehaviour
         var currentPair = fruitPairs[currentTrialNumber];
         Debug.Log($"Current Pair: {currentPair.Item1.name} vs {currentPair.Item2.name}");
 
-        // bool correctChoice = false;
         bool isCorrect = false;
+        string correctFruit = "";
 
         if (currentPair.Item1.name == "Apple" && currentPair.Item2.name == "Grapes")
         {
+            correctFruit = "Apple";
             isCorrect = (leftFruit.name.Contains("Apple") && choice == "Left") ||
                             (rightFruit.name.Contains("Apple") && choice == "Right");
         }
         else if (currentPair.Item1.name == "Apple" && currentPair.Item2.name == "Watermelon")
         {
+            correctFruit = "Apple";
             isCorrect = (leftFruit.name.Contains("Apple") && choice == "Left") ||
                             (rightFruit.name.Contains("Apple") && choice == "Right");
         }
         else if (currentPair.Item1.name == "Grapes" && currentPair.Item2.name == "Watermelon")
         {
+            correctFruit = "Grapes";
             isCorrect = (leftFruit.name.Contains("Grapes") && choice == "Left") ||
                             (rightFruit.name.Contains("Grapes") && choice == "Right");
         }
         else if (currentPair.Item1.name == "Grapes" && currentPair.Item2.name == "Apple")
         {
+            correctFruit = "Apple";
             isCorrect = (leftFruit.name.Contains("Apple") && choice == "Left") ||
                             (rightFruit.name.Contains("Apple") && choice == "Right");
         }
         else if (currentPair.Item1.name == "Watermelon" && currentPair.Item2.name == "Apple")
         {
+            correctFruit = "Apple";
             isCorrect = (leftFruit.name.Contains("Apple") && choice == "Left") ||
                             (rightFruit.name.Contains("Apple") && choice == "Right");
         }
         else if (currentPair.Item1.name == "Watermelon" && currentPair.Item2.name == "Grapes")
         {
+            correctFruit = "Grapes";
             isCorrect = (leftFruit.name.Contains("Grapes") && choice == "Left") ||
                             (rightFruit.name.Contains("Grapes") && choice == "Right");
         }
 
+        // Play appropriate sound effect based on correctness
         if (isCorrect)
         {
             correctChoiceScore++;
+            debugText.text += $"\nCorrect! You selected the {correctFruit}.";
+            if (successSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(successSound);
+            }
+        }
+        else
+        {
+            // Find which side the correct fruit was on
+            string correctPosition = leftFruit.name.Contains(correctFruit) ? "Left" : "Right";
+            debugText.text += $"\nIncorrect. The correct choice was the {correctFruit} on the {correctPosition}.";
+            if (failSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(failSound);
+            }
         }
 
         // Enhanced logging
-        Debug.Log($"Preparing to log trial {currentTrialNumber} (will be {currentTrialNumber + 1} in log)");
         LogManager.Instance.LogCheckQuestionResponse(
             trialNumber: currentTrialNumber,
             checkPhase: 1,
@@ -243,14 +288,13 @@ public class CheckManager1 : MonoBehaviour
             responseTime: responseTime,
             new Dictionary<string, string>
             {
-            {"LeftFruit", leftFruit.name},
-            {"RightFruit", rightFruit.name}
+        {"LeftFruit", leftFruit.name},
+        {"RightFruit", rightFruit.name}
             }
         );
 
         checkQuestionsCompleted++;
         UpdateProgressText();
-        debugText.text += $"\nCorrect choice: {isCorrect} (Total: {correctChoiceScore})";
 
         if (checkQuestionsCompleted > numberOfCheckQuestions)
         {
@@ -262,7 +306,7 @@ public class CheckManager1 : MonoBehaviour
                 phaseType: "PreferenceCheck",
                 new Dictionary<string, string>
                 {
-                {"PercentageCorrect", ((float)correctChoiceScore / numberOfCheckQuestions * 100).ToString("F1") + "%"}
+            {"PercentageCorrect", ((float)correctChoiceScore / numberOfCheckQuestions * 100).ToString("F1") + "%"}
                 }
             );
         }
@@ -271,7 +315,7 @@ public class CheckManager1 : MonoBehaviour
         PlayerPrefs.Save();
 
         currentTrialNumber++;
-        Invoke("SetupNewTrial", 1.5f);
+        Invoke("SetupNewTrial", 2.0f);
     }
 
     // Helper method for determining correct answer
@@ -308,6 +352,8 @@ public class CheckManager1 : MonoBehaviour
         questionStartTime = Time.time; // Add time tracking for each trial
         var currentPair = fruitPairs[currentTrialNumber];
 
+        // Clear debug text at the start of each new trial
+        debugText.text = "";
 
         if (leftFruit != null) Destroy(leftFruit);
         if (rightFruit != null) Destroy(rightFruit);
@@ -341,7 +387,7 @@ public class CheckManager1 : MonoBehaviour
         // buttonInstructionText.text = "Use ← → to choose; Press Space or Enter to confirm";
         // buttonInstructionText.text = "Use A/D to choose";
         buttonInstructionText.text = "Use A/D or ← → to choose";
-        debugText.text = $"Trial {currentTrialNumber + 1} of {fruitPairs.Count}: {leftFruit.name} vs {rightFruit.name}";
+        // debugText.text = $"Trial {currentTrialNumber + 1} of {fruitPairs.Count}: {leftFruit.name} vs {rightFruit.name}";
         UpdateProgressText();
     }
 
@@ -453,11 +499,62 @@ public class CheckManager1 : MonoBehaviour
         SetupNewTrial();
     }
 
+    // void TransitionToNextScene()
+    // {
+    //     LogManager.Instance.LogExperimentEnd();
+    //     SceneManager.LoadScene("Check2_Recognition");
+    //     // SceneManager.LoadScene("Check3_ComprehensionQuiz");
+    // }
+
     void TransitionToNextScene()
     {
-        LogManager.Instance.LogExperimentEnd();
-        SceneManager.LoadScene("Check2_Recognition");
-        // SceneManager.LoadScene("Check3_ComprehensionQuiz");
+        // LogManager.Instance.LogCheckPhaseComplete(
+        //     checkPhase: 1,
+        //     totalQuestions: numberOfCheckQuestions,
+        //     correctAnswers: correctChoiceScore,
+        //     completionTime: Time.time - phaseStartTime,
+        //     phaseType: "PreferenceCheck",
+        //     new Dictionary<string, string>
+        //     {
+        //         {"PercentageCorrect", ((float)correctChoiceScore / numberOfCheckQuestions * 100).ToString("F1") + "%"}
+        //     }
+        // );
+
+        // Check if we need to return to practice blocks
+        if (PlayerPrefs.GetInt("ResumeFromCheck", 0) == 1)
+        {
+            Debug.Log("Check1_Preference completed. Returning to practice blocks.");
+
+            // Here we are NOT resetting the ResumeFromCheck flag
+            // Instead, we're updating the blocks completed
+            // int blocksCompleted = PlayerPrefs.GetInt("PracticeBlocksCompleted", 0);
+            PlayerPrefs.SetInt("IsPracticeTrial", 1);
+            PlayerPrefs.Save();
+
+            // Find PracticeManager if it exists
+            PracticeManager practiceManager = FindAnyObjectByType<PracticeManager>();
+            if (practiceManager != null)
+            {
+                // Enable updates before calling ResumeFromCheck
+                practiceManager.PauseUpdates(false);
+
+                // Let PracticeManager handle returning to practice
+                practiceManager.ResumeFromCheck();
+            }
+            else
+            {
+                Debug.LogError("PracticeManager not found! Falling back to direct scene load.");
+                // If PracticeManager not found, load PracticePhase scene
+                SceneManager.LoadScene("PracticePhase");
+            }
+        }
+        else
+        {
+            // Normal progression - go to next check scene
+            Debug.Log("Check1_Preference completed. Moving to Check2_Recognition.");
+            LogManager.Instance.LogExperimentEnd();
+            SceneManager.LoadScene("Check2_Recognition");
+        }
     }
 
     void UpdateProgressText()
