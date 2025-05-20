@@ -199,7 +199,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      bar_04_grey_layer_6_0: -4133657019735747031
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

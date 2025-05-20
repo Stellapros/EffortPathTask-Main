@@ -320,9 +320,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gridManager: {fileID: 2841200552521907685, guid: 28a9567939d5a4c34a12aa2a449fbcbc,
     type: 3}
-  bufferPercentage: 15
-  minBuffer: 1.2
-  zPosition: -10
 --- !u!1 &188394631
 GameObject:
   m_ObjectHideFlags: 0
@@ -632,7 +629,7 @@ MonoBehaviour:
   timerCanvas: {fileID: 0}
   timerRectTransform: {fileID: 0}
   timerColor: {r: 0.6666667, g: 0.87058824, b: 0.8627451, a: 1}
-  fontSize: 26
+  fontSize: 30
   fontStyle: 1
 --- !u!4 &303647645
 Transform:

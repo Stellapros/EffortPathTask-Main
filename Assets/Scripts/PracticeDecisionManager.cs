@@ -342,21 +342,25 @@ public class PracticeDecisionManager : MonoBehaviour
 
     private void OnDecisionMade(bool workDecision)
     {
-        // Generate a transaction ID for this decision
-        string transactionId = System.Guid.NewGuid().ToString();
+    // Generate a transaction ID for this decision
+    string transactionId = System.Guid.NewGuid().ToString();
 
-        // Store the transaction ID
-        PlayerPrefs.SetString("CurrentDecisionTransactionId", transactionId);
+    // Store the transaction ID
+    PlayerPrefs.SetString("CurrentDecisionTransactionId", transactionId);
 
-        // IMPORTANT: Store the decision type to prevent confusion
-        PlayerPrefs.SetInt("IsWorkDecision", workDecision ? 1 : 0);
+    // IMPORTANT: Store the decision type to prevent confusion
+    PlayerPrefs.SetInt("IsWorkDecision", workDecision ? 1 : 0);
+    
+    // CRITICAL FIX: Store the current trial index at decision time
+    int currentTrialIndex = PracticeManager.Instance.GetCurrentPracticeTrialIndex();
+    PlayerPrefs.SetInt("CurrentDecisionTrialIndex", currentTrialIndex);
 
-        // IMPORTANT: Add a timestamp to help with debugging and race condition detection
-        PlayerPrefs.SetString("LastDecisionTimestamp", System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+    // IMPORTANT: Add a timestamp to help with debugging and race condition detection
+    PlayerPrefs.SetString("LastDecisionTimestamp", System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"));
 
-        // IMPORTANT: Reset the WorkDecisionProcessed flag at the start of a new decision
-        PlayerPrefs.SetInt("WorkDecisionProcessed", 0);
-        PlayerPrefs.Save();
+    // IMPORTANT: Reset the WorkDecisionProcessed flag at the start of a new decision
+    PlayerPrefs.SetInt("WorkDecisionProcessed", 0);
+    PlayerPrefs.Save();
 
         float decisionRT = Time.time - decisionPhaseStartTime;
 

@@ -1,5 +1,3 @@
-
-
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -107,14 +105,7 @@ public class ParticipantInfo : MonoBehaviour
             return;
         }
 
-        // Validate gender selection
-        if (genderDropdown.value == 0) // First option is "Prefer not to say"
-        {
-            // Optional: Add a more explicit warning or prevent submission
-            Debug.LogWarning("Please select a gender option");
-            return;
-        }
-
+        // Get the selected gender option - allow any option including "Prefer not to say"
         string gender = genderDropdown.options[genderDropdown.value].text;
 
         PlayerPrefs.SetString("ParticipantID", id);

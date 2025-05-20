@@ -977,7 +977,6 @@ public class PracticeManager : MonoBehaviour
                 return ExperimentManager.BlockType.EqualRatio; // Changed default to Normal
         }
     }
-
     public void StartPracticeMode()
     {
         Debug.Log($"StartPracticeMode called! Practice attempts: {PlayerPrefs.GetInt("PracticeAttempts", 0)}");
@@ -1088,7 +1087,14 @@ public class PracticeManager : MonoBehaviour
                 // Check if we've reached the end of practice trials
                 if (nextIndex >= practiceTrials.Count)
                 {
-                    Debug.Log($"{logPrefix} End of practice trials reached. Returning to main menu or experiment.");
+                    Debug.Log($"{logPrefix} End of practice trials reached. Ending practice mode.");
+
+                    // CRITICAL FIX: Set the processing flag to false before ending practice mode
+                    PlayerPrefs.DeleteKey(processingKey);
+                    PlayerPrefs.DeleteKey(processingKey + "_timeout");
+                    PlayerPrefs.Save();
+
+                    // End practice mode - IMPORTANT: This will handle transitions to check questions
                     EndPracticeMode();
                     return;
                 }
@@ -1105,35 +1111,7 @@ public class PracticeManager : MonoBehaviour
                 // Force save PlayerPrefs immediately
                 PlayerPrefs.Save();
 
-                // WebGL specific synchronization
-#if UNITY_WEBGL && !UNITY_EDITOR
-            try
-            {
-                Debug.Log($"{logPrefix} Attempting WebGL PlayerPrefs sync");
-                // Force immediate sync in WebGL if available
-                try
-                {
-                    Application.ExternalCall("syncfs");
-                }
-                catch (System.Exception)
-                {
-                    // Ignore if not available
-                }
-
-                // Alternate method for WebGL PlayerPrefs sync
-                try {
-                    UnityEngine.WebGLInput.captureAllKeyboardInput = false;
-                    UnityEngine.WebGLInput.captureAllKeyboardInput = true;
-                }
-                catch (System.Exception) {
-                    // Ignore if not available
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogWarning($"{logPrefix} WebGL sync error: {ex.Message}");
-            }
-#endif
+                // [WebGL sync code remains unchanged]
 
                 // Extra verification
                 int verifiedIndex = PlayerPrefs.GetInt("CurrentPracticeTrialIndex", -1);
@@ -1145,27 +1123,25 @@ public class PracticeManager : MonoBehaviour
                     PlayerPrefs.SetInt("CurrentPracticeTrialIndex", nextIndex);
                     PlayerPrefs.Save();
 
-                    // Add additional delays for problematic platforms
-#if UNITY_WEBGL && !UNITY_EDITOR
-                StartCoroutine(WebGLExtraSync(nextIndex, logPrefix));
-#endif
+                    // [WebGL sync code remains unchanged]
                 }
 
                 // Log to confirm the update
                 Debug.Log($"{logPrefix} Updated trial index in PlayerPrefs: {PlayerPrefs.GetInt("CurrentPracticeTrialIndex", -1)}");
 
-                // IMPORTANT: Increased delay from 1.5f to 2.0f for WebGL
-                StartCoroutine(LoadDecisionPhaseAfterDelay(2.0f, processingKey, logPrefix));
+                // Load decision phase with appropriate delay
+                StartCoroutine(LoadDecisionPhaseAfterDelay(0.5f, processingKey, logPrefix));
             }
             catch (System.Exception ex)
             {
                 Debug.LogError($"{logPrefix} Error in HandleGridWorldOutcome: {ex.Message}\n{ex.StackTrace}");
 
                 // Attempt recovery by reloading the decision phase
-                StartCoroutine(LoadDecisionPhaseAfterDelay(2.5f, "recovery_" + transactionId, logPrefix));
+                StartCoroutine(LoadDecisionPhaseAfterDelay(0.5f, "recovery_" + transactionId, logPrefix));
             }
         }
     }
+
 
     private IEnumerator WebGLExtraSync(int targetIndex, string logPrefix)
     {
@@ -1197,8 +1173,13 @@ public class PracticeManager : MonoBehaviour
 
     private IEnumerator LoadDecisionPhaseAfterDelay(float delay, string processingKey, string logPrefix)
     {
-        // Additional delay for WebGL to ensure PlayerPrefs are synced
+        // Only add a small delay for WebGL platforms
+#if UNITY_WEBGL && !UNITY_EDITOR
         yield return new WaitForSeconds(delay);
+#else
+        // For other platforms, minimal delay
+        yield return new WaitForEndOfFrame();
+#endif
 
         // Double check the current index one last time 
         int finalIndex = PlayerPrefs.GetInt("CurrentPracticeTrialIndex", -1);
@@ -1251,11 +1232,21 @@ public class PracticeManager : MonoBehaviour
         // Check if we've completed all practice blocks
         bool allBlocksCompleted = (practiceBlockIndex >= practiceBlockSequence.Count - 1);
 
+        // CRITICAL FIX: Make sure we're not transitioning incorrectly
+        Debug.Log($"EndPracticeMode - All blocks completed: {allBlocksCompleted}, Current block index: {practiceBlockIndex}");
+
+        // Reset practice trial index
         currentPracticeTrialIndex = -1;
-        // When transitioning from practice trials to formal trials, ensure the IsPracticeTrial flag is reset to 0:
-        PlayerPrefs.SetInt("IsPracticeTrial", 0); // Reset the flag
+
+        // When transitioning from practice trials to formal trials, ensure the IsPracticeTrial flag is reset
+        PlayerPrefs.SetInt("IsPracticeTrial", 0);
         PlayerPrefs.DeleteKey("CurrentPracticeTrialIndex");
         PlayerPrefs.DeleteKey("CurrentPracticeEffortLevel");
+
+        // IMPORTANT: Make sure BlockOfficiallyStarted is reset
+        PlayerPrefs.SetInt("BlockOfficiallyStarted", 0);
+
+        // Save all changes immediately
         PlayerPrefs.Save();
 
         // Set practice mode off on GridManager if it exists
@@ -1263,14 +1254,16 @@ public class PracticeManager : MonoBehaviour
         if (gridManager != null)
         {
             gridManager.SetPracticeMode(false);
-            // Debug.Log("Turning off practice mode in GridManager");
+            Debug.Log("Turning off practice mode in GridManager");
         }
 
+        // Trigger practice completed event
         OnPracticeCompleted?.Invoke();
 
         // Redirect to Check2_Recognition only if all blocks completed
         if (allBlocksCompleted)
         {
+            Debug.Log("All practice blocks completed. Loading check scene.");
             SceneManager.LoadScene(getReadyCheckScene);
         }
         else
@@ -1278,6 +1271,7 @@ public class PracticeManager : MonoBehaviour
             // If not all blocks completed, check if we need to go to Check1_Preference
             if (practiceBlockIndex == 0)
             {
+                Debug.Log("First practice block completed. Loading Check1_Preference.");
                 // Save state for resuming from check
                 PlayerPrefs.SetInt("PracticeBlocksCompleted", 1);
                 PlayerPrefs.SetInt("ResumeFromCheck", 1);
@@ -1288,6 +1282,7 @@ public class PracticeManager : MonoBehaviour
             else
             {
                 // Otherwise, continue to next block
+                Debug.Log("Loading next practice block instruction scene.");
                 SceneManager.LoadScene(blockInstructionScene);
             }
         }

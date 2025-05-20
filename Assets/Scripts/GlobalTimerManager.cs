@@ -15,8 +15,12 @@ public class UniversalTimerOverlay : MonoBehaviour
 
     [Header("Timer Styling")]
     public Color timerColor = new Color(0.67f, 0.87f, 0.86f);
-    public int fontSize = 24;
+    public int fontSize = 30;
     public FontStyles fontStyle = FontStyles.Bold;
+    
+    // Add font asset reference
+    [Header("Font Settings")]
+    public TMP_FontAsset electronicHighwayFont;
 
     // Tracking time
     private float startTime;
@@ -72,8 +76,23 @@ public class UniversalTimerOverlay : MonoBehaviour
             // Make text left-aligned for better readability with two lines
             timerText.alignment = TextAlignmentOptions.Left;
 
-            // Optional: You can set a specific font if you have one
-            // timerText.font = Resources.Load<TMP_FontAsset>("path/to/your/font");
+            // Load and set the Electronic Highway Sign font
+            if (electronicHighwayFont == null)
+            {
+                // Try to load the font from TextMeshPro resources
+                electronicHighwayFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/Electronic Highway Sign SDF");
+            }
+            
+            // Apply the font if found
+            if (electronicHighwayFont != null)
+            {
+                timerText.font = electronicHighwayFont;
+                Debug.Log("Electronic Highway Sign font applied successfully");
+            }
+            else
+            {
+                Debug.LogWarning("Could not load Electronic Highway Sign font");
+            }
         }
 
         // Ensure RectTransform is set up
@@ -83,7 +102,7 @@ public class UniversalTimerOverlay : MonoBehaviour
         timerRectTransform.anchorMin = new Vector2(1, 0);
         timerRectTransform.anchorMax = new Vector2(1, 0);
         timerRectTransform.pivot = new Vector2(1, 0);
-        timerRectTransform.anchoredPosition = new Vector2(-20, 20); // 20 pixel padding from bottom-right
+        timerRectTransform.anchoredPosition = new Vector2(30, 10); // 30 pixel padding from bottom-right
 
         // Set a wider width for the timer text
         timerRectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 500f);
@@ -150,7 +169,8 @@ public class UniversalTimerOverlay : MonoBehaviour
     public void CustomizeTimerAppearance(
         int? fontSize = null,
         Color? textColor = null,
-        FontStyles? fontStyle = null)
+        FontStyles? fontStyle = null,
+        TMP_FontAsset customFont = null)
     {
         if (timerText != null)
         {
@@ -162,6 +182,26 @@ public class UniversalTimerOverlay : MonoBehaviour
 
             if (fontStyle.HasValue)
                 timerText.fontStyle = fontStyle.Value;
+                
+            if (customFont != null)
+                timerText.font = customFont;
+        }
+    }
+    
+    // New method to set font by name
+    public void SetTimerFont(string fontName)
+    {
+        // Try to load the font by name
+        TMP_FontAsset fontAsset = Resources.Load<TMP_FontAsset>($"Fonts & Materials/{fontName}");
+        
+        if (fontAsset != null && timerText != null)
+        {
+            timerText.font = fontAsset;
+            Debug.Log($"Font '{fontName}' applied successfully");
+        }
+        else
+        {
+            Debug.LogWarning($"Could not load font '{fontName}'");
         }
     }
 }

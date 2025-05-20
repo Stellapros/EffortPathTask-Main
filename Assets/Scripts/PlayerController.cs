@@ -712,6 +712,7 @@ public class PlayerController : MonoBehaviour
             int trialIndex = isPracticeTrial
                 ? PracticeManager.Instance.GetCurrentPracticeTrialIndex()
                 : ExperimentManager.Instance.GetCurrentTrialIndex();
+            Debug.Log($"Reward collected - Trial Index: {trialIndex}, IsPractice: {isPracticeTrial}, PlayerPrefs Index: {PlayerPrefs.GetInt("CurrentPracticeTrialIndex", -1)}");
 
             // Get block number based on trial type
             int blockNumber = isPracticeTrial ? -1 : ExperimentManager.Instance.GetCurrentBlockNumber();
@@ -989,50 +990,72 @@ public class PlayerController : MonoBehaviour
         int effortLevel;
         int requiredPresses;
 
-        // Safely get trial data
-        try
+    // Safely get trial data
+    try
+    {
+        if (isPracticeTrial)
         {
-            if (isPracticeTrial)
+            // CRITICAL FIX: Use the stored trial index from decision time to avoid race condition
+            trialIndex = PlayerPrefs.GetInt("CurrentDecisionTrialIndex", -1);
+            
+            // Log which method we're using to determine the trial index
+            if (trialIndex != -1)
             {
+                Debug.Log($"Using stored trial index: {trialIndex} from PlayerPrefs");
+            }
+            else
+            {
+                Debug.LogWarning("Stored trial index not found in PlayerPrefs, falling back to PracticeManager");
+                
                 if (PracticeManager.Instance == null)
                 {
                     Debug.LogError("PracticeManager.Instance is null!");
                     trialIndex = -1;
-                    blockNumber = -1;
-                    effortLevel = 1;
-                    requiredPresses = 1;
-                    decisionTime = 0f;
                 }
                 else
                 {
                     trialIndex = PracticeManager.Instance.GetCurrentPracticeTrialIndex();
-                    blockNumber = -1; // Use -1 for practice blocks
-                    effortLevel = PracticeManager.Instance.GetCurrentTrialEffortLevel();
-                    requiredPresses = PracticeManager.Instance.GetCurrentTrialPressesRequired();
-                    decisionTime = PlayerPrefs.GetFloat("PracticeDecisionTime", 0f);
+                    Debug.Log($"Fallback trial index from PracticeManager: {trialIndex}");
                 }
+            }
+            
+            blockNumber = -1; // Use -1 for practice blocks
+            
+            if (PracticeManager.Instance == null)
+            {
+                Debug.LogError("PracticeManager.Instance is null when getting effort level!");
+                effortLevel = 1;
+                requiredPresses = 1;
             }
             else
             {
-                if (ExperimentManager.Instance == null)
-                {
-                    Debug.LogError("ExperimentManager.Instance is null!");
-                    trialIndex = -1;
-                    blockNumber = -1;
-                    effortLevel = 1;
-                    requiredPresses = 1;
-                    decisionTime = 0f;
-                }
-                else
-                {
-                    trialIndex = ExperimentManager.Instance.GetCurrentTrialIndex();
-                    blockNumber = ExperimentManager.Instance.GetCurrentBlockNumber();
-                    effortLevel = ExperimentManager.Instance.GetCurrentTrialEffortLevel();
-                    requiredPresses = ExperimentManager.Instance.GetCurrentTrialEV();
-                    decisionTime = PlayerPrefs.GetFloat("DecisionTime", 0f);
-                }
+                effortLevel = PracticeManager.Instance.GetCurrentTrialEffortLevel();
+                requiredPresses = PracticeManager.Instance.GetCurrentTrialPressesRequired();
+            }
+            
+            decisionTime = PlayerPrefs.GetFloat("PracticeDecisionTime", 0f);
+        }
+        else
+        {
+            if (ExperimentManager.Instance == null)
+            {
+                Debug.LogError("ExperimentManager.Instance is null!");
+                trialIndex = -1;
+                blockNumber = -1;
+                effortLevel = 1;
+                requiredPresses = 1;
+                decisionTime = 0f;
+            }
+            else
+            {
+                trialIndex = ExperimentManager.Instance.GetCurrentTrialIndex();
+                blockNumber = ExperimentManager.Instance.GetCurrentBlockNumber();
+                effortLevel = ExperimentManager.Instance.GetCurrentTrialEffortLevel();
+                requiredPresses = ExperimentManager.Instance.GetCurrentTrialEV();
+                decisionTime = PlayerPrefs.GetFloat("DecisionTime", 0f);
             }
         }
+    }
         catch (Exception e)
         {
             Debug.LogError($"Error getting trial data: {e.Message}\n{e.StackTrace}");

@@ -315,7 +315,7 @@ public class CheckManager1 : MonoBehaviour
         PlayerPrefs.Save();
 
         currentTrialNumber++;
-        Invoke("SetupNewTrial", 2.0f);
+        Invoke("SetupNewTrial", 1.0f);
     }
 
     // Helper method for determining correct answer

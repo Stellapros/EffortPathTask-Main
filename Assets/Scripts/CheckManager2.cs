@@ -305,7 +305,7 @@ public class CheckManager2 : MonoBehaviour
         PlayerPrefs.SetInt("Check2Score", Mathf.Min(correctChoiceScore, 6));
         PlayerPrefs.Save();
 
-        Invoke("ProcessNextTrial", 2.0f);
+        Invoke("ProcessNextTrial", 1.0f);
     }
 
     private void ProcessNextTrial()

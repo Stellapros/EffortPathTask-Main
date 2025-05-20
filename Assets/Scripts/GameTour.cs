@@ -9,7 +9,7 @@ public class InstructionManager : MonoBehaviour
     /// <summary>
     /// This class manages the instructions for the game tour, including displaying instructions,
     /// </summary>
-    
+
     [SerializeField] private TextMeshProUGUI welcomeText;
     [SerializeField] private TextMeshProUGUI instructionText;
     [SerializeField] private TextMeshProUGUI pageIndicatorText;
@@ -283,11 +283,11 @@ public class InstructionManager : MonoBehaviour
         // Show different navigation instructions based on whether it's the first instruction
         if (currentInstructionIndex == 0)
         {
-            instructionText.text += "\n\n<size=90%>Press 'Space' to continue</size>";
+            instructionText.text += "\n\n<font=\"Electronic Highway Sign SDF\"><size=70%>Press 'Space' to continue</size></font>";
         }
         else
         {
-            instructionText.text += "\n\n<size=90%>Press 'Space' to continue; ← to go back</size>";
+            instructionText.text += "\n\n<font=\"Electronic Highway Sign SDF\"><size=70%>Press 'Space' to continue; ← to go back</size></font>";
         }
 
         // Update page indicator if available

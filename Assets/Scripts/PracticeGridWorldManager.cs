@@ -224,7 +224,8 @@ public class PracticeGridWorldManager : MonoBehaviour
         if (practiceManager != null)
         {
             // CRITICAL FIX: Increased delay from 1.0f to 1.5f for WebGL compatibility
-            StartCoroutine(CallHandleGridWorldOutcomeWithDelay(false, transactionId, 1.5f));
+            // StartCoroutine(CallHandleGridWorldOutcomeWithDelay(false, transactionId, 1.5f));
+            StartCoroutine(CallHandleGridWorldOutcomeWithDelay(false, transactionId, 1.0f));
         }
         else
         {
@@ -240,7 +241,12 @@ public class PracticeGridWorldManager : MonoBehaviour
 
     private IEnumerator CallHandleGridWorldOutcomeWithDelay(bool isSkip, string transactionId, float delay)
     {
+        // Only use delay on WebGL
+#if UNITY_WEBGL && !UNITY_EDITOR
         yield return new WaitForSeconds(delay);
+#else
+        yield return new WaitForEndOfFrame();
+#endif
 
         // Log to confirm we're calling with the right parameters
         Debug.Log($"Calling HandleGridWorldOutcome after delay. isSkip: {isSkip}, transactionId: {transactionId}");

@@ -9,6 +9,7 @@ using System.Text;
 /// <summary>
 /// Manages the overall flow of the experiment, including trial generation, scene transitions, and data logging.
 /// </summary>
+
 public class ExperimentManager : MonoBehaviour
 {
     #region Singleton
@@ -171,7 +172,14 @@ public class ExperimentManager : MonoBehaviour
 
         if (isBlockActive)
         {
+            // float rawElapsed = Time.unscaledTime - blockStartTime;
+#if UNITY_WEBGL
+            // Use a more conservative approach for WebGL
+            blockTimer += Time.unscaledDeltaTime;
+            float rawElapsed = blockTimer; // Use accumulated time instead
+#else
             float rawElapsed = Time.unscaledTime - blockStartTime;
+#endif
 
             // Safety check for time anomalies
             if (rawElapsed < 0)
@@ -185,10 +193,18 @@ public class ExperimentManager : MonoBehaviour
             if (!isBlockTimeUp)
             {
                 // Calculate remaining time with WebGL buffer
-                float remainingTime = BLOCK_DURATION - rawElapsed;
+                //                 float remainingTime = BLOCK_DURATION - rawElapsed;
+                // #if UNITY_WEBGL
+                //                 remainingTime -= WEBGL_TIME_BUFFER;
+                // #endif
+
+                //  add buffer to duration instead of subtracting from remaining
+                float adjustedDuration = BLOCK_DURATION;
 #if UNITY_WEBGL
-                remainingTime -= WEBGL_TIME_BUFFER;
+                adjustedDuration += WEBGL_TIME_BUFFER;
 #endif
+                float remainingTime = adjustedDuration - rawElapsed;
+
 
                 // Log block status periodically
                 if (Time.unscaledTime % 10 < Time.unscaledDeltaTime)
@@ -236,7 +252,8 @@ public class ExperimentManager : MonoBehaviour
 
 #if UNITY_WEBGL
     // Add small buffer to account for WebGL timing inconsistencies
-    private const float WEBGL_TIME_BUFFER = 0.5f;
+    // private const float WEBGL_TIME_BUFFER = 0.5f;
+    private const float WEBGL_TIME_BUFFER = 5.0f; // Increase from 0.5f to 5.0f or higher
 #else
     private const float WEBGL_TIME_BUFFER = 0f;
 #endif
@@ -1496,61 +1513,6 @@ public class ExperimentManager : MonoBehaviour
     /// <summary>
     /// Starts a new block of trials.
     /// </summary>
-    //     private void StartNewBlock()
-    //     {
-    //         // Reset all decision-related states
-    //         decisionMade = false;
-    //         trialStarted = false;
-
-    //         if (decisionTimeoutCoroutine != null)
-    //         {
-    //             StopCoroutine(decisionTimeoutCoroutine);
-    //             decisionTimeoutCoroutine = null;
-    //         }
-
-    //         // blockStartTime = Time.time; // MUST reset timer
-    //         blockStartTime = Time.unscaledTime;
-    //         blockTimer = 0f;
-
-    // #if UNITY_WEBGL
-    //         Debug.Log("WebGL build - applying timing adjustments");
-    // #endif
-
-    //         // currentBlockRemainingTime = BLOCK_DURATION;
-
-    //         // Debug verification
-    //         Debug.Log($"Block {currentBlockNumber} started at: {blockStartTime} | " +
-    //                   $"Current Time: {Time.time}");
-
-    //         // Fresh initialization for each block
-    //         gridManager.EnsureInitialization();
-    //         gridManager.ResetAvailablePositions();
-
-    //         // Reset the trial counts and ratios for the new block
-    //         ResetBlockRatios();
-
-    //         // Reset additional tracking arrays/dictionaries
-    //         trials.Clear(); // Clear existing trials
-    //         currentTrialIndex = 0;
-
-    //         // Log the ratio for the current block
-    //         BlockType blockType = randomizedBlockOrder[currentBlockNumber];
-    //         Debug.Log($"Starting Block {currentBlockNumber + 1} ({blockType}) with ratio: " +
-    //                   $"Low={blockRatios[1]}, Medium={blockRatios[2]}, High={blockRatios[3]}");
-
-    //         // State flags
-    //         isBlockActive = false; // Block timer is not active yet
-    //         isBlockTimeUp = false;
-    //         trialStarted = false;
-    //         decisionMade = false;
-
-    //         Debug.Log($"Block {currentBlockNumber + 1} ready. Timer will start after clicking 'Continue'.");
-    //     }
-
-
-    /// <summary>
-    /// Starts a new block of trials.
-    /// </summary>
     private void StartNewBlock()
     {
         // Reset all decision-related states
@@ -1618,7 +1580,6 @@ public class ExperimentManager : MonoBehaviour
     }
 
 
-
     /// <summary>
     /// Ends the current block of trials.
     /// </summary>
@@ -1651,6 +1612,7 @@ public class ExperimentManager : MonoBehaviour
             LoadScene(restBreakScene);
         }
     }
+
 
     /// <summary>
     /// Ends the current trial and logs the result.

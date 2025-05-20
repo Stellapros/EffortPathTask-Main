@@ -295,7 +295,7 @@ public class CheckManager3 : MonoBehaviour
         }
 
         // Use Invoke to manage progression and reset
-        Invoke("ProcessQuestionProgression", 4.0f);
+        Invoke("ProcessQuestionProgression", 3.0f);
     }
 
 
