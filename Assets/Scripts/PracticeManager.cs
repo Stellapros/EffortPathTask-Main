@@ -12,7 +12,7 @@ public class PracticeManager : MonoBehaviour
     public static PracticeManager Instance { get; private set; }
 
     [Header("Practice Configuration")]
-    [SerializeField] private string decisionPhaseScene = "PracticeDecisionPhase";
+    // [SerializeField] private string decisionPhaseScene = "PracticeDecisionPhase";
     [SerializeField] private string getReadyCheckScene = "GetReadyCheck";
     [SerializeField] private string blockInstructionScene = "PracticeBlockInstruction";
 
@@ -72,7 +72,7 @@ public class PracticeManager : MonoBehaviour
     private float blockStartTime = 0f;
     private float blockDuration = 120f; // 2 minutes per block
     private int practiceBlockIndex = 0;
-    private bool isAdvancingTrial = false;
+    // private bool isAdvancingTrial = false;
     private List<PracticeBlockType> practiceBlockSequence;
     private bool blockTimeExpired = false;
     private bool isShowingBlockInstructions = false;

@@ -121,61 +121,46 @@ public class ArrowKeyCounter : MonoBehaviour
         audioSource.playOnAwake = false;
     }
 
-    private void Update()
+private void Update()
+{
+    if (isInBreak)
     {
-        if (isInBreak)
-        {
-            return;
-        }
-
-        bool keyPressed = Input.GetKeyDown(KeyCode.RightArrow);
-
-        if (!calibrationInProgress)
-        {
-            if (keyPressed)
-            {
-                // Show GO signal and start calibration after a brief delay
-                instructionText.text = goSignal;
-                StartCoroutine(StartCalibrationAfterDelay(0.5f));
-            }
-        }
-        else
-        {
-            if (!phaseStarted)
-            {
-                if (keyPressed)
-                {
-                    phaseStarted = true;
-                    elapsedTime = 0f;
-                    IncrementCounter();
-                }
-            }
-            else
-            {
-                // Modified to use unscaled delta time for WebGL
-                elapsedTime += Time.unscaledDeltaTime * webGLTimeScale;
-                UpdateTimerText();
-
-                if (keyPressed)
-                {
-                    IncrementCounter();
-                    UpdateProgressBar();
-                }
-
-                if (elapsedTime >= calibrationTime)
-                {
-                    EndCalibration();
-                }
-            }
-        }
+        return;
     }
 
-    // Add this new coroutine
-    private IEnumerator StartCalibrationAfterDelay(float delay)
+    bool keyPressed = Input.GetKeyDown(KeyCode.RightArrow);
+
+    if (!calibrationInProgress)
     {
-        yield return new WaitForSeconds(delay);
-        StartCalibration();
+        if (keyPressed)
+        {
+            // Start calibration immediately and show GO signal
+            instructionText.text = goSignal;
+            StartCalibration();
+            // Process this first key press
+            phaseStarted = true;
+            elapsedTime = 0f;
+            IncrementCounter();
+        }
     }
+    else
+    {
+        // Modified to use unscaled delta time for WebGL
+        elapsedTime += Time.unscaledDeltaTime * webGLTimeScale;
+        UpdateTimerText();
+
+        if (keyPressed)
+        {
+            IncrementCounter();
+            UpdateProgressBar();
+        }
+
+        if (elapsedTime >= calibrationTime)
+        {
+            EndCalibration();
+        }
+    }
+}
 
     private void GoToPreviousScene()
     {
@@ -209,7 +194,7 @@ public class ArrowKeyCounter : MonoBehaviour
     private void StartCalibration()
     {
         calibrationInProgress = true;
-        phaseStarted = false;
+        // Don't reset phaseStarted here since we're starting immediately
         counter = 0;
         elapsedTime = 0f;
         interKeyIntervals.Clear();
@@ -383,19 +368,24 @@ public class ArrowKeyCounter : MonoBehaviour
         int maxPresses = phaseResults.Max();
         float pressesPerMovement = maxPresses / 5f;
 
-        // Calculate effort levels based on presses per movement
-        pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressesPerMovement * 0.20f));
-        pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressesPerMovement * 0.40f));
-        pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressesPerMovement * 0.60f));
+        // // Calculate effort levels based on presses per movement -- ROUND 3: 22 May 2025 N = 25
+        // pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressesPerMovement * 0.20f));
+        // pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressesPerMovement * 0.40f));
+        // pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressesPerMovement * 0.60f));
 
-        // // Ensure minimum difference of 2 between levels
-        // for (int i = 1; i < pressesPerEffortLevel.Length; i++)
-        // {
-        //     if (pressesPerEffortLevel[i] - pressesPerEffortLevel[i - 1] < 2)
-        //     {
-        //         pressesPerEffortLevel[i] = pressesPerEffortLevel[i - 1] + 2;
-        //     }
-        // }
+        // Calculate effort levels based on presses per movement -- ROUND 4: xx May 2025 N = xx
+        pressesPerEffortLevel[0] = Mathf.Max(1, Mathf.RoundToInt(pressesPerMovement * 0.30f));
+        pressesPerEffortLevel[1] = Mathf.Max(2, Mathf.RoundToInt(pressesPerMovement * 0.50f));
+        pressesPerEffortLevel[2] = Mathf.Max(3, Mathf.RoundToInt(pressesPerMovement * 0.70f));
+
+        // Ensure minimum difference of 1 between levels
+        for (int i = 1; i < pressesPerEffortLevel.Length; i++)
+        {
+            if (pressesPerEffortLevel[i] - pressesPerEffortLevel[i - 1] < 1)
+            {
+                pressesPerEffortLevel[i] = pressesPerEffortLevel[i - 1] + 1;
+            }
+        }
 
         return pressesPerEffortLevel;
     }
